@@ -6,6 +6,7 @@ import './styles/App.css'
 import './styles/components.css'
 import './styles/calendar.css'
 import './styles/import-view.css'
+import './styles/active-workout.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

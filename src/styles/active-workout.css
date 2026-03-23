@@ -1,0 +1,312 @@
+/* ========== SessionHeader ========== */
+.session-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-md);
+}
+
+.session-header__left,
+.session-header__right {
+  flex: 0 0 auto;
+}
+
+.session-header__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.session-header__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.session-header__timer {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-blue);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* ========== Progress Bar ========== */
+.active-workout-view__progress {
+  padding: var(--space-lg);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background-color: var(--color-accent-green);
+  transition: width 300ms ease-in-out;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ========== LogSetRow ========== */
+.log-set-row {
+  display: grid;
+  grid-template-columns: 50px 1fr auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background-color: var(--color-bg);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  transition: all var(--transition);
+}
+
+.log-set-row--completed {
+  opacity: 0.6;
+  background-color: rgba(48, 209, 88, 0.05);
+  border-color: var(--color-accent-green);
+}
+
+.log-set-row__set-num {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.log-set-row__target {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.log-set-row__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.log-set-row__value {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-blue);
+  font-weight: 500;
+}
+
+.log-set-row__inputs {
+  display: flex;
+  gap: var(--space-md);
+  justify-self: end;
+}
+
+.log-set-row__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 70px;
+}
+
+.log-set-row__input-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.log-set-row__input {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-base);
+  text-align: center;
+  font-weight: 600;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.log-set-row__input:focus {
+  outline: none;
+  border-color: var(--color-accent-blue);
+  background-color: rgba(75, 123, 255, 0.05);
+}
+
+.log-set-row__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.log-set-row__complete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--color-text-secondary);
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.log-set-row__complete:active {
+  transform: scale(0.95);
+}
+
+.log-set-row__complete--active {
+  border-color: var(--color-accent-green);
+  color: var(--color-accent-green);
+  background-color: rgba(48, 209, 88, 0.1);
+}
+
+/* ========== ActiveWorkoutView ========== */
+.active-workout-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.active-workout-view__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  padding-bottom: 100px;
+}
+
+.active-workout-view__exercise {
+  margin-bottom: var(--space-2xl);
+}
+
+.active-workout-view__exercise-header {
+  margin-bottom: var(--space-md);
+}
+
+.active-workout-view__exercise-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.active-workout-view__sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.active-workout-view__video-details {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.active-workout-view__video-summary {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-accent-blue);
+  outline: none;
+  user-select: none;
+}
+
+.active-workout-view__video-summary:hover {
+  text-decoration: underline;
+}
+
+.active-workout-view__video-embed {
+  margin-top: var(--space-md);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.active-workout-view__video-embed iframe {
+  border-radius: 8px;
+}
+
+.active-workout-view__footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-lg);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  z-index: 40;
+}
+
+/* ========== Utilities ========== */
+.w-full {
+  width: 100%;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .log-set-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .log-set-row__set-num {
+    order: -1;
+  }
+
+  .log-set-row__inputs {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .log-set-row__input-group {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .log-set-row__complete {
+    order: 1;
+  }
+
+  .session-header {
+    flex-wrap: wrap;
+  }
+
+  .session-header__center {
+    order: -1;
+    flex-basis: 100%;
+    margin-bottom: var(--space-sm);
+  }
+
+  .active-workout-view__content {
+    padding: var(--space-md);
+    padding-bottom: 120px;
+  }
+
+  .active-workout-view__footer {
+    padding: var(--space-md);
+  }
+}
