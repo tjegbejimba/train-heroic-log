@@ -50,7 +50,15 @@ export async function pullFromServer() {
       // Read the raw stored string once — used for efficient change detection
       // below (avoids re-serializing local and sidesteps key-order false positives)
       const localRaw = localStorage.getItem(key);
-      const local = localRaw ? JSON.parse(localRaw) : null;
+      let local = null;
+      if (localRaw) {
+        try {
+          local = JSON.parse(localRaw);
+        } catch (e) {
+          console.warn(`Ignoring malformed localStorage value for key "${key}" during sync pull`, e);
+          local = null;
+        }
+      }
 
       if (data === null) {
         if (updatedAt === null) {
