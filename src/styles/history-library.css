@@ -273,6 +273,15 @@
   gap: var(--space-sm);
 }
 
+/* Spin animation for loading indicator */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .history-view__header,
