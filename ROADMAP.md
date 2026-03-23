@@ -1,3 +1,4 @@
+
 # TrainLog Roadmap
 
 ## Current Status
@@ -8,89 +9,110 @@
 - YouTube link management per exercise
 - localStorage persistence
 - PWA setup with service worker
-
-🚧 **In Progress:**
 - ActiveWorkoutView (live set logging)
-- Other views (History, Library)
+- Month view calendar with toggle
+- HistoryView (completed workout list with target vs actual)
+- LibraryView (exercise list, search, YouTube link management)
+- Per-exercise notes in ActiveWorkoutView
+- Month/year picker (jump to any month)
+- Workout Templates (save, rename, duplicate, delete)
+- Weekly Planner with template picker
+- Template management in Settings
+- Overall workout session notes
+- Total volume per session in History
+- PR (personal record) indicators in History
+- Toast notifications for key actions
+- View fade-in transitions
+- Data backup/restore (JSON export/import)
+- Storage usage indicator
+- Clear all data with confirmation
+- Responsive CSS for all views
+- Unit tests (32 tests, all passing)
+- PWA icons (192x192, 512x512)
+- Improved service worker (network-first + versioned cache)
+
+🚧 **Next Up:**
+- Manual device testing, Lighthouse audit, deployment
 
 ---
 
 ## Phase 1: Core Workout Logging (MVP)
 
 ### ActiveWorkoutView Implementation
-- [ ] Build SetRow component for active workout logging
+- [x] Build SetRow component for active workout logging
   - Display target reps/weight as reference
   - Input fields for actual reps logged
   - Input field for actual weight used
   - Checkbox to mark set as complete
   - Visual feedback when complete (strikethrough, checkmark)
-- [ ] Implement session timer/elapsed time display
-- [ ] Build session header with workout name + elapsed time + cancel button
-- [ ] Add "Complete Workout" button that appears when all sets checked
-- [ ] Add crash recovery - session persists if browser closes
-- [ ] Add per-exercise notes input (optional notes during logging)
-- [ ] Track startedAt, completedAt timestamps in WorkoutLog
+- [x] Implement session timer/elapsed time display
+- [x] Build session header with workout name + elapsed time + cancel button
+- [x] Add "Complete Workout" button that appears when all sets checked
+- [x] Add crash recovery - session persists if browser closes
+- [x] Add per-exercise notes input (optional notes during logging)
+- [x] Track startedAt, completedAt timestamps in WorkoutLog
 
 ### HistoryView Implementation
-- [ ] List all completed workouts sorted by date (newest first)
-- [ ] Show: date, workout title, duration, list of exercises logged
-- [ ] Tap to expand and view full workout details with actual logged values
-- [ ] Show comparison: target vs actual for each set
-- [ ] Add delete button for individual logs (with confirm modal)
+- [x] List all completed workouts sorted by date (newest first)
+- [x] Show: date, workout title, duration, list of exercises logged
+- [x] Tap to expand and view full workout details with actual logged values
+- [x] Show comparison: target vs actual for each set
+- [x] Add delete button for individual logs (with confirm modal)
 
 ### LibraryView Implementation
-- [ ] Flatten all exercises from all workouts into single list
-- [ ] Group by exercise name (same exercise appears in multiple workouts)
-- [ ] Show YouTube link for each exercise (if set)
-- [ ] Quick edit YouTube link from library
-- [ ] Count: how many workouts contain this exercise
-- [ ] Search/filter by exercise name
+- [x] Flatten all exercises from all workouts into single list
+- [x] Group by exercise name (same exercise appears in multiple workouts)
+- [x] Show YouTube link for each exercise (if set)
+- [x] Quick edit YouTube link from library
+- [x] Count: how many workouts contain this exercise
+- [x] Search/filter by exercise name
+- [ ] Exercise history drilldown: tap an exercise to see all dates it was completed, with actual reps and weight logged per set
 
 ---
 
 ## Phase 2: Calendar Enhancements
 
 ### Month View Calendar
-- [ ] Add toggle button in DateStrip (or separate view) to switch between week/month
-- [ ] Build full month calendar grid (7 columns, 6 rows)
-- [ ] Show workout dots/status per day (scheduled, completed, missed)
-- [ ] Tap day to select and load that workout in TrainingView
-- [ ] Month/year picker (jump to any month)
-- [ ] Highlight today visually
-- [ ] Show workouts on month cells (abbreviated, e.g. "Upper A")
-- [ ] Mobile responsive (ensure readable on small screens)
+- [x] Add toggle button in DateStrip (or separate view) to switch between week/month
+- [x] Build full month calendar grid (7 columns, 6 rows)
+- [x] Show workout dots/status per day (scheduled, completed, missed)
+- [x] Tap day to select and load that workout in TrainingView
+- [x] Month/year picker (jump to any month)
+- [x] Highlight today visually
+- [x] Show workouts on month cells (abbreviated, e.g. "Upper A")
+- [x] Mobile responsive (ensure readable on small screens)
 
 ---
 
 ## Phase 3: Workout Templates & Weekly Planning
 
 ### Workout Templates Feature
-- [ ] Add "Save as Template" button on WorkoutDetailView
-- [ ] Create TemplateView/modal to name and save current workout as template
-- [ ] Store templates separately in localStorage: `th_templates` Map<templateId, TemplateWorkout>
-- [ ] Each template stores: { id, name, createdDate, blocks, exercises, externalNotes }
+- [x] Add "Save as Template" button on WorkoutPreviewCard
+- [x] Store templates separately in localStorage: `th_templates` Map<templateId, TemplateWorkout>
+- [x] Each template stores: { id, name, createdDate, blocks, notes }
 - [ ] Update ImportView: offer option to "Save imported workouts as templates"
 - [ ] Templates tab in LibraryView to browse all saved templates
 
 ### Weekly Planner
-- [ ] New view: "PlanWeek" or "Planner"
-- [ ] Display 7-day grid (Mon-Sun)
-- [ ] For each day:
+- [x] New view: "Planner" with dedicated nav tab
+- [x] Display 7-day grid (Mon-Sun)
+- [x] For each day:
   - Show currently scheduled workout (if any)
   - Button to pick a template from template library
   - Auto-populate that day's schedule with the template
   - Show workout name in the day cell
-- [ ] "Apply Plan" button to save the weekly plan to schedule
-- [ ] Preview mode: see the full week before committing
-- [ ] Option to recur plan (apply same template pattern to next week)
-- [ ] Clear week button
+- [x] "Apply Plan" button to save the weekly plan to schedule
+- [x] Draft mode: preview changes before applying (yellow highlight)
+- [x] Option to recur plan (Copy to Next Week)
+- [x] Clear week button
+- [ ] (Maybe) Tap a day with an existing workout to navigate to that workout in TrainingView
 
 ### Template Management
-- [ ] Settings page section for templates:
-  - List all templates with edit/delete buttons
+- [x] Settings page section for templates:
+  - List all templates with expand/collapse
   - Rename template
   - Delete template (with confirm)
-  - Preview template details
+  - Preview template details (exercise list)
   - Duplicate template
 - [ ] Import templates from CSV (batch load multiple workouts as templates)
 - [ ] Export templates as JSON for backup
@@ -101,38 +123,39 @@
 
 ### Session Notes & Metadata
 - [ ] Add notes field per set (e.g., "felt weak", "RPE 8")
-- [ ] Add notes field per exercise (e.g., "elbow pain", "tempo felt good")
-- [ ] Add notes field for overall workout (e.g., "tired today", "great session")
-- [ ] Display notes in HistoryView when reviewing logs
+- [x] Add notes field per exercise (e.g., "elbow pain", "tempo felt good")
+- [x] Add notes field for overall workout (e.g., "tired today", "great session")
+- [x] Display notes in HistoryView when reviewing logs
 
 ### Weight/Strength Tracking
 - [ ] Track 1-rep max (1RM) or estimated max per exercise
 - [ ] Show progression graph: weight over time for each exercise
-- [ ] Display: total volume lifted per session (sum of reps × weight)
-- [ ] Show PR (personal record) indicators in history
+- [x] Display: total volume lifted per session (sum of reps × weight)
+- [x] Show PR (personal record) indicators in history
 
 ---
 
 ## Phase 5: Polish & Deployment
 
 ### UI/UX Polish
-- [ ] Responsive CSS tweaks for all breakpoints
+- [x] Responsive CSS tweaks for all breakpoints
 - [ ] Add loading indicators for long operations
-- [ ] Add success toasts after save actions
-- [ ] Smooth transitions between views
+- [x] Add success toasts after save actions
+- [x] Smooth transitions between views (fade-in)
 - [ ] Keyboard shortcuts (optional: spacebar to complete set)
 - [ ] Haptic feedback on mobile (vibrate on set complete)
 
 ### Testing
-- [ ] Unit tests for CSV parser (Vitest)
-- [ ] Unit tests for date normalization
-- [ ] Unit tests for ExerciseData parsing edge cases
+- [x] Unit tests for CSV parser (Vitest) — 16 tests
+- [x] Unit tests for date normalization — 8 tests
+- [x] Unit tests for ExerciseData parsing edge cases — 16 tests
 - [ ] Integration tests for import flow
 - [ ] Manual testing on iOS Safari
 - [ ] Manual testing on Android Chrome
 
 ### PWA & Installability
-- [ ] Create 192x192 and 512x512 app icons
+- [x] Create 192x192 and 512x512 app icons (SVG + PNG)
+- [x] Updated service worker with network-first for code, cache-first for assets, versioned cache busting
 - [ ] Test "Add to Home Screen" on iOS
 - [ ] Test "Install App" on Android
 - [ ] Verify offline functionality works
@@ -140,21 +163,18 @@
 
 ### Data Management
 - [ ] Add data export: export logs as CSV
-- [ ] Add data backup: export all data as JSON
-- [ ] Add data import: restore from backup JSON
-- [ ] Settings page:
+- [x] Add data backup: export all data as JSON
+- [x] Add data import: restore from backup JSON
+- [x] Settings page:
   - Storage usage indicator (how much localStorage used)
   - Clear all data button (with confirm)
-  - Reset to factory defaults
   - View app version/build info
 
-### Deployment
-- [ ] Build optimized production bundle: `npm run build`
-- [ ] Deploy to Netlify (recommended: auto-deploy from GitHub)
-- [ ] Deploy to Vercel as alternative
-- [ ] Set up GitHub Actions for automated builds
-- [ ] Create public landing page on GitHub README
-- [ ] Share link for user testing
+### Deployment (Synology NAS via Docker)
+- [x] Docker Compose + nginx config for self-hosting
+- [x] Build optimized production bundle: `npm run build`
+- [ ] Deploy to Synology: copy repo, `npm run build && docker compose up -d`
+- [ ] Set up reverse proxy / HTTPS on Synology (if accessing outside LAN)
 
 ---
 
@@ -171,6 +191,12 @@
 - [ ] Share workout screenshots
 - [ ] Export workout to image/PDF
 - [ ] Share week plan with friend
+
+### NAS Backend (Future)
+- [ ] Add a lightweight backend (e.g., Node/Express or SQLite) hosted on Synology NAS
+- [ ] Store workout logs server-side instead of localStorage — eliminates iOS eviction risk
+- [ ] Sync across multiple devices
+- [ ] Data survives app reinstalls or browser clears
 
 ### Integrations (Future)
 - [ ] Apple Health integration (export workouts)
@@ -238,6 +264,7 @@
 
 - All data persists in localStorage — no backend needed
 - Templates are local to browser; not synced to cloud
+- iOS may evict PWA localStorage after ~7 days of inactivity if device storage is low; consider NAS backend (see Phase 6) as a long-term solution
 - Weekly planner doesn't auto-sync future dates; user confirms before applying
 - Performance should be fine until 1000+ workouts or 5000+ logs
 

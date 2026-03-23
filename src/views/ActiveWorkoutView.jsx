@@ -31,6 +31,8 @@ export default function ActiveWorkoutView({
       completedAt: null,
       startedAt: new Date().toISOString(),
       exercises: {},
+      exerciseNotes: {},
+      workoutNote: '',
     };
   });
 
@@ -75,6 +77,24 @@ export default function ActiveWorkoutView({
     setCurrentLog(updated);
     saveLog(logKey, updated);
     updateSession({ logKey }); // Update active session timestamp
+  };
+
+  const updateExerciseNote = (exerciseTitle, note) => {
+    const updated = {
+      ...currentLog,
+      exerciseNotes: {
+        ...(currentLog.exerciseNotes || {}),
+        [exerciseTitle]: note,
+      },
+    };
+    setCurrentLog(updated);
+    saveLog(logKey, updated);
+  };
+
+  const updateWorkoutNote = (note) => {
+    const updated = { ...currentLog, workoutNote: note };
+    setCurrentLog(updated);
+    saveLog(logKey, updated);
   };
 
   const handleCompleteWorkout = () => {
@@ -164,6 +184,19 @@ export default function ActiveWorkoutView({
                     ))}
                   </div>
 
+                  {/* Exercise notes */}
+                  <div className="active-workout-view__notes">
+                    <input
+                      type="text"
+                      className="input active-workout-view__notes-input"
+                      placeholder="Notes (e.g. felt weak, RPE 8, elbow pain)"
+                      value={(currentLog.exerciseNotes || {})[exercise.title] || ''}
+                      onChange={(e) =>
+                        updateExerciseNote(exercise.title, e.target.value)
+                      }
+                    />
+                  </div>
+
                   {/* YouTube link */}
                   {getYouTubeLink(exercise.title) && (
                     <details className="active-workout-view__video-details">
@@ -190,6 +223,18 @@ export default function ActiveWorkoutView({
             })}
           </div>
         ))}
+
+        {/* Overall workout note */}
+        <div className="active-workout-view__workout-note">
+          <h3 className="active-workout-view__workout-note-label">Session Notes</h3>
+          <textarea
+            className="input active-workout-view__workout-note-input"
+            placeholder="How did the session feel? (e.g. tired today, great pump, low energy)"
+            value={currentLog.workoutNote || ''}
+            onChange={(e) => updateWorkoutNote(e.target.value)}
+            rows={3}
+          />
+        </div>
       </div>
 
       {/* Complete button */}

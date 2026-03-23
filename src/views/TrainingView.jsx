@@ -15,6 +15,7 @@ export default function TrainingView({
   getYouTubeLink,
   setYouTubeLink,
   onStartWorkout,
+  onSaveAsTemplate,
   navigate,
 }) {
   const workoutTitle = getWorkoutForDate(currentDate);
@@ -65,6 +66,7 @@ export default function TrainingView({
             <WorkoutPreviewCard
               workout={workout}
               onStartWorkout={handleStartWorkout}
+              onSaveAsTemplate={onSaveAsTemplate}
             />
 
             <div className="training-view__exercises">

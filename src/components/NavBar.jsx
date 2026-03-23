@@ -2,16 +2,16 @@ import {
   TAB_TRAINING,
   TAB_HISTORY,
   TAB_LIBRARY,
-  TAB_IMPORT,
   TAB_SETTINGS,
+  ROUTE_PLANNER,
 } from '../constants';
 
 export default function NavBar({ currentTab, onTabChange }) {
   const tabs = [
     { id: TAB_TRAINING, label: 'Training', icon: '🏋️' },
+    { id: ROUTE_PLANNER, label: 'Planner', icon: '📋' },
     { id: TAB_HISTORY, label: 'History', icon: '📊' },
     { id: TAB_LIBRARY, label: 'Library', icon: '📚' },
-    { id: TAB_IMPORT, label: 'Import', icon: '📂' },
     { id: TAB_SETTINGS, label: 'Settings', icon: '⚙️' },
   ];
 

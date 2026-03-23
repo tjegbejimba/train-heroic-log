@@ -4,6 +4,7 @@ export const LS_SCHEDULE = 'th_schedule';
 export const LS_YOUTUBE_LINKS = 'th_yt_links';
 export const LS_WORKOUT_LOGS = 'th_logs';
 export const LS_ACTIVE_SESSION = 'th_active';
+export const LS_TEMPLATES = 'th_templates';
 
 // Route/View names
 export const ROUTE_IMPORT = 'import';
@@ -11,6 +12,7 @@ export const ROUTE_TRAINING = 'training';
 export const ROUTE_ACTIVE_WORKOUT = 'activeWorkout';
 export const ROUTE_HISTORY = 'history';
 export const ROUTE_LIBRARY = 'library';
+export const ROUTE_PLANNER = 'planner';
 export const ROUTE_SETTINGS = 'settings';
 
 // Tab IDs for bottom nav

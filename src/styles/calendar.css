@@ -103,6 +103,93 @@
   flex: 1;
 }
 
+.month-calendar__title-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.month-calendar__title-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 8px;
+  transition: background-color var(--transition);
+}
+
+.month-calendar__title-btn:hover {
+  background-color: rgba(75, 123, 255, 0.1);
+}
+
+.month-calendar__title-caret {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ========== Month/Year Picker ========== */
+.month-picker {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  min-width: 260px;
+  margin-top: var(--space-sm);
+}
+
+.month-picker__year-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.month-picker__year {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.month-picker__months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.month-picker__month {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: center;
+  transition: all var(--transition);
+}
+
+.month-picker__month:hover {
+  background-color: rgba(75, 123, 255, 0.1);
+  border-color: var(--color-accent-blue);
+}
+
+.month-picker__month--active {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: white;
+}
+
 .month-calendar__controls {
   display: flex;
   justify-content: center;

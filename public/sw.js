@@ -1,11 +1,14 @@
-const CACHE_NAME = 'trainlog-v1';
+const CACHE_VERSION = 2;
+const CACHE_NAME = `trainlog-v${CACHE_VERSION}`;
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
-// Install event - cache app shell
+// Install event - cache app shell and skip waiting to activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -16,7 +19,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -29,33 +32,22 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - cache-first strategy
+// Fetch event - network-first for HTML/JS/CSS, cache-first for assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
   // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== 'GET') return;
 
   // Skip cross-origin requests
-  if (request.url.startsWith('http') && !request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  if (request.url.startsWith('http') && !request.url.startsWith(self.location.origin)) return;
 
-  // Cache-first strategy
-  event.respondWith(
-    caches.match(request).then((response) => {
-      // Return from cache if found
-      if (response) {
-        return response;
-      }
-
-      // Try network
-      return fetch(request)
+  // Navigation requests and JS/CSS: network-first (so updates are picked up)
+  if (request.mode === 'navigate' || request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
-          // Cache successful responses
-          if (response && response.status === 200 && response.type !== 'error') {
+          if (response && response.status === 200) {
             const responseToCache = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseToCache);
@@ -64,12 +56,29 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback to index.html for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          return null;
-        });
+          // Offline fallback
+          return caches.match(request).then((cached) => {
+            return cached || (request.mode === 'navigate' ? caches.match('/index.html') : null);
+          });
+        })
+    );
+    return;
+  }
+
+  // Images and other assets: cache-first
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(request).then((response) => {
+        if (response && response.status === 200 && response.type !== 'error') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        return response;
+      }).catch(() => null);
     })
   );
 });

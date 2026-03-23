@@ -1,4 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 export default function MonthCalendar({
   currentDate,
@@ -10,6 +15,8 @@ export default function MonthCalendar({
     const date = new Date(currentDate + 'T00:00:00');
     return { year: date.getFullYear(), month: date.getMonth() };
   });
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef(null);
 
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
@@ -73,6 +80,27 @@ export default function MonthCalendar({
     onDateChange(todayStr);
   };
 
+  const jumpToMonth = (month) => {
+    setDisplayMonth((prev) => ({ ...prev, month }));
+    setShowPicker(false);
+  };
+
+  const jumpToYear = (delta) => {
+    setDisplayMonth((prev) => ({ ...prev, year: prev.year + delta }));
+  };
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showPicker) return;
+    const handleClick = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showPicker]);
+
   const today = new Date().toISOString().split('T')[0];
   const days = generateCalendarDays();
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -81,11 +109,46 @@ export default function MonthCalendar({
     <div className="month-calendar">
       <div className="month-calendar__header flex-between">
         <button className="btn btn-secondary btn-small" onClick={goToPreviousMonth}>
-          ← Prev
+          ←
         </button>
-        <h2 className="month-calendar__title">{getMonthYearDisplay()}</h2>
+        <div className="month-calendar__title-wrapper">
+          <button
+            className="month-calendar__title-btn"
+            onClick={() => setShowPicker(!showPicker)}
+          >
+            <h2 className="month-calendar__title">{getMonthYearDisplay()}</h2>
+            <span className="month-calendar__title-caret">{showPicker ? '▴' : '▾'}</span>
+          </button>
+
+          {showPicker && (
+            <div className="month-picker" ref={pickerRef}>
+              <div className="month-picker__year-row">
+                <button className="btn btn-secondary btn-small" onClick={() => jumpToYear(-1)}>
+                  ←
+                </button>
+                <span className="month-picker__year">{displayMonth.year}</span>
+                <button className="btn btn-secondary btn-small" onClick={() => jumpToYear(1)}>
+                  →
+                </button>
+              </div>
+              <div className="month-picker__months">
+                {MONTH_NAMES.map((name, idx) => (
+                  <button
+                    key={name}
+                    className={`month-picker__month ${
+                      idx === displayMonth.month ? 'month-picker__month--active' : ''
+                    }`}
+                    onClick={() => jumpToMonth(idx)}
+                  >
+                    {name.substring(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <button className="btn btn-secondary btn-small" onClick={goToNextMonth}>
-          Next →
+          →
         </button>
       </div>
 

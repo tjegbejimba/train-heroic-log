@@ -1,0 +1,305 @@
+/* ========== Shared View Header ========== */
+.history-view__header,
+.library-view__header {
+  padding: var(--space-lg);
+  padding-bottom: var(--space-md);
+}
+
+.history-view__header h1,
+.library-view__header h1 {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-xs);
+}
+
+/* ========== HistoryView ========== */
+.history-view__list {
+  padding: 0 var(--space-lg) var(--space-lg);
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.history-card {
+  overflow: hidden;
+}
+
+.history-card__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.history-card__summary {
+  flex: 1;
+}
+
+.history-card__date {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-blue);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-xs);
+}
+
+.history-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.history-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.history-card__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: var(--color-text-secondary);
+}
+
+.history-card__chevron {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  flex-shrink: 0;
+}
+
+.history-card__details {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.history-card__workout-note {
+  background-color: var(--color-bg);
+  border-radius: 8px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.history-card__workout-note-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.history-card__workout-note p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+.history-card__exercise {
+  margin-bottom: var(--space-lg);
+}
+
+.history-card__exercise-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+
+.history-card__exercise-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin-bottom: var(--space-sm);
+}
+
+.history-card__sets-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.history-card__sets-header {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 30px;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-card__set-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 30px;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  padding: var(--space-xs) 0;
+  align-items: center;
+}
+
+.history-card__set-row--completed {
+  color: var(--color-accent-green);
+}
+
+.history-card__set-row--pr {
+  color: var(--color-accent-yellow);
+}
+
+.history-card__pr-badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-bg);
+  background-color: var(--color-accent-yellow);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: var(--space-xs);
+  vertical-align: middle;
+}
+
+.history-card__delete {
+  margin-top: var(--space-md);
+  color: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+}
+
+/* ========== LibraryView ========== */
+.library-view__search {
+  padding: 0 var(--space-lg) var(--space-md);
+}
+
+.library-view__list {
+  padding: 0 var(--space-lg) var(--space-lg);
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.library-card {
+  overflow: hidden;
+}
+
+.library-card__header {
+  margin-bottom: var(--space-md);
+}
+
+.library-card__title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.library-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.library-card__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: var(--color-text-secondary);
+}
+
+.library-card__workouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.library-card__tag {
+  font-size: var(--font-size-xs);
+  padding: 2px var(--space-sm);
+  background-color: rgba(75, 123, 255, 0.1);
+  color: var(--color-accent-blue);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.library-card__link-section {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.library-card__link-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.library-card__link-url {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-blue);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.library-card__link-url:hover {
+  text-decoration: underline;
+}
+
+.library-card__link-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.library-card__link-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .history-view__header,
+  .library-view__header {
+    padding: var(--space-md);
+    padding-bottom: var(--space-sm);
+  }
+
+  .history-view__list,
+  .library-view__list {
+    padding: 0 var(--space-md) var(--space-md);
+    padding-bottom: 80px;
+  }
+
+  .library-view__search {
+    padding: 0 var(--space-md) var(--space-sm);
+  }
+
+  .history-card__sets-header,
+  .history-card__set-row {
+    grid-template-columns: 25px 1fr 1fr 25px;
+    font-size: var(--font-size-xs);
+  }
+
+  .library-card__link-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+}

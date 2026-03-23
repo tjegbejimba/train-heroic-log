@@ -1,4 +1,16 @@
-export default function WorkoutPreviewCard({ workout, onStartWorkout }) {
+import { useState } from 'react';
+
+export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTemplate }) {
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveTemplate = () => {
+    if (onSaveAsTemplate) {
+      onSaveAsTemplate(workout);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
   return (
     <div className="workout-preview-card card">
       <div className="flex-between mb-md">
@@ -12,7 +24,15 @@ export default function WorkoutPreviewCard({ workout, onStartWorkout }) {
               .toUpperCase()}
           </div>
         </div>
-        <button className="btn btn-secondary btn-small">⋯</button>
+        {onSaveAsTemplate && (
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={handleSaveTemplate}
+            disabled={saved}
+          >
+            {saved ? '✓ Saved' : '💾 Save Template'}
+          </button>
+        )}
       </div>
 
       <h2 className="workout-preview-card__title">{workout.title}</h2>
