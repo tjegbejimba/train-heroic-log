@@ -32,6 +32,7 @@ export default function WeekPlannerView({
   const [showPicker, setShowPicker] = useState(null); // dateStr or null
   const [draft, setDraft] = useState({}); // dateStr -> templateId (uncommitted changes)
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
@@ -67,6 +68,7 @@ export default function WeekPlannerView({
   const assignTemplate = (dateStr, templateId) => {
     setDraft((prev) => ({ ...prev, [dateStr]: templateId }));
     setShowPicker(null);
+    setTemplateSearch('');
   };
 
   const clearDay = (dateStr) => {
@@ -230,7 +232,7 @@ export default function WeekPlannerView({
 
       {/* Template Picker Modal */}
       {showPicker && (
-        <div className="modal-overlay" onClick={() => setShowPicker(null)}>
+        <div className="modal-overlay" onClick={() => { setShowPicker(null); setTemplateSearch(''); }}>
           <div className="modal template-picker" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal__title">Pick a Template</h2>
             <p className="modal__message">
@@ -248,29 +250,44 @@ export default function WeekPlannerView({
                 </p>
               </div>
             ) : (
-              <div className="template-picker__list">
-                {templateList.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    className="template-picker__item"
-                    onClick={() => assignTemplate(showPicker, tpl.id)}
-                  >
-                    <span className="template-picker__name">{tpl.name}</span>
-                    <span className="template-picker__meta text-secondary text-sm">
-                      {tpl.blocks.reduce(
-                        (sum, b) => sum + b.exercises.length,
-                        0
-                      )}{' '}
-                      exercises
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Search templates..."
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                  autoFocus
+                  style={{ marginBottom: 'var(--space-sm)' }}
+                />
+                <div className="template-picker__list">
+                  {templateList
+                    .filter((tpl) =>
+                      tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
+                    )
+                    .map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        className="template-picker__item"
+                        onClick={() => assignTemplate(showPicker, tpl.id)}
+                      >
+                        <span className="template-picker__name">{tpl.name}</span>
+                        <span className="template-picker__meta text-secondary text-sm">
+                          {tpl.blocks.reduce(
+                            (sum, b) => sum + b.exercises.length,
+                            0
+                          )}{' '}
+                          exercises
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </>
             )}
 
             <button
               className="btn btn-secondary w-full mt-lg"
-              onClick={() => setShowPicker(null)}
+              onClick={() => { setShowPicker(null); setTemplateSearch(''); }}
             >
               Cancel
             </button>

@@ -39,6 +39,7 @@ export default function App() {
   const {
     templates,
     templateList,
+    saveTemplates,
     saveTemplate,
     deleteTemplate,
     renameTemplate,
@@ -120,8 +121,22 @@ export default function App() {
           onImport={(workoutMap, scheduleMap) => {
             saveWorkouts(workoutMap);
             saveSchedule(scheduleMap);
+            // Auto-create a template for each workout title
+            const templateMap = {};
+            Object.values(workoutMap).forEach((workout, i) => {
+              const id = `tpl_${Date.now()}_${i}`;
+              templateMap[id] = {
+                id,
+                name: workout.title,
+                createdDate: new Date().toISOString(),
+                blocks: workout.blocks,
+                notes: workout.notes || '',
+              };
+            });
+            saveTemplates({ ...templates, ...templateMap });
             navigate(ROUTE_TRAINING);
-            showToast('Workouts imported!');
+            const count = Object.keys(templateMap).length;
+            showToast(`Imported ${count} workout${count !== 1 ? 's' : ''} as templates!`);
           }}
         />
       );

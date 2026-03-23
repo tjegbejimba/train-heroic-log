@@ -67,6 +67,7 @@ export function useTemplates() {
   return {
     templates,
     templateList,
+    saveTemplates,
     saveTemplate,
     deleteTemplate,
     renameTemplate,
