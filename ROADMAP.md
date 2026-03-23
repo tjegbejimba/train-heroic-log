@@ -122,6 +122,26 @@
 
 ---
 
+## Phase 3.5: Superset Support
+
+A **part** (code: `block`) can contain multiple exercises — these should be treated as a superset: performed back-to-back before resting. The data model already stores multiple exercises per block; what's missing is UI support.
+
+### Display
+- [ ] Detect parts with 2+ exercises and render them as a grouped superset in WorkoutPreviewCard and TrainingView
+- [ ] Label superset parts visually (e.g. "Superset" badge, bracket grouping, or alternating indent)
+- [ ] Single-exercise parts continue to render as today (no visual change)
+
+### Active Workout Logging
+- [ ] In ActiveWorkoutView, present superset exercises grouped together under their part
+- [ ] Log sets for each exercise in the superset in sequence (e.g. Exercise A set 1 → Exercise B set 1 → rest → repeat)
+- [ ] Rest timer (if added) should trigger after completing all exercises in the superset, not after each individual exercise
+
+### Templates & Manual Creation
+- [ ] When building or editing a template, allow adding a second (or third) exercise to a part to form a superset
+- [ ] Show superset grouping in template preview in Settings
+
+---
+
 ## Phase 4: Logging Enhancements
 
 ### Session Notes & Metadata
