@@ -47,7 +47,10 @@ export async function pullFromServer() {
 
     let changed = false;
     for (const [key, { data, updatedAt }] of Object.entries(serverData)) {
-      const local = readLS(key, null);
+      // Read the raw stored string once — used for efficient change detection
+      // below (avoids re-serializing local and sidesteps key-order false positives)
+      const localRaw = localStorage.getItem(key);
+      const local = localRaw ? JSON.parse(localRaw) : null;
 
       if (data === null) {
         if (updatedAt === null) {
@@ -76,8 +79,8 @@ export async function pullFromServer() {
       } else {
         merged = data;
       }
-      // Only write (and push back) if something actually changed
-      if (JSON.stringify(merged) !== JSON.stringify(local)) {
+      // One stringify (merged) compared against the already-stored raw string
+      if (JSON.stringify(merged) !== localRaw) {
         writeLS(key, merged);
         changed = true;
       }
