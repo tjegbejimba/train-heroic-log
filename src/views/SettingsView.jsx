@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
@@ -17,6 +18,10 @@ export default function SettingsView({
   renameTemplate,
   duplicateTemplate,
   onClearAllData,
+  syncStatus,
+  lastSynced,
+  onPullSync,
+  onPushSync,
 }) {
   const showToast = useToast();
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -146,24 +151,58 @@ export default function SettingsView({
       </div>
 
       <div className="settings-view__content">
+        {/* Sync section */}
+        <div className="card">
+          <h3 className="mb-md">NAS Sync</h3>
+          <div className="settings-view__sync-status">
+            <span className={`sync-dot sync-dot--${syncStatus}`} />
+            <span className="text-sm">
+              {syncStatus === 'online'
+                ? 'Connected'
+                : syncStatus === 'checking'
+                ? 'Checking...'
+                : 'Offline'}
+            </span>
+            {lastSynced && (
+              <span className="text-secondary text-sm" style={{ marginLeft: 'auto' }}>
+                Last synced: {new Date(lastSynced).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          <div className="settings-view__data-actions mt-md">
+            <button className="btn btn-secondary w-full" onClick={onPullSync}>
+              Pull from Server
+            </button>
+            <button className="btn btn-secondary w-full" onClick={onPushSync}>
+              Push to Server
+            </button>
+          </div>
+          <p className="text-secondary text-sm mt-sm" style={{ fontSize: '11px' }}>
+            Data syncs automatically in background. Use these buttons for manual sync.
+          </p>
+        </div>
+
         {/* Data section */}
         <div className="card">
           <h3 className="mb-md">Data</h3>
           <div className="settings-view__data-actions">
             <button className="btn btn-secondary w-full" onClick={onReimport}>
-              📂 Re-import CSV
+              <FolderOpen size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Re-import CSV
             </button>
             <button
               className="btn btn-secondary w-full"
               onClick={handleExportBackup}
             >
-              📦 Export Backup (JSON)
+              <Download size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Export Backup (JSON)
             </button>
             <button
               className="btn btn-secondary w-full"
               onClick={handleImportBackup}
             >
-              📥 Restore from Backup
+              <Upload size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Restore from Backup
             </button>
           </div>
           <div className="settings-view__storage mt-lg">
@@ -254,7 +293,7 @@ export default function SettingsView({
                               {exerciseCount} exercises
                             </div>
                           </div>
-                          <span>{isExpanded ? '▾' : '▸'}</span>
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </button>
                       )}
                     </div>

@@ -1,3 +1,4 @@
+import { Dumbbell, CalendarDays, BarChart2, BookOpen, Settings } from 'lucide-react';
 import {
   TAB_TRAINING,
   TAB_HISTORY,
@@ -8,11 +9,11 @@ import {
 
 export default function NavBar({ currentTab, onTabChange }) {
   const tabs = [
-    { id: TAB_TRAINING, label: 'Training', icon: '🏋️' },
-    { id: ROUTE_PLANNER, label: 'Planner', icon: '📋' },
-    { id: TAB_HISTORY, label: 'History', icon: '📊' },
-    { id: TAB_LIBRARY, label: 'Library', icon: '📚' },
-    { id: TAB_SETTINGS, label: 'Settings', icon: '⚙️' },
+    { id: TAB_TRAINING, label: 'Training', Icon: Dumbbell },
+    { id: ROUTE_PLANNER, label: 'Planner', Icon: CalendarDays },
+    { id: TAB_HISTORY, label: 'History', Icon: BarChart2 },
+    { id: TAB_LIBRARY, label: 'Library', Icon: BookOpen },
+    { id: TAB_SETTINGS, label: 'Settings', Icon: Settings },
   ];
 
   return (
@@ -26,7 +27,7 @@ export default function NavBar({ currentTab, onTabChange }) {
             }`}
             onClick={() => onTabChange(tab.id)}
           >
-            <div className="navbar__icon">{tab.icon}</div>
+            <div className="navbar__icon"><tab.Icon size={22} /></div>
             <div className="navbar__label">{tab.label}</div>
           </button>
         ))}

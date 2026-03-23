@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Video } from 'lucide-react';
 
 export default function YouTubeLinkInput({ url, onSave }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -27,7 +28,7 @@ export default function YouTubeLinkInput({ url, onSave }) {
       {!isEditing ? (
         <div className="flex-between">
           <div className="flex-1">
-            <div className="text-blue text-sm">🎥 YouTube Link</div>
+            <div className="text-blue text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Video size={13} /> YouTube Link</div>
             {url ? (
               <p className="text-secondary text-sm truncate mt-xs">{url}</p>
             ) : (

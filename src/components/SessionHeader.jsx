@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, Timer } from 'lucide-react';
 
 export default function SessionHeader({
   workoutTitle,
@@ -35,13 +36,13 @@ export default function SessionHeader({
     <div className="session-header">
       <div className="session-header__left">
         <button className="btn btn-secondary" onClick={onCancel}>
-          ✕ Cancel
+          <X size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Cancel
         </button>
       </div>
 
       <div className="session-header__center">
         <h2 className="session-header__title">{workoutTitle}</h2>
-        <div className="session-header__timer">⏱ {elapsed}</div>
+        <div className="session-header__timer" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Timer size={14} />{elapsed}</div>
       </div>
 
       <div className="session-header__right">

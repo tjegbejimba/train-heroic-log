@@ -43,7 +43,9 @@
 }
 
 .navbar__icon {
-  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navbar__label {

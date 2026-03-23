@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrainLog — YouTube Link Importer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin: 20px 0 10px; color: #8e8e93; }
+    p.subtitle { color: #8e8e93; font-size: 14px; margin-bottom: 20px; }
+
+    .config {
+      background: #1c1c1e;
+      border: 1px solid #2c2c2e;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .config label { color: #8e8e93; font-size: 13px; display: block; margin-bottom: 4px; }
+    .config input {
+      width: 100%;
+      background: #2c2c2e;
+      border: 1px solid #3c3c3e;
+      border-radius: 8px;
+      padding: 10px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .config .row { display: flex; gap: 10px; align-items: flex-end; }
+    .config .row input { flex: 1; }
+
+    button {
+      background: #4b7bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover { background: #3a6ae8; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { background: #2c2c2e; }
+    button.secondary:hover { background: #3c3c3e; }
+    button.success { background: #30d158; color: #000; }
+    button.small { padding: 6px 12px; font-size: 13px; }
+
+    .status { font-size: 13px; margin-top: 8px; }
+    .status.ok { color: #30d158; }
+    .status.err { color: #ff3b30; }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      background: #1c1c1e;
+      border: 1px solid #2c2c2e;
+      border-radius: 12px;
+      padding: 14px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    .card {
+      background: #1c1c1e;
+      border: 1px solid #2c2c2e;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .link-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .link-row__url {
+      font-size: 13px;
+      color: #4b7bff;
+      word-break: break-all;
+      flex: 1;
+      min-width: 200px;
+    }
+    .link-row__match {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex: 1;
+      min-width: 250px;
+    }
+    .link-row__match select {
+      flex: 1;
+      background: #2c2c2e;
+      border: 1px solid #3c3c3e;
+      border-radius: 8px;
+      padding: 8px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .link-row__match select option { background: #2c2c2e; }
+    .link-row__matched { color: #30d158; font-size: 13px; }
+    .link-row__has-existing { color: #ffd60a; font-size: 11px; }
+
+    .summary {
+      position: sticky;
+      top: 0;
+      background: #111;
+      padding: 12px 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2c2c2e;
+      margin-bottom: 12px;
+    }
+    .summary span { font-size: 14px; color: #8e8e93; }
+
+    .exercise-filter {
+      background: #2c2c2e;
+      border: 1px solid #3c3c3e;
+      border-radius: 8px;
+      padding: 10px;
+      color: #fff;
+      font-size: 14px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .hidden { display: none; }
+
+    .steps { display: flex; gap: 8px; margin-bottom: 20px; }
+    .step {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .step.active { background: #4b7bff; }
+    .step.done { background: #30d158; color: #000; }
+    .step.pending { background: #2c2c2e; color: #8e8e93; }
+  </style>
+</head>
+<body>
+  <h1>YouTube Link Importer</h1>
+  <p class="subtitle">Match YouTube videos to your TrainLog exercises</p>
+
+  <!-- Server config -->
+  <div class="config">
+    <label>API Server URL</label>
+    <div class="row">
+      <input id="serverUrl" value="http://localhost:3080/api" placeholder="http://your-nas:3080/api" />
+      <button onclick="testConnection()" class="small">Test</button>
+    </div>
+    <div id="connStatus" class="status"></div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <span id="step1" class="step active">1. Paste URLs</span>
+    <span id="step2" class="step pending">2. Match</span>
+    <span id="step3" class="step pending">3. Save</span>
+  </div>
+
+  <!-- Step 1: Paste URLs -->
+  <div id="pasteSection">
+    <textarea id="urlInput" placeholder="Paste YouTube URLs here, one per line...&#10;&#10;https://www.youtube.com/watch?v=rT7DgCr-3pg&#10;https://www.youtube.com/watch?v=ultWZbUMPL8"></textarea>
+    <div style="margin-top: 12px; display: flex; gap: 10px;">
+      <button onclick="loadExercisesAndProceed()">Next: Match to Exercises</button>
+      <button onclick="loadFromFile()" class="secondary small">Load from file</button>
+      <input type="file" id="fileInput" accept=".txt" class="hidden" onchange="handleFileLoad(event)" />
+    </div>
+  </div>
+
+  <!-- Step 2: Match -->
+  <div id="matchSection" class="hidden">
+    <div class="summary">
+      <span id="matchCount">0 of 0 matched</span>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="goBack()" class="secondary small">Back</button>
+        <button id="saveBtn" onclick="saveLinks()" class="success" disabled>Save Links</button>
+      </div>
+    </div>
+
+    <input type="text" class="exercise-filter" id="globalFilter" placeholder="Filter exercises..." oninput="applyFilter()" />
+
+    <div id="matchList"></div>
+  </div>
+
+  <!-- Step 3: Done -->
+  <div id="doneSection" class="hidden">
+    <div class="card" style="text-align: center; padding: 40px;">
+      <div style="font-size: 48px; margin-bottom: 16px;">✓</div>
+      <h2 style="color: #30d158;">Links Saved!</h2>
+      <p id="doneMessage" class="subtitle"></p>
+      <button onclick="resetAll()" class="secondary" style="margin-top: 16px;">Import More</button>
+    </div>
+  </div>
+
+  <script>
+    let exercises = [];
+    let existingLinks = {};
+    let urls = [];
+    let assignments = []; // [{ url, exerciseIdx }]
+
+    async function testConnection() {
+      const status = document.getElementById('connStatus');
+      const base = document.getElementById('serverUrl').value.replace(/\/$/, '');
+      status.textContent = 'Connecting...';
+      status.className = 'status';
+      try {
+        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          status.textContent = 'Connected!';
+          status.className = 'status ok';
+        } else {
+          status.textContent = 'Server responded with error';
+          status.className = 'status err';
+        }
+      } catch {
+        status.textContent = 'Cannot reach server';
+        status.className = 'status err';
+      }
+    }
+
+    async function fetchFromServer(key) {
+      const base = document.getElementById('serverUrl').value.replace(/\/$/, '');
+      try {
+        const res = await fetch(`${base}/data/${key}`, { signal: AbortSignal.timeout(5000) });
+        if (!res.ok) return null;
+        const { data } = await res.json();
+        return data;
+      } catch {
+        return null;
+      }
+    }
+
+    async function loadExercisesAndProceed() {
+      const raw = document.getElementById('urlInput').value;
+      urls = raw.split('\n').map(l => l.trim()).filter(l => l.startsWith('http'));
+      if (urls.length === 0) {
+        alert('Paste at least one URL');
+        return;
+      }
+
+      // Fetch exercises from server
+      const workouts = await fetchFromServer('th_workouts');
+      if (!workouts) {
+        alert('Could not fetch exercises from server. Check your server URL and connection.');
+        return;
+      }
+
+      existingLinks = (await fetchFromServer('th_yt_links')) || {};
+
+      // Build exercise list
+      const nameSet = new Set();
+      Object.values(workouts).forEach(w => {
+        (w.blocks || []).forEach(b => {
+          (b.exercises || []).forEach(ex => nameSet.add(ex.title));
+        });
+      });
+      exercises = [...nameSet].sort();
+
+      // Init assignments
+      assignments = urls.map(url => ({ url, exerciseIdx: -1 }));
+
+      // Switch to match view
+      showStep(2);
+      renderMatchList();
+    }
+
+    function renderMatchList() {
+      const container = document.getElementById('matchList');
+      container.innerHTML = '';
+      const filter = (document.getElementById('globalFilter').value || '').toLowerCase();
+
+      assignments.forEach((a, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.idx = idx;
+
+        const row = document.createElement('div');
+        row.className = 'link-row';
+
+        // URL display
+        const urlDiv = document.createElement('div');
+        urlDiv.className = 'link-row__url';
+        const urlLink = document.createElement('a');
+        urlLink.href = a.url;
+        urlLink.target = '_blank';
+        urlLink.style.color = '#4b7bff';
+        urlLink.textContent = a.url.length > 70 ? a.url.slice(0, 67) + '...' : a.url;
+        urlDiv.appendChild(urlLink);
+
+        // Match dropdown
+        const matchDiv = document.createElement('div');
+        matchDiv.className = 'link-row__match';
+
+        const select = document.createElement('select');
+        select.dataset.idx = idx;
+
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = -1;
+        defaultOpt.textContent = '-- Select exercise --';
+        select.appendChild(defaultOpt);
+
+        exercises.forEach((name, eIdx) => {
+          if (filter && !name.toLowerCase().includes(filter)) return;
+          const opt = document.createElement('option');
+          opt.value = eIdx;
+          opt.textContent = name + (existingLinks[name] ? ' (has link)' : '');
+          if (a.exerciseIdx === eIdx) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        select.onchange = (e) => {
+          assignments[idx].exerciseIdx = parseInt(e.target.value);
+          updateMatchCount();
+        };
+
+        matchDiv.appendChild(select);
+
+        if (a.exerciseIdx >= 0) {
+          const badge = document.createElement('span');
+          badge.className = 'link-row__matched';
+          badge.textContent = '✓';
+          matchDiv.appendChild(badge);
+        }
+
+        row.appendChild(urlDiv);
+        row.appendChild(matchDiv);
+        card.appendChild(row);
+
+        if (a.exerciseIdx >= 0 && existingLinks[exercises[a.exerciseIdx]]) {
+          const warn = document.createElement('div');
+          warn.className = 'link-row__has-existing';
+          warn.textContent = 'Will overwrite existing link';
+          card.appendChild(warn);
+        }
+
+        container.appendChild(card);
+      });
+
+      updateMatchCount();
+    }
+
+    function applyFilter() {
+      renderMatchList();
+    }
+
+    function updateMatchCount() {
+      const matched = assignments.filter(a => a.exerciseIdx >= 0).length;
+      document.getElementById('matchCount').textContent = `${matched} of ${assignments.length} matched`;
+      document.getElementById('saveBtn').disabled = matched === 0;
+    }
+
+    async function saveLinks() {
+      const base = document.getElementById('serverUrl').value.replace(/\/$/, '');
+      const merged = { ...existingLinks };
+      let count = 0;
+
+      assignments.forEach(a => {
+        if (a.exerciseIdx >= 0) {
+          merged[exercises[a.exerciseIdx]] = a.url;
+          count++;
+        }
+      });
+
+      try {
+        const res = await fetch(`${base}/data/th_yt_links`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: merged }),
+        });
+
+        if (res.ok) {
+          document.getElementById('doneMessage').textContent = `${count} YouTube links saved to server. Open your app and pull sync to update.`;
+          showStep(3);
+        } else {
+          alert('Failed to save. Server returned an error.');
+        }
+      } catch {
+        // Fallback: show console command
+        const json = JSON.stringify(merged);
+        const fallback = `localStorage.setItem('th_yt_links', '${json.replace(/'/g, "\\'")}');`;
+        prompt('Could not reach server. Copy this and paste in browser DevTools console:', fallback);
+      }
+    }
+
+    function showStep(step) {
+      document.getElementById('pasteSection').classList.toggle('hidden', step !== 1);
+      document.getElementById('matchSection').classList.toggle('hidden', step !== 2);
+      document.getElementById('doneSection').classList.toggle('hidden', step !== 3);
+
+      document.getElementById('step1').className = `step ${step === 1 ? 'active' : 'done'}`;
+      document.getElementById('step2').className = `step ${step === 2 ? 'active' : step > 2 ? 'done' : 'pending'}`;
+      document.getElementById('step3').className = `step ${step === 3 ? 'active' : 'pending'}`;
+    }
+
+    function goBack() { showStep(1); }
+
+    function resetAll() {
+      document.getElementById('urlInput').value = '';
+      urls = [];
+      assignments = [];
+      showStep(1);
+    }
+
+    function loadFromFile() {
+      document.getElementById('fileInput').click();
+    }
+
+    function handleFileLoad(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('urlInput').value = ev.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    // Auto-test connection on load
+    testConnection();
+  </script>
+</body>
+</html>

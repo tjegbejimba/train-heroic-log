@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Save, Check, MessageSquare } from 'lucide-react';
 
 export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTemplate }) {
   const [saved, setSaved] = useState(false);
@@ -30,7 +31,9 @@ export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTe
             onClick={handleSaveTemplate}
             disabled={saved}
           >
-            {saved ? '✓ Saved' : '💾 Save Template'}
+            {saved
+              ? <><Check size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Saved</>
+              : <><Save size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Save Template</>}
           </button>
         )}
       </div>
@@ -46,7 +49,7 @@ export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTe
 
       {workout.notes && (
         <div className="mt-lg">
-          <div className="text-blue mt-md mb-md">💬 Workout Notes</div>
+          <div className="text-blue mt-md mb-md" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><MessageSquare size={14} /> Workout Notes</div>
           <p className="text-secondary">{workout.notes}</p>
         </div>
       )}

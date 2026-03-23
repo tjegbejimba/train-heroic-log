@@ -339,9 +339,10 @@ input[type='checkbox'] {
 }
 
 .empty-state-icon {
-  font-size: 48px;
   margin-bottom: var(--space-lg);
   opacity: 0.5;
+  display: flex;
+  justify-content: center;
 }
 
 /* Toast notifications */
@@ -358,6 +359,8 @@ input[type='checkbox'] {
 }
 
 .toast {
+  display: flex;
+  align-items: center;
   padding: var(--space-md) var(--space-xl);
   border-radius: 8px;
   font-size: var(--font-size-sm);
@@ -391,6 +394,38 @@ input[type='checkbox'] {
 @keyframes toast-out {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* Sync status */
+.settings-view__sync-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sync-dot--online {
+  background-color: var(--color-accent-green);
+}
+
+.sync-dot--offline {
+  background-color: var(--color-text-secondary);
+}
+
+.sync-dot--checking {
+  background-color: var(--color-accent-yellow);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* View transitions */

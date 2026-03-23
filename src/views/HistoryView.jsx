@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { BarChart2, FileText, ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function HistoryView({ allLogs, deleteLog, workouts }) {
@@ -107,7 +108,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
           <h1>History</h1>
         </div>
         <div className="empty-state">
-          <div className="empty-state-icon">📊</div>
+          <div className="empty-state-icon"><BarChart2 size={48} /></div>
           <h3>No completed workouts yet</h3>
           <p className="text-secondary">
             Complete a workout session to see it here
@@ -168,7 +169,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                   </div>
                 </div>
                 <span className="history-card__chevron">
-                  {isExpanded ? '▾' : '▸'}
+                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                 </span>
               </button>
 
@@ -193,7 +194,8 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                         </h4>
                         {(log.exerciseNotes || {})[exName] && (
                           <p className="history-card__exercise-note">
-                            📝 {log.exerciseNotes[exName]}
+                            <FileText size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                            {log.exerciseNotes[exName]}
                           </p>
                         )}
                         <div className="history-card__sets-table">
@@ -234,7 +236,9 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                                   )}
                                 </span>
                                 <span>
-                                  {set.completed ? '✓' : '○'}
+                                  {set.completed
+                                    ? <CheckCircle2 size={15} style={{ color: 'var(--color-accent-blue)' }} />
+                                    : <Circle size={15} style={{ opacity: 0.3 }} />}
                                 </span>
                               </div>
                             );

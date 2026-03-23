@@ -30,9 +30,12 @@
 - Unit tests (32 tests, all passing)
 - PWA icons (192x192, 512x512)
 - Improved service worker (network-first + versioned cache)
+- NAS backend with offline-first sync
+- YouTube link bulk importer (standalone GUI + CLI)
 
 🚧 **Next Up:**
-- Manual device testing, Lighthouse audit, deployment
+- Deploy to Synology NAS
+- Manual device testing, Lighthouse audit
 
 ---
 
@@ -192,10 +195,14 @@
 - [ ] Export workout to image/PDF
 - [ ] Share week plan with friend
 
-### NAS Backend (Future)
-- [ ] Add a lightweight backend (e.g., Node/Express or SQLite) hosted on Synology NAS
-- [ ] Store workout logs server-side instead of localStorage — eliminates iOS eviction risk
-- [ ] Sync across multiple devices
+### NAS Backend
+- [x] Node/Express API server with JSON file storage
+- [x] Offline-first sync layer (localStorage primary, background push/pull to server)
+- [x] Sync status indicator in Settings (online/offline/checking)
+- [x] Manual Pull/Push sync buttons in Settings
+- [x] Docker Compose with API container + nginx proxy
+- [x] YouTube link bulk importer (standalone GUI tool + CLI script)
+- [ ] Sync across multiple devices (currently single-user)
 - [ ] Data survives app reinstalls or browser clears
 
 ### Integrations (Future)
@@ -262,9 +269,9 @@
 
 ## Notes
 
-- All data persists in localStorage — no backend needed
-- Templates are local to browser; not synced to cloud
-- iOS may evict PWA localStorage after ~7 days of inactivity if device storage is low; consider NAS backend (see Phase 6) as a long-term solution
+- All data persists in localStorage (offline-first) with background sync to NAS backend
+- NAS backend stores JSON files in a Docker volume — data survives browser clears
+- iOS may evict PWA localStorage after ~7 days of inactivity; NAS sync mitigates this
 - Weekly planner doesn't auto-sync future dates; user confirms before applying
 - Performance should be fine until 1000+ workouts or 5000+ logs
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CalendarDays, CalendarRange } from 'lucide-react';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
 import WorkoutPreviewCard from '../components/WorkoutPreviewCard';
@@ -54,7 +55,8 @@ export default function TrainingView({
               className="btn btn-secondary btn-small"
               onClick={() => setViewMode('week')}
             >
-              📍 Week View
+              <CalendarRange size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+              Week View
             </button>
           </div>
         </div>
@@ -100,7 +102,7 @@ export default function TrainingView({
           </>
         ) : (
           <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
+            <div className="empty-state-icon"><CalendarDays size={48} /></div>
             <h3>No workout scheduled</h3>
             <p className="text-secondary">Select a day with a workout to begin</p>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { Check, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
@@ -26,8 +27,8 @@ export function ToastProvider({ children }) {
             key={toast.id}
             className={`toast toast--${toast.type}`}
           >
-            {toast.type === 'success' && '✓ '}
-            {toast.type === 'error' && '✕ '}
+            {toast.type === 'success' && <Check size={14} style={{ marginRight: '6px', flexShrink: 0 }} />}
+            {toast.type === 'error' && <X size={14} style={{ marginRight: '6px', flexShrink: 0 }} />}
             {toast.message}
           </div>
         ))}

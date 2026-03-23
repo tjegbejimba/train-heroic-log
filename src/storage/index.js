@@ -1,6 +1,9 @@
 /**
- * Thin wrapper over localStorage with JSON serialization
+ * Thin wrapper over localStorage with JSON serialization.
+ * Automatically triggers background sync to server on writes.
  */
+
+import { pushToServer } from './sync';
 
 export function readLS(key, fallback = null) {
   try {
@@ -15,6 +18,8 @@ export function readLS(key, fallback = null) {
 export function writeLS(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    // Background sync to server (fire-and-forget)
+    pushToServer(key, value);
     return true;
   } catch (e) {
     if (e.name === 'QuotaExceededError') {
@@ -30,6 +35,8 @@ export function writeLS(key, value) {
 export function removeLS(key) {
   try {
     localStorage.removeItem(key);
+    // Sync removal (push null)
+    pushToServer(key, null);
     return true;
   } catch (e) {
     console.error(`Error removing localStorage key "${key}":`, e);

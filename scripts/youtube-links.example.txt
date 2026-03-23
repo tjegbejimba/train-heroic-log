@@ -1,0 +1,10 @@
+# YouTube Links for TrainLog
+# Format: Exercise Name | YouTube URL
+# Lines starting with # are comments
+#
+# Tip: Run `node scripts/import-youtube-links.js --list` to see all exercise names
+#
+# Example entries:
+# Bench Press | https://www.youtube.com/watch?v=rT7DgCr-3pg
+# Barbell Squat | https://www.youtube.com/watch?v=ultWZbUMPL8
+# Deadlift | https://www.youtube.com/watch?v=op9kVnSso6Q

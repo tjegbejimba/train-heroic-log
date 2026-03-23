@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { BookOpen, Video } from 'lucide-react';
 
 export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) {
   const [search, setSearch] = useState('');
@@ -57,7 +58,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
           <h1>Exercise Library</h1>
         </div>
         <div className="empty-state">
-          <div className="empty-state-icon">📚</div>
+          <div className="empty-state-icon"><BookOpen size={48} /></div>
           <h3>No exercises yet</h3>
           <p className="text-secondary">Import a workout to populate your library</p>
         </div>
@@ -157,7 +158,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
                           rel="noopener noreferrer"
                           className="library-card__link-url"
                         >
-                          🎥 {link}
+                          <Video size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />{link}
                         </a>
                       ) : (
                         <span className="text-secondary text-sm">

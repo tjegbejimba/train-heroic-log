@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Video, CheckCircle } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
 import BlockSection from '../components/BlockSection';
@@ -201,7 +202,8 @@ export default function ActiveWorkoutView({
                   {getYouTubeLink(exercise.title) && (
                     <details className="active-workout-view__video-details">
                       <summary className="active-workout-view__video-summary">
-                        🎥 View Form Video
+                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                        View Form Video
                       </summary>
                       <div className="active-workout-view__video-embed">
                         <iframe
@@ -244,7 +246,8 @@ export default function ActiveWorkoutView({
             className="btn btn-primary btn--large w-full"
             onClick={handleCompleteWorkout}
           >
-            ✓ Complete Workout
+            <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Complete Workout
           </button>
         </div>
       )}

@@ -5,6 +5,7 @@ import { useYouTubeLinks } from './hooks/useYouTubeLinks';
 import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
+import { useSync } from './hooks/useSync';
 import { useToast } from './components/Toast';
 import {
   ROUTE_IMPORT,
@@ -44,6 +45,7 @@ export default function App() {
     duplicateTemplate,
     createTemplateFromWorkout,
   } = useTemplates();
+  const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
 
   // Navigation state
@@ -218,6 +220,21 @@ export default function App() {
           onClearAllData={() => {
             localStorage.clear();
             window.location.reload();
+          }}
+          syncStatus={syncStatus}
+          lastSynced={lastSynced}
+          onPullSync={async () => {
+            const ok = await pullSync();
+            if (ok) {
+              showToast('Synced from server!');
+              window.location.reload();
+            } else {
+              showToast('Server unreachable');
+            }
+          }}
+          onPushSync={async () => {
+            const ok = await pushSync();
+            showToast(ok ? 'Pushed to server!' : 'Server unreachable');
           }}
         />
       );
