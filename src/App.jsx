@@ -62,6 +62,13 @@ export default function App() {
 
   const [showResumeModal, setShowResumeModal] = useState(false);
 
+  // On startup, pull from server and reload if new data arrived
+  useEffect(() => {
+    pullSync().then(({ changed }) => {
+      if (changed) window.location.reload();
+    });
+  }, []);
+
   // Check for crash recovery on mount
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
@@ -239,10 +246,10 @@ export default function App() {
           syncStatus={syncStatus}
           lastSynced={lastSynced}
           onPullSync={async () => {
-            const ok = await pullSync();
+            const { ok, changed } = await pullSync();
             if (ok) {
-              showToast('Synced from server!');
-              window.location.reload();
+              showToast(changed ? 'Synced from server!' : 'Already up to date');
+              if (changed) window.location.reload();
             } else {
               showToast('Server unreachable');
             }

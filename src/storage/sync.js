@@ -29,25 +29,42 @@ export async function checkServerHealth() {
 
 /**
  * Pull all data from server and merge into localStorage.
- * Server data wins for keys that exist on server.
- * Returns true if sync succeeded.
+ * For map-shaped data (plain objects), merges entries: local-only keys survive,
+ * server wins on same-key conflicts. For other types, server overwrites local.
+ * Returns { ok, changed } — changed is true if any local data was updated.
  */
 export async function pullFromServer() {
-  if (!syncEnabled) return false;
+  if (!syncEnabled) return { ok: false, changed: false };
   try {
     const res = await fetch(`${API_BASE}/data`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, changed: false };
     const serverData = await res.json();
 
+    let changed = false;
     for (const [key, { data }] of Object.entries(serverData)) {
-      if (data !== null) {
-        writeLS(key, data);
+      if (data === null) continue;
+      const local = readLS(key, null);
+      let merged;
+      if (
+        local !== null &&
+        typeof local === 'object' && !Array.isArray(local) &&
+        typeof data === 'object' && !Array.isArray(data)
+      ) {
+        // Merge maps: preserve local-only entries, server wins on conflicts
+        merged = { ...local, ...data };
+      } else {
+        merged = data;
+      }
+      // Only write (and push back) if something actually changed
+      if (JSON.stringify(merged) !== JSON.stringify(local)) {
+        writeLS(key, merged);
+        changed = true;
       }
     }
-    return true;
+    return { ok: true, changed };
   } catch {
     console.warn('Sync pull failed — working offline');
-    return false;
+    return { ok: false, changed: false };
   }
 }
 
