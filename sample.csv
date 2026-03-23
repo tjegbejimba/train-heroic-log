@@ -1,0 +1,28 @@
+WorkoutTitle,ScheduledDate,RescheduledDate,WorkoutNotes,BlockValue,BlockUnits,BlockInstructions,BlockNotes,ExerciseTitle,ExerciseData,ExerciseNotes
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,A,PREP,Dynamic stretching,None,Cat Cow,3 rep x Bodyweight,Warm up
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,B,TECH/STRENGTH,Explosive movement,None,Bench Press,3 rep x 185 pound,Banded slow eccentric
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,B,TECH/STRENGTH,Explosive movement,None,Bench Press,5 rep x 165 pound,
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,B,TECH/STRENGTH,Explosive movement,None,Bench Press,8 rep x 145 pound,
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,C,HYPERTROPHY/CONDITIONING,Push focus,None,Incline Dumbbell Press,3 rep x 70 pound,Each hand
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,C,HYPERTROPHY/CONDITIONING,Push focus,None,Incline Dumbbell Press,5 rep x 65 pound,
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,C,HYPERTROPHY/CONDITIONING,Push focus,None,Incline Dumbbell Press,8 rep x 60 pound,
+Upper Body A,2026-03-24,2026-03-24,Focus on form and control,D,CONDITIONING,Finisher,None,Push-Up,3 rep x 6 rep,3 sets x 6 reps
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,A,PREP,Mobility work,None,Leg Swings,3 rep x Bodyweight,Each leg
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,B,TECH/STRENGTH,Primary lift,Heavy load,Barbell Back Squat,3 rep x 225 pound,Deep pause at bottom
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,B,TECH/STRENGTH,Primary lift,Heavy load,Barbell Back Squat,5 rep x 205 pound,
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,B,TECH/STRENGTH,Primary lift,Heavy load,Barbell Back Squat,8 rep x 185 pound,
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,C,HYPERTROPHY/CONDITIONING,Accessory,None,Romanian Deadlift,4 rep x 275 pound,Strict form
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,C,HYPERTROPHY/CONDITIONING,Accessory,None,Romanian Deadlift,6 rep x 255 pound,
+Lower Body B,2026-03-26,2026-03-26,Heavy squat day,D,CONDITIONING,Core burn,None,Ab Wheel Rollout,3 rep x Bodyweight,As many reps as possible
+Push Day,2026-03-25,2026-03-25,Upper body push focus,A,PREP,Activation,None,Band Pull Aparts,3 rep x Bodyweight,Shoulder prep
+Push Day,2026-03-25,2026-03-25,Upper body push focus,B,TECH/STRENGTH,Main movement,None,Overhead Press,5 rep x 165 pound,Strict form only
+Push Day,2026-03-25,2026-03-25,Upper body push focus,B,TECH/STRENGTH,Main movement,None,Overhead Press,3 rep x 180 pound,
+Push Day,2026-03-25,2026-03-25,Upper body push focus,C,HYPERTROPHY/CONDITIONING,Volume work,None,Dumbbell Bench Press,8 rep x 55 pound,
+Push Day,2026-03-25,2026-03-25,Upper body push focus,C,HYPERTROPHY/CONDITIONING,Volume work,None,Dumbbell Bench Press,10 rep x 50 pound,
+Push Day,2026-03-25,2026-03-25,Upper body push focus,C,HYPERTROPHY/CONDITIONING,Volume work,None,Dumbbell Bench Press,12 rep x 45 pound,
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,A,PREP,Warm up,None,Dead Hangs,4 rep x Bodyweight,Grip strength
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,B,TECH/STRENGTH,Primary lift,None,Deadlift,3 rep x 315 pound,Competition stance
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,B,TECH/STRENGTH,Primary lift,None,Deadlift,5 rep x 285 pound,
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,C,HYPERTROPHY/CONDITIONING,Back work,None,Barbell Row,5 rep x 225 pound,
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,C,HYPERTROPHY/CONDITIONING,Back work,None,Barbell Row,7 rep x 205 pound,
+Pull Day,2026-03-27,2026-03-27,Back and bicep focus,D,CONDITIONING,Arm finisher,None,Barbell Curl,3 rep x 8 rep,3 sets x 8 reps

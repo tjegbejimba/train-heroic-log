@@ -5,6 +5,8 @@ export default function DateStrip({
   onDateChange,
   schedule,
   completedDates,
+  viewMode = 'week',
+  onViewModeChange,
 }) {
   const scrollContainerRef = useRef(null);
 
@@ -63,9 +65,21 @@ export default function DateStrip({
         <h2 className="date-strip__month-year">
           {formatMonthYear(currentDate)} ▾
         </h2>
-        <button className="btn btn-secondary btn-small" onClick={goToToday}>
-          TODAY
-        </button>
+        <div className="date-strip__controls flex gap-sm">
+          {onViewModeChange && (
+            <button
+              className={`btn btn-secondary btn-small ${
+                viewMode === 'month' ? 'btn--active' : ''
+              }`}
+              onClick={() => onViewModeChange(viewMode === 'week' ? 'month' : 'week')}
+            >
+              {viewMode === 'week' ? '📅 Month' : '📍 Week'}
+            </button>
+          )}
+          <button className="btn btn-secondary btn-small" onClick={goToToday}>
+            TODAY
+          </button>
+        </div>
       </div>
 
       <div className="date-strip__scroll" ref={scrollContainerRef}>

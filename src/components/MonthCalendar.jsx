@@ -1,0 +1,155 @@
+import { useState } from 'react';
+
+export default function MonthCalendar({
+  currentDate,
+  onDateChange,
+  schedule,
+  completedDates,
+}) {
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const date = new Date(currentDate + 'T00:00:00');
+    return { year: date.getFullYear(), month: date.getMonth() };
+  });
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year, month) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const formatDateString = (year, month, day) => {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  const generateCalendarDays = () => {
+    const { year, month } = displayMonth;
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = getFirstDayOfMonth(year, month);
+    const days = [];
+
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(day);
+    }
+
+    return days;
+  };
+
+  const getMonthYearDisplay = () => {
+    const date = new Date(displayMonth.year, displayMonth.month, 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
+  const goToPreviousMonth = () => {
+    setDisplayMonth((prev) => {
+      const newMonth = prev.month === 0 ? 11 : prev.month - 1;
+      const newYear = prev.month === 0 ? prev.year - 1 : prev.year;
+      return { year: newYear, month: newMonth };
+    });
+  };
+
+  const goToNextMonth = () => {
+    setDisplayMonth((prev) => {
+      const newMonth = prev.month === 11 ? 0 : prev.month + 1;
+      const newYear = prev.month === 11 ? prev.year + 1 : prev.year;
+      return { year: newYear, month: newMonth };
+    });
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setDisplayMonth({
+      year: today.getFullYear(),
+      month: today.getMonth(),
+    });
+    const todayStr = today.toISOString().split('T')[0];
+    onDateChange(todayStr);
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+  const days = generateCalendarDays();
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <div className="month-calendar">
+      <div className="month-calendar__header flex-between">
+        <button className="btn btn-secondary btn-small" onClick={goToPreviousMonth}>
+          ← Prev
+        </button>
+        <h2 className="month-calendar__title">{getMonthYearDisplay()}</h2>
+        <button className="btn btn-secondary btn-small" onClick={goToNextMonth}>
+          Next →
+        </button>
+      </div>
+
+      <div className="month-calendar__controls">
+        <button className="btn btn-secondary btn-small" onClick={goToToday}>
+          TODAY
+        </button>
+      </div>
+
+      <div className="month-calendar__grid">
+        {/* Week day headers */}
+        {weekDays.map((day) => (
+          <div key={day} className="month-calendar__weekday">
+            {day}
+          </div>
+        ))}
+
+        {/* Calendar days */}
+        {days.map((day, idx) => {
+          if (!day) {
+            return (
+              <div key={`empty-${idx}`} className="month-calendar__day month-calendar__day--empty" />
+            );
+          }
+
+          const dateStr = formatDateString(displayMonth.year, displayMonth.month, day);
+          const hasWorkout = schedule[dateStr] !== undefined;
+          const isCompleted = completedDates.has(dateStr);
+          const isSelected = dateStr === currentDate;
+          const isToday = dateStr === today;
+          const isPast = dateStr < today && dateStr !== today;
+
+          const dayStatus = isCompleted
+            ? 'completed'
+            : hasWorkout && isPast
+              ? 'missed'
+              : hasWorkout
+                ? 'scheduled'
+                : 'none';
+
+          return (
+            <button
+              key={dateStr}
+              className={`month-calendar__day month-calendar__day--${dayStatus} ${
+                isSelected ? 'month-calendar__day--selected' : ''
+              } ${isToday ? 'month-calendar__day--today' : ''}`}
+              onClick={() => onDateChange(dateStr)}
+              title={schedule[dateStr] || 'No workout'}
+            >
+              <div className="month-calendar__day-number">{day}</div>
+              {hasWorkout && (
+                <div className="month-calendar__day-label">
+                  {isCompleted ? '✓' : isCompleted === false && isPast ? '✗' : '•'}
+                </div>
+              )}
+              {schedule[dateStr] && (
+                <div className="month-calendar__day-workout">
+                  {schedule[dateStr].substring(0, 12)}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

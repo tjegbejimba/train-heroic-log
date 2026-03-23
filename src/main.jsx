@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './styles/global.css'
 import './styles/App.css'
 import './styles/components.css'
+import './styles/calendar.css'
 import './styles/import-view.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

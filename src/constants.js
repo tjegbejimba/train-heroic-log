@@ -23,9 +23,8 @@ export const TAB_SETTINGS = 'settings';
 // Date formats
 export const DATE_ISO = 'YYYY-MM-DD'; // used as reference; actual JS uses toISOString().split('T')[0]
 
-// Exercise key format: "${workoutTitle}::${exerciseTitle}"
-export const makeExerciseKey = (workoutTitle, exerciseTitle) =>
-  `${workoutTitle}::${exerciseTitle}`;
+// Exercise key format: just exercise title (YouTube links are global per exercise)
+export const makeExerciseKey = (exerciseTitle) => exerciseTitle;
 
 // Log key format: "${YYYY-MM-DD}::${workoutTitle}"
 export const makeLogKey = (date, workoutTitle) =>

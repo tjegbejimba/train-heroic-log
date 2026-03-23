@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DateStrip from '../components/DateStrip';
+import MonthCalendar from '../components/MonthCalendar';
 import WorkoutPreviewCard from '../components/WorkoutPreviewCard';
 import BlockSection from '../components/BlockSection';
 import ExerciseRow from '../components/ExerciseRow';
@@ -19,6 +20,7 @@ export default function TrainingView({
   const workoutTitle = getWorkoutForDate(currentDate);
   const workout = workoutTitle ? workouts[workoutTitle] : null;
   const [expandedExercise, setExpandedExercise] = useState(null);
+  const [viewMode, setViewMode] = useState('week');
 
   const handleStartWorkout = () => {
     if (workoutTitle) {
@@ -29,12 +31,33 @@ export default function TrainingView({
 
   return (
     <div className="view training-view">
-      <DateStrip
-        currentDate={currentDate}
-        onDateChange={onDateChange}
-        schedule={schedule}
-        completedDates={completedDates}
-      />
+      {viewMode === 'week' ? (
+        <DateStrip
+          currentDate={currentDate}
+          onDateChange={onDateChange}
+          schedule={schedule}
+          completedDates={completedDates}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      ) : (
+        <div className="training-view__month-header">
+          <MonthCalendar
+            currentDate={currentDate}
+            onDateChange={onDateChange}
+            schedule={schedule}
+            completedDates={completedDates}
+          />
+          <div className="training-view__month-controls flex gap-md p-lg">
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => setViewMode('week')}
+            >
+              📍 Week View
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="training-view__content">
         {workout ? (
@@ -55,9 +78,9 @@ export default function TrainingView({
                       key={exIdx}
                       blockLetter={String.fromCharCode(65 + exIdx)} // A, B, C...
                       exercise={exercise}
-                      youtubeLink={getYouTubeLink(`${workoutTitle}::${exercise.title}`)}
+                      youtubeLink={getYouTubeLink(exercise.title)}
                       onYoutubeLinkChange={(url) =>
-                        setYouTubeLink(`${workoutTitle}::${exercise.title}`, url)
+                        setYouTubeLink(exercise.title, url)
                       }
                       isExpanded={expandedExercise === `${blockIdx}-${exIdx}`}
                       onToggleExpand={() =>
