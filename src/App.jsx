@@ -49,10 +49,17 @@ export default function App() {
   const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
 
-  // Navigation state
-  const [navState, setNavState] = useState({
-    view: Object.keys(workouts).length === 0 ? ROUTE_IMPORT : ROUTE_TRAINING,
-    params: {},
+  // Navigation state — after a sync-triggered reload, always land on Training
+  const [navState, setNavState] = useState(() => {
+    const syncReload = sessionStorage.getItem('syncReload');
+    if (syncReload) {
+      sessionStorage.removeItem('syncReload');
+      return { view: ROUTE_TRAINING, params: {} };
+    }
+    return {
+      view: Object.keys(workouts).length === 0 ? ROUTE_IMPORT : ROUTE_TRAINING,
+      params: {},
+    };
   });
 
   const [currentDate, setCurrentDate] = useState(() => {
@@ -61,6 +68,16 @@ export default function App() {
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
+
+  // On startup, pull from server and reload if new data arrived
+  useEffect(() => {
+    pullSync().then(({ changed }) => {
+      if (changed) {
+        sessionStorage.setItem('syncReload', '1');
+        window.location.reload();
+      }
+    });
+  }, []);
 
   // Check for crash recovery on mount
   useEffect(() => {
@@ -239,10 +256,13 @@ export default function App() {
           syncStatus={syncStatus}
           lastSynced={lastSynced}
           onPullSync={async () => {
-            const ok = await pullSync();
+            const { ok, changed } = await pullSync();
             if (ok) {
-              showToast('Synced from server!');
-              window.location.reload();
+              showToast(changed ? 'Synced from server!' : 'Already up to date');
+              if (changed) {
+                sessionStorage.setItem('syncReload', '1');
+                window.location.reload();
+              }
             } else {
               showToast('Server unreachable');
             }

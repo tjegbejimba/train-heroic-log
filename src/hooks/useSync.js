@@ -34,13 +34,14 @@ export function useSync() {
     });
   }, []);
 
-  // Pull from server — returns true if data was loaded (caller should reload state)
+  // Pull from server — returns { ok, changed }
+  // changed=true means local data was updated and caller should reload state
   const pullSync = useCallback(async () => {
     setSyncStatus('checking');
-    const ok = await pullFromServer();
+    const { ok, changed } = await pullFromServer();
     setSyncStatus(ok ? 'online' : 'offline');
     if (ok) setLastSynced(new Date().toISOString());
-    return ok;
+    return { ok, changed };
   }, []);
 
   // Push all local data to server

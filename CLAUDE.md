@@ -43,6 +43,21 @@ No linting is configured in this project.
 
 There is no React Router. Navigation is state-based: `App.jsx` holds a `navState` object `{ view, params }` and passes a `navigate(view, params)` callback to child components. Route constants are defined in `src/constants.js`.
 
+### Domain Terminology
+
+| Term | Code name | Description |
+|------|-----------|-------------|
+| **Workout** | `workout` | A named training session made up of ordered parts. E.g. "Upper A", "Lower B". Stored in `th_workouts`. |
+| **Part** | `block` | A section within a workout. Normally holds one exercise. When it holds two or more exercises they are performed as a **superset** (back-to-back with no rest between exercises, rest only after the last one). |
+| **Superset** | — | A part with 2+ exercises. The UI should display them grouped and log them in sequence before moving on. |
+| **Exercise** | `exercise` | A single movement within a part. Has a title, optional notes, and a list of prescribed sets. E.g. "Bench Press", "Romanian Deadlift". |
+| **Set** | `set` | One prescribed round of an exercise: a target rep count and weight. E.g. "3 × 10 @ 135 lb" = 3 sets. |
+| **Session / Log** | `log` | A completed instance of a workout on a specific date, recording actual reps and weights. Key format: `YYYY-MM-DD::WorkoutTitle`. Stored in `th_logs`. |
+| **Schedule** | `schedule` | Map of `YYYY-MM-DD → workoutTitle`. Determines what is planned for each day. Stored in `th_schedule`. |
+| **Template** | `template` | A reusable workout definition not tied to any date. Stored in `th_templates`. |
+
+> **Note:** The codebase uses the word `block` everywhere for what the product calls a *part*. These are the same thing.
+
 ### Data Layer
 
 Seven custom hooks in `src/hooks/` manage all persistence via `readLS`/`writeLS` helpers in `src/storage/index.js`. Each hook owns one `localStorage` key (defined in `src/constants.js`). All hooks follow the same pattern: read from localStorage on init, expose state + updater functions that write back. `writeLS` automatically triggers a background push to the NAS API via `src/storage/sync.js`.
