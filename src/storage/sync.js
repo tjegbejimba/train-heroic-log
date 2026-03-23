@@ -7,7 +7,7 @@
  * 3. On startup, pull from server and merge (server wins for data you haven't touched locally)
  */
 
-import { readLS, writeLS } from './index';
+import { readLS, writeLS, removeLS } from './index';
 
 // API base URL — in production, same origin; in dev, point to backend port
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -29,25 +29,74 @@ export async function checkServerHealth() {
 
 /**
  * Pull all data from server and merge into localStorage.
- * Server data wins for keys that exist on server.
- * Returns true if sync succeeded.
+ * For map-shaped data (plain objects), merges entries: local-only keys survive,
+ * server wins on same-key conflicts. For other types, server overwrites local.
+ *
+ * Handles data: null cases using updatedAt to distinguish intent:
+ *   - data: null, updatedAt: null  → server has no file yet; push local data up
+ *   - data: null, updatedAt: set   → intentional deletion; remove local key
+ *
+ * Returns { ok, changed } — changed is true if any local data was updated.
  */
 export async function pullFromServer() {
-  if (!syncEnabled) return false;
+  if (!syncEnabled) return { ok: false, changed: false };
   try {
     const res = await fetch(`${API_BASE}/data`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, changed: false };
     const serverData = await res.json();
 
-    for (const [key, { data }] of Object.entries(serverData)) {
-      if (data !== null) {
-        writeLS(key, data);
+    let changed = false;
+    for (const [key, { data, updatedAt }] of Object.entries(serverData)) {
+      // Read the raw stored string once — used for efficient change detection
+      // below (avoids re-serializing local and sidesteps key-order false positives)
+      const localRaw = localStorage.getItem(key);
+      let local = null;
+      if (localRaw) {
+        try {
+          local = JSON.parse(localRaw);
+        } catch (e) {
+          console.warn(`Ignoring malformed localStorage value for key "${key}" during sync pull`, e);
+          local = null;
+        }
+      }
+
+      if (data === null) {
+        if (updatedAt === null) {
+          // Server has no file yet — push local data up so offline writes aren't lost
+          if (local !== null) {
+            pushToServer(key, local);
+          }
+        } else {
+          // Intentional deletion — remove local key if present
+          if (local !== null) {
+            removeLS(key);
+            changed = true;
+          }
+        }
+        continue;
+      }
+
+      let merged;
+      if (
+        local !== null &&
+        typeof local === 'object' && !Array.isArray(local) &&
+        typeof data === 'object' && !Array.isArray(data)
+      ) {
+        // Merge maps: preserve local-only entries, server wins on conflicts
+        merged = { ...local, ...data };
+      } else {
+        merged = data;
+      }
+      // One stringify (merged) compared against the already-stored raw string
+      if (JSON.stringify(merged) !== localRaw) {
+        writeLS(key, merged);
+        changed = true;
       }
     }
-    return true;
+    return { ok: true, changed };
   } catch {
     console.warn('Sync pull failed — working offline');
-    return false;
+    return { ok: false, changed: false };
   }
 }
 
