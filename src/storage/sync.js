@@ -7,7 +7,7 @@
  * 3. On startup, pull from server and merge (server wins for data you haven't touched locally)
  */
 
-import { readLS, writeLS } from './index';
+import { readLS, writeLS, removeLS } from './index';
 
 // API base URL — in production, same origin; in dev, point to backend port
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -31,6 +31,11 @@ export async function checkServerHealth() {
  * Pull all data from server and merge into localStorage.
  * For map-shaped data (plain objects), merges entries: local-only keys survive,
  * server wins on same-key conflicts. For other types, server overwrites local.
+ *
+ * Handles data: null cases using updatedAt to distinguish intent:
+ *   - data: null, updatedAt: null  → server has no file yet; push local data up
+ *   - data: null, updatedAt: set   → intentional deletion; remove local key
+ *
  * Returns { ok, changed } — changed is true if any local data was updated.
  */
 export async function pullFromServer() {
@@ -41,9 +46,25 @@ export async function pullFromServer() {
     const serverData = await res.json();
 
     let changed = false;
-    for (const [key, { data }] of Object.entries(serverData)) {
-      if (data === null) continue;
+    for (const [key, { data, updatedAt }] of Object.entries(serverData)) {
       const local = readLS(key, null);
+
+      if (data === null) {
+        if (updatedAt === null) {
+          // Server has no file yet — push local data up so offline writes aren't lost
+          if (local !== null) {
+            pushToServer(key, local);
+          }
+        } else {
+          // Intentional deletion — remove local key if present
+          if (local !== null) {
+            removeLS(key);
+            changed = true;
+          }
+        }
+        continue;
+      }
+
       let merged;
       if (
         local !== null &&
