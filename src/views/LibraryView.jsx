@@ -84,6 +84,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
   const [bulkRows, setBulkRows] = useState(null); // [{ url, videoTitle, matchedExercise, status }]
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkSaved, setBulkSaved] = useState(false);
+  const [preImportLinks, setPreImportLinks] = useState(null);
 
   // Build flat list of exercises with metadata
   const exercises = useMemo(() => {
@@ -141,6 +142,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
 
     setBulkLoading(true);
     setBulkSaved(false);
+    if (!preImportLinks) setPreImportLinks({ ...youtubeLinks });
 
     const rows = await Promise.all(
       entries.map(async ({ url, manualName }) => {
@@ -197,6 +199,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
     setBulkRows(null);
     setBulkSaved(false);
     setBulkLoading(false);
+    setPreImportLinks(null);
   };
 
   if (Object.keys(workouts).length === 0) {
@@ -308,7 +311,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
             <div style={{ marginTop: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               {bulkRows.map((r, i) => {
                 const isDuplicate = r.matchedExercise && exerciseCounts[r.matchedExercise]?.length > 1;
-                const hasExisting = r.matchedExercise && youtubeLinks[r.matchedExercise];
+                const hasExisting = r.matchedExercise && preImportLinks && preImportLinks[r.matchedExercise];
                 const hasWarning = isDuplicate || hasExisting;
 
                 return (
