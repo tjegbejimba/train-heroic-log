@@ -75,7 +75,7 @@ function extractUrls(text) {
     .filter((e) => YOUTUBE_URL_RE.test(e.url));
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, onUpdateExerciseNotes }) {
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes }) {
   const [search, setSearch] = useState('');
   const [editingLink, setEditingLink] = useState(null);
   const [linkDraft, setLinkDraft] = useState('');
@@ -195,7 +195,9 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, on
     if (!bulkRows) return;
     const valid = bulkRows.filter((r) => r.matchedExercise && r.url);
     const skipped = bulkRows.length - valid.length;
-    valid.forEach((r) => setYouTubeLink(r.matchedExercise, r.url));
+    // Use setManyYouTubeLinks to update all at once — calling setYouTubeLink in a loop
+    // would cause each call to close over the same stale `links` snapshot, losing all but the last.
+    setManyYouTubeLinks(valid.map((r) => ({ key: r.matchedExercise, url: r.url })));
     setBulkSaved({ saved: valid.length, skipped });
   };
 
