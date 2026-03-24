@@ -170,9 +170,6 @@ export default function ActiveWorkoutView({
                     <h3 className="active-workout-view__exercise-title">
                       {letter}. {exercise.title}
                     </h3>
-                    {exercise.notes && (
-                      <p className="text-secondary text-sm">{exercise.notes}</p>
-                    )}
                   </div>
 
                   <div className="active-workout-view__sets">
@@ -189,41 +186,50 @@ export default function ActiveWorkoutView({
                     ))}
                   </div>
 
-                  {/* Exercise notes */}
+                  {/* Form notes + video — workout-specific coaching cues and form reference */}
+                  {(exercise.notes || getYouTubeLink(exercise.title)) && (
+                    <details className="active-workout-view__video-details">
+                      <summary className="active-workout-view__video-summary">
+                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                        {exercise.notes && getYouTubeLink(exercise.title)
+                          ? 'Form Notes & Video'
+                          : exercise.notes
+                          ? 'Form Notes'
+                          : 'View Form Video'}
+                      </summary>
+                      {exercise.notes && (
+                        <p className="active-workout-view__form-notes">{exercise.notes}</p>
+                      )}
+                      {getYouTubeLink(exercise.title) && (
+                        <div className="active-workout-view__video-embed">
+                          <iframe
+                            width="100%"
+                            height="220"
+                            src={`https://www.youtube.com/embed/${extractVideoId(
+                              getYouTubeLink(exercise.title)
+                            )}`}
+                            title={exercise.title}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                    </details>
+                  )}
+
+                  {/* Personal session notes */}
                   <div className="active-workout-view__notes">
                     <input
                       type="text"
                       className="input active-workout-view__notes-input"
-                      placeholder="Notes (e.g. felt weak, RPE 8, elbow pain)"
+                      placeholder="Your notes (e.g. felt weak, RPE 8, elbow pain)"
                       value={(currentLog.exerciseNotes || {})[exercise.title] || ''}
                       onChange={(e) =>
                         updateExerciseNote(exercise.title, e.target.value)
                       }
                     />
                   </div>
-
-                  {/* YouTube link */}
-                  {getYouTubeLink(exercise.title) && (
-                    <details className="active-workout-view__video-details">
-                      <summary className="active-workout-view__video-summary">
-                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
-                        View Form Video
-                      </summary>
-                      <div className="active-workout-view__video-embed">
-                        <iframe
-                          width="100%"
-                          height="220"
-                          src={`https://www.youtube.com/embed/${extractVideoId(
-                            getYouTubeLink(exercise.title)
-                          )}`}
-                          title={exercise.title}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    </details>
-                  )}
                 </div>
               );
             })}
