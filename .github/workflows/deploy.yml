@@ -26,10 +26,12 @@ jobs:
           tags: tag:ci
 
       - name: Deploy dist to NAS
+        env:
+          SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.NAS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H 100.104.13.117 >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -v -i ~/.ssh/id_ed25519 -o ConnectTimeout=15 tjegbejimba@100.104.13.117 "echo connected" || { echo "SSH connection failed"; exit 1; }
-          rsync -av --delete -e "ssh -i ~/.ssh/id_ed25519" dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 tjegbejimba@100.104.13.117 "echo connected"
+          rsync -av --delete dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
