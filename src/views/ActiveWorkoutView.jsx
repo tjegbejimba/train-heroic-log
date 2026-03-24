@@ -170,6 +170,9 @@ export default function ActiveWorkoutView({
                     <h3 className="active-workout-view__exercise-title">
                       {letter}. {exercise.title}
                     </h3>
+                    {exercise.workoutNotes && (
+                      <p className="active-workout-view__workout-notes">{exercise.workoutNotes}</p>
+                    )}
                   </div>
 
                   <div className="active-workout-view__sets">

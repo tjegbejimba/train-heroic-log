@@ -8,7 +8,7 @@ function makeEmptySet() {
 }
 
 function makeEmptyExercise() {
-  return { title: '', notes: '', sets: [makeEmptySet()] };
+  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()] };
 }
 
 function makeEmptyBlock() {
@@ -94,12 +94,12 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     setSearchQuery('');
   }
 
-  function setExerciseNotes(bIdx, eIdx, notes) {
+  function setExerciseNotes(bIdx, eIdx, workoutNotes) {
     const next = [...blocks];
     next[bIdx] = {
       ...next[bIdx],
       exercises: next[bIdx].exercises.map((ex, i) =>
-        i === eIdx ? { ...ex, notes } : ex
+        i === eIdx ? { ...ex, workoutNotes } : ex
       ),
     };
     setBlocks(next);
@@ -301,8 +301,8 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
 
                 <textarea
                   className="input tpl-editor__exercise-notes"
-                  placeholder="Form notes for this exercise (e.g. paused reps, 8 each side, rest 2 min)"
-                  value={ex.notes || ''}
+                  placeholder="Workout-specific notes (e.g. paused reps, 8 each side, rest 2 min)"
+                  value={ex.workoutNotes || ''}
                   onChange={(e) => setExerciseNotes(bIdx, eIdx, e.target.value)}
                   rows={2}
                 />

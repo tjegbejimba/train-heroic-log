@@ -296,6 +296,13 @@
   text-decoration: underline;
 }
 
+.active-workout-view__workout-notes {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
 .active-workout-view__form-notes {
   margin-top: var(--space-sm);
   font-size: var(--font-size-sm);
