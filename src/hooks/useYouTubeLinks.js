@@ -27,6 +27,19 @@ export function useYouTubeLinks() {
     saveLinks(updated);
   }
 
+  // Save multiple links at once — avoids stale-closure overwrites when calling setLink in a loop
+  function setManyLinks(entries) {
+    const updated = { ...links };
+    entries.forEach(({ key, url }) => {
+      if (url && url.trim()) {
+        updated[key] = url.trim();
+      } else {
+        delete updated[key];
+      }
+    });
+    saveLinks(updated);
+  }
+
   function removeLink(exerciseKey) {
     const updated = { ...links };
     delete updated[exerciseKey];
@@ -37,5 +50,5 @@ export function useYouTubeLinks() {
     return links[exerciseKey] || null;
   }
 
-  return { links, setLink, removeLink, getLink };
+  return { links, setLink, setManyLinks, removeLink, getLink };
 }

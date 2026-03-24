@@ -35,7 +35,7 @@ export default function App() {
   // Data hooks
   const { workouts, saveWorkouts, updateExerciseNotes } = useWorkouts();
   const { schedule, saveSchedule, getWorkoutForDate, setWorkoutDate } = useSchedule();
-  const { links, setLink, getLink } = useYouTubeLinks();
+  const { links, setLink, setManyLinks, getLink } = useYouTubeLinks();
   const { logs, saveLog, getLog, deleteLog, completedDates, allLogs } = useWorkoutLogs();
   const { session, createSession, updateSession, clearSession } = useActiveWorkout();
   const {
@@ -274,6 +274,7 @@ export default function App() {
           workouts={workouts}
           youtubeLinks={links}
           setYouTubeLink={setLink}
+          setManyYouTubeLinks={setManyLinks}
           onUpdateExerciseNotes={(exerciseTitle, notes) => {
             // Update across all workouts that use this exercise
             const updatedWorkouts = {};
