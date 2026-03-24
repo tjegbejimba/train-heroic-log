@@ -32,5 +32,4 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 100.104.13.117 >> ~/.ssh/known_hosts 2>/dev/null
-          rsync -av --delete -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
+          rsync -av --delete -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
