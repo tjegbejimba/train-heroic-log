@@ -390,6 +390,13 @@
   margin-bottom: var(--space-sm);
 }
 
+.tpl-editor__exercise-notes {
+  width: 100%;
+  resize: vertical;
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+
 .tpl-editor__dropdown {
   position: absolute;
   top: 100%;
