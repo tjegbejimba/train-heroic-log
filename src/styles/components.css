@@ -232,6 +232,20 @@
   border-top: 1px solid var(--color-border);
 }
 
+.exercise-row__notes-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.exercise-row__notes-edit textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 .exercise-row__video {
   border-radius: 8px;
   overflow: hidden;

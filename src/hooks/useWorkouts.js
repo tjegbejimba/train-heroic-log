@@ -16,5 +16,22 @@ export function useWorkouts() {
     setWorkouts(workoutMap);
   }
 
-  return { workouts, saveWorkouts };
+  function updateExerciseNotes(workoutTitle, exerciseTitle, notes) {
+    const workout = workouts[workoutTitle];
+    if (!workout) return;
+
+    const updatedBlocks = workout.blocks.map((block) => ({
+      ...block,
+      exercises: block.exercises.map((ex) =>
+        ex.title === exerciseTitle ? { ...ex, notes } : ex
+      ),
+    }));
+
+    saveWorkouts({
+      ...workouts,
+      [workoutTitle]: { ...workout, blocks: updatedBlocks },
+    });
+  }
+
+  return { workouts, saveWorkouts, updateExerciseNotes };
 }
