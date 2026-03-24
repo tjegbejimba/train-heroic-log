@@ -296,6 +296,13 @@
   text-decoration: underline;
 }
 
+.active-workout-view__form-notes {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
 .active-workout-view__video-embed {
   margin-top: var(--space-md);
   border-radius: 8px;
