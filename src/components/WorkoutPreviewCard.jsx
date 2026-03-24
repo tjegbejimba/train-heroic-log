@@ -6,9 +6,11 @@ export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTe
 
   const handleSaveTemplate = () => {
     if (onSaveAsTemplate) {
-      onSaveAsTemplate(workout);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      const ok = onSaveAsTemplate(workout);
+      if (ok !== false) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
     }
   };
 

@@ -20,9 +20,11 @@ export function parseExerciseData(raw) {
     weightPart = s.slice(xIndex + 3).trim();
   }
 
+  // Detect reps-side unit (normally "rep", but can be "time", "yard", "second", "pound")
+  const repsSideUnit = detectUnit(repsPart);
+
   // --- Parse reps ---
-  // Strip trailing "rep", "reps", "repetition(s)"
-  const repsClean = repsPart.replace(/\s*(reps?|repetitions?)\s*$/i, '').trim();
+  const repsClean = repsPart.replace(/\s*(reps?|repetitions?|times?|yards?|seconds?|pounds?|lbs?|max\s*reps?)\s*$/i, '').trim();
   const repTokens = repsClean
     .split(',')
     .map((t) => t.trim())
@@ -32,9 +34,13 @@ export function parseExerciseData(raw) {
 
   const repsArr = repTokens.map((t) => {
     if (t === 'amrap' || t === 'max' || t === 'max reps') return null;
-    const n = parseFloat(t);
+    const n = parseTime(t);
     return isNaN(n) ? null : n;
   });
+
+  // If all rep tokens resolved to null and none were AMRAP keywords, nothing useful
+  const hasAmrap = repTokens.some((t) => t === 'amrap' || t === 'max' || t === 'max reps');
+  if (repsArr.every((r) => r === null) && !hasAmrap) return [];
 
   // --- Parse weight ---
   let weightsArr = [];
@@ -49,23 +55,61 @@ export function parseExerciseData(raw) {
       weightsArr = repsArr.map(() => null);
       unit = 'bw';
     } else {
-      // Detect unit
-      if (/\bkg\b|kilogram/.test(weightPart)) unit = 'kg';
-      else if (/%/.test(weightPart)) unit = '%';
-      else unit = 'lb'; // default
+      // Detect weight-side unit
+      unit = detectWeightUnit(weightPart);
 
-      const weightClean = weightPart
-        .replace(/\s*(pounds?|lbs?|kg|kilograms?|%)\s*/gi, '')
-        .trim();
-      const weightTokens = weightClean
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
+      // "rep" on weight side with no numbers means bodyweight
+      if (unit === 'rep') {
+        const weightClean = weightPart.replace(/\s*(reps?)\s*/gi, '').trim();
+        const weightTokens = weightClean.split(',').map((t) => t.trim()).filter(Boolean);
+        const nums = weightTokens.map((t) => parseFloat(t)).filter((n) => !isNaN(n));
 
-      weightsArr = weightTokens.map((t) => {
-        const n = parseFloat(t);
-        return isNaN(n) ? null : n;
-      });
+        if (nums.length === 0) {
+          // "rep x rep" — pure bodyweight
+          weightsArr = repsArr.map(() => null);
+          unit = 'bw';
+        } else if (repsArr.every((r) => r === 0) && nums.some((n) => n > 0)) {
+          // "0, 0, 0 rep x 20, 15, 17 rep" — actual reps on weight side, bodyweight exercise
+          return nums.map((reps, i) => ({
+            reps,
+            weight: null,
+            unit: 'bw',
+            rawReps: String(reps),
+            rawWeight: 'bw',
+          }));
+        } else {
+          // "10, 10, 10 rep x 10, 10, 10 rep" — mirrored reps, bodyweight
+          weightsArr = repsArr.map(() => null);
+          unit = 'bw';
+        }
+      } else {
+        const unitPattern = /\s*(pounds?|lbs?|kg|kilograms?|%|percent|yards?|yd|meters?|rpe|inches?|in|feet|foot|ft|seconds?|sec|times?)\s*/gi;
+        const weightClean = weightPart.replace(unitPattern, '').trim();
+        const weightTokens = weightClean
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        weightsArr = weightTokens.map((t) => {
+          const n = parseTime(t);
+          return isNaN(n) ? null : n;
+        });
+      }
+    }
+  }
+
+  // Handle reversed columns: weight unit on reps side (e.g., "135 pound x 40 time")
+  if (repsSideUnit === 'lb' || repsSideUnit === 'kg') {
+    const weightSideUnit = detectWeightUnit(weightPart);
+    if (weightSideUnit === 'time' || weightSideUnit === 'sec' || weightSideUnit === 'rep') {
+      // Swap: reps side has the weight, weight side has the reps/time
+      return weightsArr.map((reps, i) => ({
+        reps,
+        weight: repsArr[i] ?? null,
+        unit: repsSideUnit,
+        rawReps: String(reps ?? ''),
+        rawWeight: String(repsArr[i] ?? 'bw'),
+      }));
     }
   }
 
@@ -86,17 +130,68 @@ export function parseExerciseData(raw) {
 }
 
 /**
+ * Detect the unit from a reps-side string
+ */
+function detectUnit(str) {
+  if (/\bpounds?\b|\blbs?\b/.test(str)) return 'lb';
+  if (/\bkg\b|\bkilograms?\b/.test(str)) return 'kg';
+  if (/\byards?\b|\byd\b/.test(str)) return 'yd';
+  if (/\bseconds?\b|\bsec\b/.test(str)) return 'sec';
+  if (/\btimes?\b/.test(str)) return 'time';
+  if (/\breps?\b/.test(str)) return 'rep';
+  return 'rep';
+}
+
+/**
+ * Detect the unit from a weight-side string
+ */
+function detectWeightUnit(str) {
+  if (/\bkg\b|\bkilograms?\b/.test(str)) return 'kg';
+  if (/%/.test(str) || /\bpercent\b/.test(str)) return '%';
+  if (/\byards?\b|\byd\b/.test(str)) return 'yd';
+  if (/\bmeters?\b/.test(str)) return 'm';
+  if (/\brpe\b/.test(str)) return 'RPE';
+  if (/\binches?\b|\binch\b/.test(str)) return 'in';
+  if (/\bfeet\b|\bfoot\b|\bft\b/.test(str)) return 'ft';
+  if (/\bseconds?\b|\bsec\b/.test(str)) return 'sec';
+  if (/\btimes?\b/.test(str)) return 'time';
+  if (/\breps?\b/.test(str)) return 'rep';
+  if (/\bpounds?\b|\blbs?\b/.test(str)) return 'lb';
+  return 'lb'; // default
+}
+
+/**
+ * Parse a time-like string (HH:MM:SS or HH:MM) into total seconds, or a plain number
+ */
+function parseTime(str) {
+  const trimmed = str.trim();
+  // Match HH:MM:SS or MM:SS or HH:MM
+  const timeMatch = trimmed.match(/^(\d+):(\d+)(?::(\d+))?$/);
+  if (timeMatch) {
+    const parts = [timeMatch[1], timeMatch[2], timeMatch[3]].filter(Boolean).map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+  }
+  return parseFloat(trimmed);
+}
+
+/**
  * Format a Set for display
  * @param {Object} set - {reps, weight, unit, ...}
- * @returns {string} e.g. "6 reps x 40 lb" or "5 reps x BW"
+ * @returns {string} e.g. "6 × 40 lb" or "5 × BW"
  */
 export function formatSet(set) {
   if (!set) return '';
 
   const repsStr = set.reps === null ? 'AMRAP' : `${set.reps}`;
+  const unitLabels = {
+    lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm', bw: 'BW',
+    RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec',
+  };
+  const unitLabel = unitLabels[set.unit] || set.unit;
   const weightStr = set.weight === null
-    ? set.unit === 'bw' ? 'BW' : 'BW'
-    : `${set.weight}${set.unit}`;
+    ? 'BW'
+    : `${set.weight} ${unitLabel}`;
 
   return `${repsStr} × ${weightStr}`;
 }

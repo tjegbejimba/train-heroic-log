@@ -10,15 +10,26 @@ export default function DateStrip({
 }) {
   const scrollContainerRef = useRef(null);
 
+  const parseLocalDate = (dateStr) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const formatLocalDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // Generate a week of dates around the current date
   const generateWeek = (centerDate) => {
-    const center = new Date(centerDate + 'T00:00:00');
+    const center = parseLocalDate(centerDate);
     const week = [];
     for (let i = -3; i <= 3; i++) {
       const date = new Date(center);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      week.push(dateStr);
+      week.push(formatLocalDate(date));
     }
     return week;
   };
@@ -47,13 +58,11 @@ export default function DateStrip({
   };
 
   const formatDateDisplay = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    const dayNum = date.getDate();
-    return dayNum;
+    return parseLocalDate(dateStr).getDate();
   };
 
   const formatMonthYear = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = parseLocalDate(dateStr);
     const month = date.toLocaleString('default', { month: 'short' });
     const year = date.getFullYear();
     return `${month.toUpperCase()} '${String(year).slice(-2)}`;

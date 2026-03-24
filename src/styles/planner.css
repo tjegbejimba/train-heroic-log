@@ -283,3 +283,218 @@
   transition: width 300ms ease;
   min-width: 2px;
 }
+
+/* ========== Template Editor ========== */
+.tpl-editor {
+  padding-bottom: 100px;
+}
+
+.tpl-editor__header {
+  padding: var(--space-lg);
+  padding-bottom: var(--space-md);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 10;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tpl-editor__header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.tpl-editor__name-input {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  width: 100%;
+}
+
+.tpl-editor__blocks {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.tpl-editor__block {
+  padding: var(--space-md) !important;
+}
+
+.tpl-editor__block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.tpl-editor__block-label {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.tpl-editor__block-actions {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-icon--danger:hover:not(:disabled) {
+  color: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+}
+
+.btn-icon--small {
+  padding: 2px 4px;
+}
+
+.tpl-editor__exercise {
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.tpl-editor__exercise:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.tpl-editor__exercise-header {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.tpl-editor__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20;
+  margin-top: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tpl-editor__dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.tpl-editor__dropdown-item:hover {
+  background: rgba(75, 123, 255, 0.1);
+}
+
+.tpl-editor__sets {
+  margin-left: var(--space-sm);
+}
+
+.tpl-editor__sets-header {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 70px 28px;
+  gap: var(--space-xs);
+  padding: 0 0 var(--space-xs);
+}
+
+.tpl-editor__set-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 70px 28px;
+  gap: var(--space-xs);
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.tpl-editor__set-num {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.tpl-editor__set-input {
+  padding: 6px 8px !important;
+  font-size: var(--font-size-sm) !important;
+  text-align: center;
+}
+
+.tpl-editor__set-unit {
+  padding: 6px 4px !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.tpl-editor__add-set {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+}
+
+.tpl-editor__add-exercise {
+  margin-top: var(--space-sm);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tpl-editor__footer {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  justify-content: center;
+}
+
+.tpl-editor__footer .btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 768px) {
+  .tpl-editor__header {
+    padding: var(--space-md);
+    padding-bottom: var(--space-sm);
+  }
+
+  .tpl-editor__blocks {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .tpl-editor__footer {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

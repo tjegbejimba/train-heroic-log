@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { checkServerHealth, pullFromServer, pushAllToServer } from '../storage/sync';
+import { checkServerHealth, pullFromServer, pushAllToServer, clearServerData } from '../storage/sync';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -64,5 +64,10 @@ export function useSync() {
     return ok;
   }, []);
 
-  return { syncStatus, lastSynced, pullSync, pushSync };
+  // Clear all data on server
+  const clearServer = useCallback(async () => {
+    return clearServerData(ALL_KEYS);
+  }, []);
+
+  return { syncStatus, lastSynced, pullSync, pushSync, clearServer };
 }

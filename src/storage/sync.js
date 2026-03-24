@@ -159,6 +159,29 @@ export async function pushAllToServer(keys) {
   }
 }
 
+/**
+ * Clear all data on the server (push null for every key)
+ */
+export async function clearServerData(keys) {
+  if (!syncEnabled) return false;
+  try {
+    const payload = {};
+    for (const key of keys) {
+      payload[key] = null;
+    }
+    const res = await fetch(`${API_BASE}/data`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
+    });
+    return res.ok;
+  } catch {
+    console.warn('Server data clear failed');
+    return false;
+  }
+}
+
 export function setSyncEnabled(enabled) {
   syncEnabled = enabled;
 }

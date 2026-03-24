@@ -14,6 +14,7 @@ export const ROUTE_HISTORY = 'history';
 export const ROUTE_LIBRARY = 'library';
 export const ROUTE_PLANNER = 'planner';
 export const ROUTE_SETTINGS = 'settings';
+export const ROUTE_EDIT_TEMPLATE = 'editTemplate';
 
 // Tab IDs for bottom nav
 export const TAB_TRAINING = 'training';

@@ -153,18 +153,22 @@ export default function ActiveWorkoutView({
         </div>
 
         {/* Exercises */}
-        {workout.blocks.map((block, blockIdx) => (
+        {(() => {
+          let globalIdx = 0;
+          return workout.blocks.map((block, blockIdx) => (
           <div key={blockIdx}>
-            {block.exercises.length > 0 && <BlockSection block={block} />}
+            {block.exercises.length > 1 && <BlockSection block={block} />}
 
             {block.exercises.map((exercise, exIdx) => {
               const exerciseLogs = currentLog.exercises[exercise.title] || [];
+              const letter = String.fromCharCode(65 + globalIdx);
+              globalIdx++;
 
               return (
                 <div key={exIdx} className="active-workout-view__exercise">
                   <div className="active-workout-view__exercise-header">
                     <h3 className="active-workout-view__exercise-title">
-                      {String.fromCharCode(65 + exIdx)}. {exercise.title}
+                      {letter}. {exercise.title}
                     </h3>
                     {exercise.notes && (
                       <p className="text-secondary text-sm">{exercise.notes}</p>
@@ -224,7 +228,8 @@ export default function ActiveWorkoutView({
               );
             })}
           </div>
-        ))}
+        ));
+        })()}
 
         {/* Overall workout note */}
         <div className="active-workout-view__workout-note">
@@ -240,17 +245,17 @@ export default function ActiveWorkoutView({
       </div>
 
       {/* Complete button */}
-      {allDone && (
-        <div className="active-workout-view__footer">
-          <button
-            className="btn btn-primary btn--large w-full"
-            onClick={handleCompleteWorkout}
-          >
-            <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Complete Workout
-          </button>
-        </div>
-      )}
+      <div className="active-workout-view__footer">
+        <button
+          className="btn btn-primary btn--large w-full"
+          onClick={handleCompleteWorkout}
+        >
+          <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+          {allDone
+            ? 'Complete Workout'
+            : `Complete Workout (${completedSets}/${totalSets})`}
+        </button>
+      </div>
 
       {/* Cancel modal */}
       {showCancelModal && (

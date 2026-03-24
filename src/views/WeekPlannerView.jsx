@@ -1,11 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Modal from '../components/Modal';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// Parse YYYY-MM-DD in local time without timezone shifts
+function parseLocalDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function getWeekDates(startDate) {
-  const d = new Date(startDate + 'T00:00:00');
-  // Find Monday of this week
+  const d = parseLocalDate(startDate);
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day; // Monday = 1
   const monday = new Date(d);
@@ -15,7 +27,7 @@ function getWeekDates(startDate) {
   for (let i = 0; i < 7; i++) {
     const date = new Date(monday);
     date.setDate(monday.getDate() + i);
-    dates.push(date.toISOString().split('T')[0]);
+    dates.push(formatLocalDate(date));
   }
   return dates;
 }
@@ -26,6 +38,7 @@ export default function WeekPlannerView({
   templateList,
   templates,
   workouts,
+  showToast,
 }) {
   const today = new Date().toISOString().split('T')[0];
   const [weekStart, setWeekStart] = useState(today);
@@ -37,16 +50,16 @@ export default function WeekPlannerView({
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
   const goToPrevWeek = () => {
-    const d = new Date(weekDates[0] + 'T00:00:00');
+    const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() - 7);
-    setWeekStart(d.toISOString().split('T')[0]);
+    setWeekStart(formatLocalDate(d));
     setDraft({});
   };
 
   const goToNextWeek = () => {
-    const d = new Date(weekDates[0] + 'T00:00:00');
+    const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() + 7);
-    setWeekStart(d.toISOString().split('T')[0]);
+    setWeekStart(formatLocalDate(d));
     setDraft({});
   };
 
@@ -77,23 +90,34 @@ export default function WeekPlannerView({
 
   const hasDraftChanges = Object.keys(draft).length > 0;
 
+  // Close template picker on Escape
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') { setShowPicker(null); setTemplateSearch(''); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showPicker]);
+
   const applyPlan = () => {
+    let missing = 0;
     Object.entries(draft).forEach(([dateStr, templateId]) => {
       if (templateId === null) {
         setWorkoutDate(dateStr, null);
       } else {
         const tpl = templates[templateId];
         if (tpl) {
-          // Save template as a workout if it doesn't exist
           setWorkoutDate(dateStr, tpl.name);
-          // Ensure the workout exists in workouts map
-          if (!workouts[tpl.name]) {
-            // This will be handled by the parent via onApplyTemplate
-          }
+        } else {
+          missing++;
         }
       }
     });
     setDraft({});
+    if (missing > 0) {
+      showToast(`${missing} template${missing > 1 ? 's' : ''} no longer exist and were skipped`, 'error');
+    }
   };
 
   const clearWeek = () => {
@@ -106,37 +130,38 @@ export default function WeekPlannerView({
   };
 
   const repeatNextWeek = () => {
-    // Take current week's plan (including drafts) and apply to next week
-    const nextWeekDates = getWeekDates(
-      new Date(new Date(weekDates[0] + 'T00:00:00').getTime() + 7 * 86400000)
-        .toISOString()
-        .split('T')[0]
-    );
+    const nextMonday = parseLocalDate(weekDates[0]);
+    nextMonday.setDate(nextMonday.getDate() + 7);
+    const nextWeekDates = getWeekDates(formatLocalDate(nextMonday));
 
     const newDraft = { ...draft };
+    let skipped = 0;
     weekDates.forEach((dateStr, idx) => {
       const workoutName = getWorkoutForDate(dateStr);
       const nextDate = nextWeekDates[idx];
 
       if (workoutName) {
-        // Find template by name
         const tpl = templateList.find((t) => t.name === workoutName);
         if (tpl) {
           newDraft[nextDate] = tpl.id;
+        } else {
+          skipped++;
         }
       } else {
         newDraft[nextDate] = null;
       }
     });
 
-    // Navigate to next week
     setWeekStart(nextWeekDates[0]);
     setDraft(newDraft);
+    if (skipped > 0) {
+      showToast(`${skipped} day${skipped > 1 ? 's' : ''} skipped — no matching template found`, 'error');
+    }
   };
 
   const formatWeekRange = () => {
-    const start = new Date(weekDates[0] + 'T12:00:00');
-    const end = new Date(weekDates[6] + 'T12:00:00');
+    const start = parseLocalDate(weekDates[0]);
+    const end = parseLocalDate(weekDates[6]);
     const opts = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}`;
   };
@@ -176,7 +201,7 @@ export default function WeekPlannerView({
               <div className="planner-day__header">
                 <span className="planner-day__name">{DAY_NAMES[idx]}</span>
                 <span className="planner-day__date">
-                  {new Date(dateStr + 'T12:00:00').getDate()}
+                  {parseLocalDate(dateStr).getDate()}
                 </span>
               </div>
 
@@ -237,7 +262,7 @@ export default function WeekPlannerView({
             <h2 className="modal__title">Pick a Template</h2>
             <p className="modal__message">
               {DAY_NAMES[weekDates.indexOf(showPicker)]},{' '}
-              {new Date(showPicker + 'T12:00:00').toLocaleDateString('en-US', {
+              {parseLocalDate(showPicker).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
               })}
