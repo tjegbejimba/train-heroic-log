@@ -94,6 +94,17 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     setSearchQuery('');
   }
 
+  function setExerciseNotes(bIdx, eIdx, notes) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) =>
+        i === eIdx ? { ...ex, notes } : ex
+      ),
+    };
+    setBlocks(next);
+  }
+
   // --- Set operations ---
   function updateSet(bIdx, eIdx, sIdx, field, value) {
     const next = [...blocks];
@@ -287,6 +298,14 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                     <Trash2 size={14} />
                   </button>
                 </div>
+
+                <textarea
+                  className="input tpl-editor__exercise-notes"
+                  placeholder="Form notes for this exercise (e.g. paused reps, 8 each side, rest 2 min)"
+                  value={ex.notes || ''}
+                  onChange={(e) => setExerciseNotes(bIdx, eIdx, e.target.value)}
+                  rows={2}
+                />
 
                 <div className="tpl-editor__sets">
                   <div className="tpl-editor__sets-header">
