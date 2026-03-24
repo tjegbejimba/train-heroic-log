@@ -25,6 +25,13 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      - name: Debug Tailscale connectivity
+        run: |
+          tailscale status
+          tailscale ping -c 3 100.104.13.117 || echo "Tailscale ping failed"
+          ping -c 3 -W 5 100.104.13.117 || echo "ICMP ping failed"
+          nc -zv -w 5 100.104.13.117 22 2>&1 || echo "Port 22 not reachable"
+
       - name: Deploy dist to NAS
         env:
           SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
