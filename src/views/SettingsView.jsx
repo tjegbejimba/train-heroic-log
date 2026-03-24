@@ -32,6 +32,7 @@ export default function SettingsView({
   const [expandedId, setExpandedId] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearSelections, setClearSelections] = useState({});
+  const [templateSearch, setTemplateSearch] = useState('');
 
   const handleStartRename = (tpl) => {
     setRenamingId(tpl.id);
@@ -283,7 +284,19 @@ export default function SettingsView({
             </p>
           ) : (
             <div className="settings-templates">
-              {templateList.map((tpl) => {
+              <input
+                type="text"
+                className="input"
+                placeholder="Search templates..."
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+                style={{ marginBottom: 'var(--space-md)' }}
+              />
+              {templateList
+                .filter((tpl) =>
+                  tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
+                )
+                .map((tpl) => {
                 const isExpanded = expandedId === tpl.id;
                 const exerciseCount = tpl.blocks.reduce(
                   (sum, b) => sum + b.exercises.length,
