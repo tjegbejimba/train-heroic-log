@@ -33,5 +33,6 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           SSH_OPTS="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "rm -rf /volume2/docker/trainlog/dist/*"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "sudo rm -rf /volume2/docker/trainlog/dist/*"
           scp $SSH_OPTS -r dist/* tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "sudo chown -R tjegbejimba:users /volume2/docker/trainlog/dist/"
