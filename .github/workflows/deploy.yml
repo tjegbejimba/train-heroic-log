@@ -25,13 +25,6 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Debug Tailscale connectivity
-        run: |
-          tailscale status
-          tailscale ping -c 3 100.104.13.117 || echo "Tailscale ping failed"
-          ping -c 3 -W 5 100.104.13.117 || echo "ICMP ping failed"
-          nc -zv -w 5 100.104.13.117 22 2>&1 || echo "Port 22 not reachable"
-
       - name: Deploy dist to NAS
         env:
           SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
@@ -40,5 +33,4 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H 100.104.13.117 >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 tjegbejimba@100.104.13.117 "echo connected"
-          rsync -av --delete dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
+          rsync -av --delete -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" dist/ tjegbejimba@100.104.13.117:/volume2/docker/trainlog/dist/
