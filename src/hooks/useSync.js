@@ -34,6 +34,17 @@ export function useSync() {
     });
   }, []);
 
+  // Listen for background push results
+  useEffect(() => {
+    function handleSyncPush(e) {
+      const { ok } = e.detail;
+      setSyncStatus(ok ? 'online' : 'offline');
+      if (ok) setLastSynced(new Date().toISOString());
+    }
+    window.addEventListener('sync-push', handleSyncPush);
+    return () => window.removeEventListener('sync-push', handleSyncPush);
+  }, []);
+
   // Pull from server — returns { ok, changed }
   // changed=true means local data was updated and caller should reload state
   const pullSync = useCallback(async () => {

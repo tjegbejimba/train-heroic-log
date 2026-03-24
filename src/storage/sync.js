@@ -115,15 +115,21 @@ export function pushToServer(key, data) {
   const timeoutId = setTimeout(async () => {
     pendingPushes.delete(key);
     try {
-      await fetch(`${API_BASE}/data/${key}`, {
+      const res = await fetch(`${API_BASE}/data/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data }),
         signal: AbortSignal.timeout(5000),
       });
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      } else {
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
+      }
     } catch {
       // Silent fail — localStorage has the data, will sync next time
       console.warn(`Sync push failed for ${key} — will retry on next write`);
+      window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
     }
   }, 500);
 
