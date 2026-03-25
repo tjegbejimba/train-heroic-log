@@ -14,6 +14,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
+let failedKeys = new Set(); // keys that failed to push (for retry)
 
 /**
  * Check if the server is reachable
@@ -122,18 +123,89 @@ export function pushToServer(key, data) {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
+        failedKeys.delete(key);
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       } else {
+        failedKeys.add(key);
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
       }
     } catch {
-      // Silent fail — localStorage has the data, will sync next time
-      console.warn(`Sync push failed for ${key} — will retry on next write`);
+      failedKeys.add(key);
+      console.warn(`Sync push failed for ${key}`);
       window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
     }
   }, 500);
 
   pendingPushes.set(key, timeoutId);
+}
+
+/**
+ * Immediately flush all debounced pushes (don't wait for timers).
+ * Call this before page reload to prevent data loss.
+ */
+export async function flushPendingPushes() {
+  const keys = [...pendingPushes.keys()];
+  for (const key of keys) {
+    clearTimeout(pendingPushes.get(key));
+    pendingPushes.delete(key);
+  }
+  if (keys.length === 0) return;
+  await Promise.all(keys.map(async (key) => {
+    try {
+      const data = readLS(key, null);
+      const res = await fetch(`${API_BASE}/data/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        failedKeys.delete(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      } else {
+        failedKeys.add(key);
+      }
+    } catch {
+      failedKeys.add(key);
+    }
+  }));
+}
+
+/**
+ * Check if there are pending debounced pushes.
+ */
+export function hasPendingPushes() {
+  return pendingPushes.size > 0;
+}
+
+/**
+ * Retry pushing keys that previously failed.
+ * Called after a successful pull to ensure local changes reach the server.
+ */
+export async function retryFailedPushes() {
+  if (failedKeys.size === 0) return;
+  const keys = [...failedKeys];
+  await Promise.all(keys.map(async (key) => {
+    try {
+      const data = readLS(key, null);
+      if (data === null) {
+        failedKeys.delete(key);
+        return;
+      }
+      const res = await fetch(`${API_BASE}/data/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        failedKeys.delete(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      }
+    } catch {
+      // Still failed — will retry on next opportunity
+    }
+  }));
 }
 
 /**
