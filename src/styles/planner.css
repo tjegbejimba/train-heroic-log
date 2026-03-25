@@ -76,6 +76,11 @@
   font-size: var(--font-size-sm);
   color: var(--color-accent-blue);
   text-decoration: underline;
+  transition: opacity var(--transition);
+}
+
+.planner-day__workout-name:hover {
+  opacity: 0.75;
 }
 
 .planner-day__clear {
@@ -193,6 +198,11 @@
   cursor: pointer;
   color: inherit;
   text-align: left;
+  transition: opacity var(--transition);
+}
+
+.settings-template-item__toggle:hover {
+  opacity: 0.8;
 }
 
 .settings-template-item__name {
