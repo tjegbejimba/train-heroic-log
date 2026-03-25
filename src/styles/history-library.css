@@ -337,3 +337,95 @@
     gap: var(--space-sm);
   }
 }
+
+/* ========== Library card tap affordance ========== */
+.library-card__title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.library-card__title-btn .library-card__title {
+  margin: 0;
+}
+
+.library-card__history-hint {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ========== ExerciseHistoryView ========== */
+.exercise-history-view__header {
+  padding: var(--space-lg);
+  padding-bottom: var(--space-md);
+}
+
+.exercise-history-view__back {
+  margin-bottom: var(--space-md);
+}
+
+.exercise-history-view__title {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-xs);
+}
+
+.exercise-history-view__list {
+  padding: 0 var(--space-lg) var(--space-lg);
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.exercise-history-session__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-sm);
+}
+
+.exercise-history-session__date {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.exercise-history-session__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.exercise-history-session__table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
+  font-size: var(--font-size-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.exercise-history-session__table td {
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.exercise-history-session__row--skipped td {
+  opacity: 0.45;
+}
+
+.exercise-history-session__actual--done {
+  color: var(--color-accent-green);
+  font-weight: 500;
+}
+
+.exercise-history-session__note {
+  margin-top: var(--space-sm);
+  font-style: italic;
+}

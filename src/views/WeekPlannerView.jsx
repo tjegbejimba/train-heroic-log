@@ -39,6 +39,7 @@ export default function WeekPlannerView({
   templates,
   workouts,
   showToast,
+  onNavigateToDate,
 }) {
   const today = new Date().toISOString().split('T')[0];
   const [weekStart, setWeekStart] = useState(today);
@@ -207,7 +208,14 @@ export default function WeekPlannerView({
 
               {workoutName ? (
                 <div className="planner-day__workout">
-                  <span className="planner-day__workout-name">{workoutName}</span>
+                  <button
+                    className="planner-day__workout-name"
+                    onClick={() => !isDrafted && onNavigateToDate(dateStr)}
+                    title={isDrafted ? undefined : 'Go to workout'}
+                    style={{ opacity: isDrafted ? 0.7 : 1 }}
+                  >
+                    {workoutName}
+                  </button>
                   <button
                     className="planner-day__clear"
                     onClick={() => clearDay(dateStr)}
