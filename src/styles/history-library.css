@@ -36,6 +36,15 @@
   color: inherit;
   padding: 0;
   text-align: left;
+  transition: opacity var(--transition);
+}
+
+.history-card__toggle:hover {
+  opacity: 0.8;
+}
+
+.history-card__title {
+  transition: color var(--transition);
 }
 
 .history-card__summary {
@@ -55,6 +64,7 @@
   font-size: var(--font-size-lg);
   font-weight: 600;
   margin-bottom: var(--space-sm);
+  transition: color var(--transition);
 }
 
 .history-card__meta {
@@ -354,11 +364,22 @@
 
 .library-card__title-btn .library-card__title {
   margin: 0;
+  transition: color var(--transition);
+}
+
+.library-card__title-btn:hover .library-card__title {
+  color: var(--color-accent-blue);
 }
 
 .library-card__history-hint {
   white-space: nowrap;
   flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity var(--transition);
+}
+
+.library-card__title-btn:hover .library-card__history-hint {
+  opacity: 1;
 }
 
 /* ========== ExerciseHistoryView ========== */
@@ -393,7 +414,10 @@
 
 .exercise-history-session__date {
   font-weight: 600;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .exercise-history-session__table {

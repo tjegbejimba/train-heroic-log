@@ -30,16 +30,34 @@
   justify-content: center;
   gap: var(--space-xs);
   cursor: pointer;
-  transition: background-color var(--transition);
+  transition: background-color var(--transition), color var(--transition);
   border: none;
   background: none;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+  position: relative;
+}
+
+.navbar__tab:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .navbar__tab--active {
   color: var(--color-accent-blue);
-  background-color: rgba(75, 123, 255, 0.05);
+  background-color: rgba(75, 123, 255, 0.06);
+}
+
+.navbar__tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  background-color: var(--color-accent-blue);
+  border-radius: 0 0 3px 3px;
 }
 
 .navbar__icon {
@@ -223,6 +241,16 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.exercise-row__toggle:hover .exercise-row__badge {
+  background-color: rgba(75, 123, 255, 0.15);
+  color: var(--color-accent-blue);
+}
+
+.exercise-row__toggle:hover .exercise-row__title {
+  color: var(--color-accent-blue);
 }
 
 .exercise-row__info {
@@ -233,6 +261,7 @@
   font-size: var(--font-size-base);
   font-weight: 600;
   margin-bottom: var(--space-xs);
+  transition: color var(--transition);
 }
 
 .exercise-row__sets {
