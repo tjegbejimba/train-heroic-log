@@ -358,7 +358,10 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                   )}
                   {hasExisting && !isDuplicate && (
                     <div style={{ fontSize: '11px', color: 'var(--color-accent-yellow)', marginBottom: '4px' }}>
-                      "{r.matchedExercise}" already has a link — this will overwrite it.
+                      Will overwrite existing:{' '}
+                      <span style={{ opacity: 0.75, wordBreak: 'break-all' }}>
+                        {preImportLinks[r.matchedExercise]}
+                      </span>
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
