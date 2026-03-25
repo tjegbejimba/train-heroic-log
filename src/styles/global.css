@@ -458,4 +458,20 @@ input[type='checkbox'] {
   .view {
     padding-bottom: 70px;
   }
+
+  /* Ensure all buttons meet the 44px minimum tap target */
+  .btn {
+    min-height: 44px;
+  }
+
+  /* Prevent iOS Safari from zooming on input focus (font-size < 16px triggers zoom) */
+  input[type='text'],
+  input[type='number'],
+  input[type='email'],
+  input[type='url'],
+  input[type='file'],
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }

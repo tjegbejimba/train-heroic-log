@@ -273,7 +273,35 @@
   }
 
   .planner-day {
+    padding: var(--space-md) var(--space-md);
+    min-height: 56px;
+  }
+
+  /* Planner clear button: bigger tap target */
+  .planner-day__clear {
     padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Icon buttons: 44×44px tap target */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Template editor: prevent iOS zoom on small number inputs */
+  .tpl-editor__set-input,
+  .tpl-editor__set-unit {
+    font-size: 16px !important;
+  }
+
+  /* Template picker dropdown items: larger tap targets */
+  .tpl-editor__dropdown-item {
+    padding: var(--space-md) var(--space-lg);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 
   .planner-view__actions {

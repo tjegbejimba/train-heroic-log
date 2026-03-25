@@ -346,6 +346,23 @@
     align-items: flex-start;
     gap: var(--space-sm);
   }
+
+  /* Library card action buttons: full-width on mobile */
+  .library-card__link-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+
+  .library-card__link-actions .btn {
+    flex: 1;
+  }
+
+  /* Library card title: larger tap zone */
+  .library-card__title-btn {
+    min-height: 44px;
+    align-items: center;
+  }
 }
 
 /* ========== Library card tap affordance ========== */

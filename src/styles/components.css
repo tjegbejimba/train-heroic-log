@@ -376,3 +376,30 @@
 .training-view__exercises {
   margin-top: var(--space-lg);
 }
+
+/* ========== Mobile ========== */
+@media (max-width: 768px) {
+  /* Date strip: taller tap targets */
+  .date-strip__day {
+    min-height: 56px;
+    padding: var(--space-md) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  /* Exercise rows: larger tap zone */
+  .exercise-row {
+    padding: var(--space-lg) var(--space-lg);
+  }
+
+  .exercise-row__toggle {
+    padding: var(--space-sm) 0;
+  }
+
+  /* Library notes toggle: full-width touch target */
+  .library-card__notes-toggle {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+}
