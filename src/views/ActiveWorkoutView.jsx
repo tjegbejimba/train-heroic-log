@@ -38,6 +38,7 @@ export default function ActiveWorkoutView({
   });
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   // Initialize exercise logs
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function ActiveWorkoutView({
   const completedSets = allSets.filter((s) => s.completed).length;
   const totalSets = allSets.length;
   const allDone = totalSets > 0 && completedSets === totalSets;
+  const progressPct = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
     <div className="view active-workout-view">
@@ -144,7 +146,7 @@ export default function ActiveWorkoutView({
           <div className="progress-bar">
             <div
               className="progress-bar__fill"
-              style={{ width: `${(completedSets / totalSets) * 100}%` }}
+              style={{ width: `${progressPct}%` }}
             />
           </div>
           <p className="progress-text">
@@ -174,17 +176,21 @@ export default function ActiveWorkoutView({
                   </div>
 
                   <div className="active-workout-view__sets">
-                    {exercise.sets.map((set, setIdx) => (
-                      <LogSetRow
-                        key={setIdx}
-                        setIndex={setIdx}
-                        set={set}
-                        loggedSet={exerciseLogs[setIdx]}
-                        onUpdate={(newSetData) =>
-                          updateExerciseSet(exercise.title, setIdx, newSetData)
-                        }
-                      />
-                    ))}
+                    {exercise.sets.map((set, setIdx) => {
+                      const firstIncomplete = exerciseLogs.findIndex((s) => !s?.completed);
+                      return (
+                        <LogSetRow
+                          key={setIdx}
+                          setIndex={setIdx}
+                          set={set}
+                          loggedSet={exerciseLogs[setIdx]}
+                          isNext={setIdx === firstIncomplete}
+                          onUpdate={(newSetData) =>
+                            updateExerciseSet(exercise.title, setIdx, newSetData)
+                          }
+                        />
+                      );
+                    })}
                   </div>
 
                   {/* Form notes + video */}
@@ -264,7 +270,7 @@ export default function ActiveWorkoutView({
       <div className="active-workout-view__footer">
         <button
           className="btn btn-primary btn--large w-full"
-          onClick={handleCompleteWorkout}
+          onClick={allDone ? handleCompleteWorkout : () => setShowCompleteModal(true)}
         >
           <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
           {allDone
@@ -281,6 +287,18 @@ export default function ActiveWorkoutView({
           onConfirm={handleCancelWorkout}
           onCancel={() => setShowCancelModal(false)}
           confirmText="Cancel Workout"
+          cancelText="Keep Going"
+        />
+      )}
+
+      {/* Incomplete sets confirmation */}
+      {showCompleteModal && (
+        <Modal
+          title="Finish Early?"
+          message={`${totalSets - completedSets} set${totalSets - completedSets !== 1 ? 's' : ''} not yet completed. Mark workout as finished anyway?`}
+          onConfirm={() => { setShowCompleteModal(false); handleCompleteWorkout(); }}
+          onCancel={() => setShowCompleteModal(false)}
+          confirmText="Finish Anyway"
           cancelText="Keep Going"
         />
       )}

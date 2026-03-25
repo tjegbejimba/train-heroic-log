@@ -478,17 +478,43 @@
 
 .tpl-editor__sets-header {
   display: grid;
-  grid-template-columns: 30px 1fr 1fr 70px 28px;
+  grid-template-columns: 30px 1fr 1fr 28px;
   gap: var(--space-xs);
   padding: 0 0 var(--space-xs);
+  align-items: center;
+}
+
+.tpl-editor__sets--no-value .tpl-editor__sets-header,
+.tpl-editor__sets--no-value .tpl-editor__set-row {
+  grid-template-columns: 30px 1fr auto 28px;
 }
 
 .tpl-editor__set-row {
   display: grid;
-  grid-template-columns: 30px 1fr 1fr 70px 28px;
+  grid-template-columns: 30px 1fr 1fr 28px;
   gap: var(--space-xs);
   align-items: center;
   margin-bottom: var(--space-xs);
+}
+
+.tpl-editor__reps-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: 0;
+  text-align: left;
+}
+
+.tpl-editor__reps-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.tpl-editor__value-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .tpl-editor__set-num {

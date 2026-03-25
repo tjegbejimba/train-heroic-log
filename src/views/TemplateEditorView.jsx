@@ -3,12 +3,12 @@ import { ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 
 const UNIT_OPTIONS = ['lb', 'kg', 'bw', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
 
-function makeEmptySet() {
-  return { reps: null, weight: null, unit: 'lb', rawReps: '', rawWeight: '' };
+function makeEmptySet(unit = 'lb') {
+  return { reps: null, weight: null, unit, rawReps: '', rawWeight: '' };
 }
 
 function makeEmptyExercise() {
-  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()] };
+  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsLabel: 'Reps', showValue: true, unit: 'lb' };
 }
 
 function makeEmptyBlock() {
@@ -128,17 +128,57 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     setBlocks(next);
   }
 
+  function updateExerciseUnit(bIdx, eIdx, unit) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) => {
+        if (i !== eIdx) return ex;
+        return { ...ex, unit, sets: ex.sets.map((s) => ({ ...s, unit })) };
+      }),
+    };
+    setBlocks(next);
+  }
+
+  function toggleRepsLabel(bIdx, eIdx) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) => {
+        if (i !== eIdx) return ex;
+        return { ...ex, repsLabel: ex.repsLabel === 'Time' ? 'Reps' : 'Time' };
+      }),
+    };
+    setBlocks(next);
+  }
+
+  function toggleShowValue(bIdx, eIdx) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) => {
+        if (i !== eIdx) return ex;
+        const showValue = !(ex.showValue !== false);
+        return {
+          ...ex,
+          showValue,
+          sets: showValue ? ex.sets : ex.sets.map((s) => ({ ...s, weight: null })),
+        };
+      }),
+    };
+    setBlocks(next);
+  }
+
   function addSet(bIdx, eIdx) {
     const next = [...blocks];
     next[bIdx] = {
       ...next[bIdx],
       exercises: next[bIdx].exercises.map((ex, i) => {
         if (i !== eIdx) return ex;
-        // Clone the last set's unit for convenience
         const lastSet = ex.sets[ex.sets.length - 1];
         const newSet = lastSet
-          ? { ...makeEmptySet(), unit: lastSet.unit }
-          : makeEmptySet();
+          ? { ...lastSet, rawReps: '', rawWeight: '' }
+          : makeEmptySet(ex.unit || 'lb');
         return { ...ex, sets: [...ex.sets, newSet] };
       }),
     };
@@ -307,12 +347,46 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                   rows={2}
                 />
 
-                <div className="tpl-editor__sets">
+                <div className={`tpl-editor__sets${ex.showValue === false ? ' tpl-editor__sets--no-value' : ''}`}>
                   <div className="tpl-editor__sets-header">
                     <span className="text-secondary text-sm">Set</span>
-                    <span className="text-secondary text-sm">Reps</span>
-                    <span className="text-secondary text-sm">Value</span>
-                    <span className="text-secondary text-sm">Unit</span>
+                    <button
+                      className="tpl-editor__reps-toggle"
+                      onClick={() => toggleRepsLabel(bIdx, eIdx)}
+                      title="Toggle Reps / Time"
+                    >
+                      {ex.repsLabel || 'Reps'} ▾
+                    </button>
+                    <div className="tpl-editor__value-header">
+                      {ex.showValue !== false ? (
+                        <>
+                          <select
+                            className="input tpl-editor__set-unit"
+                            value={ex.unit || ex.sets[0]?.unit || 'lb'}
+                            onChange={(e) => updateExerciseUnit(bIdx, eIdx, e.target.value)}
+                          >
+                            {UNIT_OPTIONS.map((u) => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="btn-icon btn-icon--small"
+                            onClick={() => toggleShowValue(bIdx, eIdx)}
+                            title="Remove value column"
+                          >
+                            <X size={10} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="btn btn-secondary btn-small"
+                          onClick={() => toggleShowValue(bIdx, eIdx)}
+                          title="Add value column"
+                        >
+                          + val
+                        </button>
+                      )}
+                    </div>
                     <span></span>
                   </div>
                   {ex.sets.map((set, sIdx) => (
@@ -325,22 +399,17 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         value={set.reps ?? ''}
                         onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'reps', e.target.value)}
                       />
-                      <input
-                        type="number"
-                        className="input tpl-editor__set-input"
-                        placeholder="—"
-                        value={set.weight ?? ''}
-                        onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'weight', e.target.value)}
-                      />
-                      <select
-                        className="input tpl-editor__set-unit"
-                        value={set.unit || 'lb'}
-                        onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'unit', e.target.value)}
-                      >
-                        {UNIT_OPTIONS.map((u) => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
+                      {ex.showValue !== false ? (
+                        <input
+                          type="number"
+                          className="input tpl-editor__set-input"
+                          placeholder="—"
+                          value={set.weight ?? ''}
+                          onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'weight', e.target.value)}
+                        />
+                      ) : (
+                        <span />
+                      )}
                       <button
                         className="btn-icon btn-icon--danger btn-icon--small"
                         onClick={() => removeSet(bIdx, eIdx, sIdx)}
@@ -384,6 +453,9 @@ function cloneBlock(block) {
     ...block,
     exercises: block.exercises.map((ex) => ({
       ...ex,
+      repsLabel: ex.repsLabel || 'Reps',
+      showValue: ex.showValue !== false,
+      unit: ex.unit || ex.sets[0]?.unit || 'lb',
       sets: ex.sets.map((s) => ({ ...s })),
     })),
   };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import YouTubeLinkInput from './YouTubeLinkInput';
-import { formatSet } from '../csv/exerciseData';
+import { formatSet, groupSets } from '../csv/exerciseData';
 
 export default function ExerciseRow({
   blockLetter,
@@ -23,10 +23,10 @@ export default function ExerciseRow({
         <div className="exercise-row__info">
           <h3 className="exercise-row__title">{exercise.title}</h3>
           <div className="exercise-row__sets">
-            {exercise.sets.map((set, i) => (
+            {groupSets(exercise.sets).map(({ set, count }, i) => (
               <span key={i} className="text-blue">
                 {i > 0 && ' • '}
-                {formatSet(set)}
+                {formatSet(set, count)}
               </span>
             ))}
           </div>
