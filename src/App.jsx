@@ -6,6 +6,7 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
+import { flushPendingPushes, retryFailedPushes } from './storage/sync';
 import { useToast } from './components/Toast';
 import {
   ROUTE_IMPORT,
@@ -80,10 +81,13 @@ export default function App() {
       sessionStorage.removeItem('skipSync');
       return;
     }
-    pullSync().then(({ changed }) => {
+    pullSync().then(async ({ ok, changed }) => {
       if (changed) {
+        await flushPendingPushes(); // don't lose in-flight writes
         sessionStorage.setItem('syncReload', '1');
         window.location.reload();
+      } else if (ok) {
+        retryFailedPushes(); // push any previously-failed keys
       }
     });
   }, []);
@@ -355,6 +359,7 @@ export default function App() {
             if (ok) {
               showToast(changed ? 'Synced from server!' : 'Already up to date');
               if (changed) {
+                await flushPendingPushes();
                 sessionStorage.setItem('syncReload', '1');
                 window.location.reload();
               }
@@ -432,6 +437,7 @@ export default function App() {
             if (ok) {
               showToast(changed ? 'Synced from server!' : 'Already up to date');
               if (changed) {
+                await flushPendingPushes();
                 sessionStorage.setItem('syncReload', '1');
                 window.location.reload();
               }

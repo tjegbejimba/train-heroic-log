@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useToast } from '../components/Toast';
+import { writeLS } from '../storage/index';
+import { flushPendingPushes } from '../storage/sync';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -115,7 +117,7 @@ export default function SettingsView({
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
           const validKeys = [
@@ -128,11 +130,14 @@ export default function SettingsView({
           let restored = 0;
           validKeys.forEach((key) => {
             if (data[key]) {
-              localStorage.setItem(key, JSON.stringify(data[key]));
+              writeLS(key, data[key]); // write to LS + queue sync push
               restored++;
             }
           });
-          showToast(`Restored ${restored} data sections. Reload to apply.`, 'info', 4000);
+          await flushPendingPushes(); // push to server before reload
+          sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
+          showToast(`Restored ${restored} data sections!`);
+          setTimeout(() => window.location.reload(), 500); // brief delay so toast shows
         } catch {
           showToast('Invalid backup file', 'error');
         }
