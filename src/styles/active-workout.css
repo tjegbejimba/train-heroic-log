@@ -352,27 +352,36 @@
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
+  /* Log set row: compact horizontal layout with reps/weight side by side */
   .log-set-row {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
+    grid-template-columns: 44px 1fr auto;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-sm);
   }
 
   .log-set-row__set-num {
-    order: -1;
+    font-size: var(--font-size-base);
   }
 
   .log-set-row__inputs {
-    flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-end;
+    gap: var(--space-sm);
   }
 
   .log-set-row__input-group {
-    flex: 1;
-    min-width: 80px;
+    min-width: 72px;
   }
 
+  /* Bigger complete button on mobile */
   .log-set-row__complete {
-    order: 1;
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Log set inputs: prevent iOS zoom */
+  .log-set-row__input {
+    font-size: 16px;
+    padding: var(--space-md) var(--space-sm);
   }
 
   .session-header {

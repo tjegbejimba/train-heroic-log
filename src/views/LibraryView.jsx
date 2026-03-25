@@ -251,7 +251,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
         <div className="card" style={{ margin: '0 var(--space-lg)', marginBottom: 'var(--space-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
             <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Bulk Import</h3>
-            <button className="btn btn-secondary btn-small" onClick={handleBulkClose} style={{ padding: '4px' }}>
+            <button className="btn btn-secondary btn-small" onClick={handleBulkClose} style={{ minWidth: '36px', minHeight: '36px', padding: 'var(--space-sm)' }}>
               <X size={16} />
             </button>
           </div>
@@ -367,7 +367,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                       className="input"
                       value={r.matchedExercise || ''}
                       onChange={(e) => handleBulkMatchChange(i, e.target.value)}
-                      style={{ fontSize: '11px', padding: '4px 6px', flex: 1 }}
+                      style={{ flex: 1 }}
                     >
                       <option value="">— Select exercise —</option>
                       {exerciseNames.map((name) => (
