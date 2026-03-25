@@ -175,23 +175,55 @@ function parseTime(str) {
   return parseFloat(trimmed);
 }
 
+const UNIT_LABELS = {
+  lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm', bw: 'BW',
+  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec',
+};
+
 /**
- * Format a Set for display
+ * Format a Set for display.
+ * When count > 1, shows grouped format: "3 × 8 @ 135 lb"
+ * When count = 1, shows single format: "8 × 135 lb"
  * @param {Object} set - {reps, weight, unit, ...}
- * @returns {string} e.g. "6 × 40 lb" or "5 × BW"
+ * @param {number} count - number of identical sets (default 1)
+ * @returns {string}
  */
-export function formatSet(set) {
+export function formatSet(set, count = 1) {
   if (!set) return '';
 
   const repsStr = set.reps === null ? 'AMRAP' : `${set.reps}`;
-  const unitLabels = {
-    lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm', bw: 'BW',
-    RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec',
-  };
-  const unitLabel = unitLabels[set.unit] || set.unit;
-  const weightStr = set.weight === null
-    ? 'BW'
-    : `${set.weight} ${unitLabel}`;
+  const unitLabel = UNIT_LABELS[set.unit] || set.unit;
+  const isBodyweight = set.weight === null || set.unit === 'bw';
 
+  if (count > 1) {
+    if (isBodyweight) return `${count} × ${repsStr}`;
+    return `${count} × ${repsStr} @ ${set.weight} ${unitLabel}`;
+  }
+
+  const weightStr = isBodyweight ? 'BW' : `${set.weight} ${unitLabel}`;
   return `${repsStr} × ${weightStr}`;
+}
+
+/**
+ * Group consecutive identical sets together.
+ * @param {Array} sets
+ * @returns {Array<{set, count}>}
+ */
+export function groupSets(sets) {
+  if (!sets || sets.length === 0) return [];
+  const groups = [];
+  for (const set of sets) {
+    const last = groups[groups.length - 1];
+    if (
+      last &&
+      last.set.reps === set.reps &&
+      last.set.weight === set.weight &&
+      last.set.unit === set.unit
+    ) {
+      last.count++;
+    } else {
+      groups.push({ set, count: 1 });
+    }
+  }
+  return groups;
 }

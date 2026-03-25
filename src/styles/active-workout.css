@@ -77,11 +77,15 @@
   gap: var(--space-md);
   align-items: center;
   padding: var(--space-md);
-  margin-bottom: var(--space-md);
   background-color: var(--color-bg);
   border-radius: 8px;
   border: 1px solid var(--color-border);
   transition: all var(--transition);
+}
+
+.log-set-row--next {
+  border-color: rgba(75, 123, 255, 0.4);
+  background-color: rgba(75, 123, 255, 0.04);
 }
 
 .log-set-row:focus-within {
