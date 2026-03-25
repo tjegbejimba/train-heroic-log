@@ -16,6 +16,7 @@ import {
   ROUTE_PLANNER,
   ROUTE_SETTINGS,
   ROUTE_EDIT_TEMPLATE,
+  ROUTE_EXERCISE_HISTORY,
 } from './constants';
 
 import ImportView from './views/ImportView';
@@ -26,6 +27,7 @@ import LibraryView from './views/LibraryView';
 import WeekPlannerView from './views/WeekPlannerView';
 import SettingsView from './views/SettingsView';
 import TemplateEditorView from './views/TemplateEditorView';
+import ExerciseHistoryView from './views/ExerciseHistoryView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
 
@@ -275,6 +277,7 @@ export default function App() {
           youtubeLinks={links}
           setYouTubeLink={setLink}
           setManyYouTubeLinks={setManyLinks}
+          onExerciseTap={(exerciseTitle) => navigate(ROUTE_EXERCISE_HISTORY, { exerciseTitle })}
           onUpdateExerciseNotes={(exerciseTitle, notes) => {
             // Update across all workouts that use this exercise
             const updatedWorkouts = {};
@@ -315,6 +318,10 @@ export default function App() {
           templateList={templateList}
           templates={templates}
           workouts={workouts}
+          onNavigateToDate={(dateStr) => {
+            setCurrentDate(dateStr);
+            navigate(ROUTE_TRAINING);
+          }}
         />
       );
       break;
@@ -441,6 +448,16 @@ export default function App() {
       break;
     }
 
+    case ROUTE_EXERCISE_HISTORY:
+      currentView = (
+        <ExerciseHistoryView
+          exerciseTitle={params.exerciseTitle}
+          allLogs={allLogs}
+          navigate={navigate}
+        />
+      );
+      break;
+
     default:
       currentView = <TrainingView />;
   }
@@ -449,7 +466,7 @@ export default function App() {
     <div className="app">
       {currentView}
 
-      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_EDIT_TEMPLATE && (
+      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && (
         <NavBar
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}

@@ -75,7 +75,7 @@ function extractUrls(text) {
     .filter((e) => YOUTUBE_URL_RE.test(e.url));
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes }) {
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap }) {
   const [search, setSearch] = useState('');
   const [editingLink, setEditingLink] = useState(null);
   const [linkDraft, setLinkDraft] = useState('');
@@ -411,7 +411,13 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
               <div key={exercise.title} className="library-card card">
                 <div className="library-card__header">
                   <div className="library-card__info">
-                    <h3 className="library-card__title">{exercise.title}</h3>
+                    <button
+                      className="library-card__title-btn"
+                      onClick={() => onExerciseTap(exercise.title)}
+                    >
+                      <h3 className="library-card__title">{exercise.title}</h3>
+                      <span className="library-card__history-hint text-secondary text-sm">History →</span>
+                    </button>
                   </div>
                 </div>
 

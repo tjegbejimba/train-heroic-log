@@ -67,9 +67,15 @@
 }
 
 .planner-day__workout-name {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
   font-weight: 500;
   font-size: var(--font-size-sm);
   color: var(--color-accent-blue);
+  text-decoration: underline;
 }
 
 .planner-day__clear {

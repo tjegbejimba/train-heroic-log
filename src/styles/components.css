@@ -170,6 +170,27 @@
   text-transform: uppercase;
 }
 
+/* ========== Superset grouping ========== */
+.superset-group {
+  border-left: 3px solid var(--color-accent-blue);
+  margin-bottom: var(--space-md);
+}
+
+.superset-group__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.superset-group__exercises .exercise-row:last-child,
+.superset-group__exercises .active-workout-view__exercise:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
 /* ========== ExerciseRow ========== */
 .exercise-row {
   margin-bottom: var(--space-md);

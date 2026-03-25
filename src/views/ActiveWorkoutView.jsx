@@ -155,11 +155,9 @@ export default function ActiveWorkoutView({
         {/* Exercises */}
         {(() => {
           let globalIdx = 0;
-          return workout.blocks.map((block, blockIdx) => (
-          <div key={blockIdx}>
-            {block.exercises.length > 1 && <BlockSection block={block} />}
-
-            {block.exercises.map((exercise, exIdx) => {
+          return workout.blocks.map((block, blockIdx) => {
+            const isSuperset = block.exercises.length > 1;
+            const exerciseCards = block.exercises.map((exercise, exIdx) => {
               const exerciseLogs = currentLog.exercises[exercise.title] || [];
               const letter = String.fromCharCode(65 + globalIdx);
               globalIdx++;
@@ -189,7 +187,7 @@ export default function ActiveWorkoutView({
                     ))}
                   </div>
 
-                  {/* Form notes + video — workout-specific coaching cues and form reference */}
+                  {/* Form notes + video */}
                   {(exercise.notes || getYouTubeLink(exercise.title)) && (
                     <details className="active-workout-view__video-details">
                       <summary className="active-workout-view__video-summary">
@@ -235,9 +233,18 @@ export default function ActiveWorkoutView({
                   </div>
                 </div>
               );
-            })}
-          </div>
-        ));
+            });
+
+            if (isSuperset) {
+              return (
+                <div key={blockIdx} className="superset-group">
+                  <div className="superset-group__label">Superset</div>
+                  <div className="superset-group__exercises">{exerciseCards}</div>
+                </div>
+              );
+            }
+            return <div key={blockIdx}>{exerciseCards}</div>;
+          });
         })()}
 
         {/* Overall workout note */}
