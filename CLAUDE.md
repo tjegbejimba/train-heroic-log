@@ -73,9 +73,58 @@ Seven custom hooks in `src/hooks/` manage all persistence via `readLS`/`writeLS`
 
 Log keys have the format `YYYY-MM-DD::WorkoutTitle` — use `makeLogKey` / `parseLogKey` from `src/constants.js`.
 
+### Exercise Notes — Two Separate Fields
+
+Exercises have **two distinct note fields** that must not be confused:
+
+| Field | Stored on | Edited in | Shown in |
+|-------|-----------|-----------|----------|
+| `exercise.notes` | workout/template exercise object | Exercise Library | "Form Notes" collapsible in ActiveWorkoutView and ExerciseRow |
+| `exercise.workoutNotes` | template exercise object | TemplateEditorView | Inline under exercise title in ActiveWorkoutView |
+
+- **`notes`** — global coaching tips for the exercise regardless of workout (e.g. "keep elbows tight"). Same exercise in different workouts should share these.
+- **`workoutNotes`** — workout-specific instructions that only apply in this template (e.g. "8 reps each side", "rest 90s here"). Not shown in the Library.
+
+When updating `notes` from the Library, `onUpdateExerciseNotes` in App.jsx propagates the change across all workouts AND all templates. Template editor saves to `workoutNotes` only.
+
 ### Backend (server/)
 
 `server/index.js` is a Node/Express API that stores data as JSON files in `server/data/`. Endpoints: `GET/PUT /api/data/:key` for individual keys, `GET/PUT /api/data` for bulk sync, `GET /api/health`. The frontend sync layer (`src/storage/sync.js`) handles offline-first: localStorage is always written first, then a debounced background push to the server. On startup, `useSync` hook pulls from server to merge.
+
+### Sync Flow Details
+
+All writes go through `writeLS(key, value)` in `src/storage/index.js`, which:
+1. Writes to localStorage immediately
+2. Calls `pushToServer(key, value)` — **debounced 500ms** per key
+
+On app startup, `pullFromServer()` is called and merges server data into localStorage:
+- **Merge strategy: server wins on same-key conflicts**, local-only keys are preserved
+- If `changed=true`, the app flushes pending pushes then reloads (`window.location.reload()`)
+- After a successful pull with no changes, any previously-failed push keys are retried
+
+**Critical sync functions in `src/storage/sync.js`:**
+- `pushToServer(key, data)` — debounced push for a single key
+- `flushPendingPushes()` — immediately fire all debounced pushes (call before any reload)
+- `retryFailedPushes()` — re-push keys that previously failed
+- `pushAllToServer(keys)` — bulk push all keys (used by manual "Push to Server")
+- `pullFromServer()` — pull and merge all keys from server
+
+**Always call `flushPendingPushes()` before `window.location.reload()`** to avoid data loss from writes that haven't left the debounce timer yet. This is done in App.jsx before all sync-triggered reloads.
+
+**Never use `localStorage.setItem` directly** — always use `writeLS` so the sync layer is triggered.
+
+### Backup / Restore
+
+Export backup (`Settings → Export Backup`) includes:
+- `th_workouts` — all workout definitions with exercises, sets, and coaching notes
+- `th_schedule` — date-to-workout mapping
+- `th_yt_links` — YouTube links per exercise
+- `th_logs` — full workout history (all completed sessions with actual reps/weights)
+- `th_templates` — all templates with exercises, sets, and workout-specific notes
+
+**Not included:** `th_active` (in-progress session scratch pad — intentionally excluded).
+
+A full backup captures everything needed to restore: templates, exercises, notes (both kinds), YouTube links, and all logged history. Restore (`Settings → Restore from Backup`) uses `writeLS` per key, flushes to server, then sets `skipSync` before reloading so the pull doesn't server-wins merge over the restored data.
 
 ### App.jsx
 
