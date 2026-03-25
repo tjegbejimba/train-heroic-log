@@ -249,6 +249,12 @@
   gap: var(--space-sm);
 }
 
+.settings-view__rest-options {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .settings-view__storage-bar {
   width: 100%;
   height: 6px;

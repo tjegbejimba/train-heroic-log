@@ -4,6 +4,8 @@ import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
 import BlockSection from '../components/BlockSection';
 import Modal from '../components/Modal';
+import RestTimer from '../components/RestTimer';
+import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 
 export default function ActiveWorkoutView({
@@ -39,6 +41,9 @@ export default function ActiveWorkoutView({
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [restTimerActive, setRestTimerActive] = useState(false);
+  const [restTimerKey, setRestTimerKey] = useState(0);
+  const { settings } = useSettings();
 
   // Initialize exercise logs
   useEffect(() => {
@@ -65,6 +70,8 @@ export default function ActiveWorkoutView({
 
   // Save log on every change (crash recovery)
   const updateExerciseSet = (exerciseTitle, setIndex, newSetData) => {
+    const wasCompleted = currentLog.exercises[exerciseTitle]?.[setIndex]?.completed;
+
     const updated = {
       ...currentLog,
       exercises: {
@@ -78,7 +85,13 @@ export default function ActiveWorkoutView({
     };
     setCurrentLog(updated);
     saveLog(logKey, updated);
-    updateSession({ logKey }); // Update active session timestamp
+    updateSession({ logKey });
+
+    // Start rest timer when a set is newly marked complete
+    if (newSetData.completed && !wasCompleted) {
+      setRestTimerKey((k) => k + 1);
+      setRestTimerActive(true);
+    }
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
@@ -140,7 +153,7 @@ export default function ActiveWorkoutView({
         onCancel={() => setShowCancelModal(true)}
       />
 
-      <div className="active-workout-view__content">
+      <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
         {/* Progress bar */}
         <div className="active-workout-view__progress">
           <div className="progress-bar">
@@ -265,6 +278,16 @@ export default function ActiveWorkoutView({
           />
         </div>
       </div>
+
+      {/* Rest timer */}
+      {restTimerActive && (
+        <RestTimer
+          key={restTimerKey}
+          initialSeconds={settings.restDuration}
+          onDone={() => setRestTimerActive(false)}
+          onSkip={() => setRestTimerActive(false)}
+        />
+      )}
 
       {/* Complete button */}
       <div className="active-workout-view__footer">

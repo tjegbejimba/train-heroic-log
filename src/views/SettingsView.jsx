@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useToast } from '../components/Toast';
@@ -28,6 +29,7 @@ export default function SettingsView({
   onPushSync,
 }) {
   const showToast = useToast();
+  const { settings, updateSettings } = useSettings();
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -182,6 +184,23 @@ export default function SettingsView({
       </div>
 
       <div className="settings-view__content">
+        {/* Workout section */}
+        <div className="card">
+          <h3 className="mb-md">Workout</h3>
+          <p className="text-secondary text-sm mb-sm">Default rest duration</p>
+          <div className="settings-view__rest-options">
+            {[30, 60, 90, 120, 180].map((s) => (
+              <button
+                key={s}
+                className={`btn btn-small${settings.restDuration === s ? ' btn-primary' : ' btn-secondary'}`}
+                onClick={() => updateSettings({ restDuration: s })}
+              >
+                {s < 60 ? `${s}s` : `${s / 60}min`}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Sync section */}
         <div className="card">
           <h3 className="mb-md">NAS Sync</h3>

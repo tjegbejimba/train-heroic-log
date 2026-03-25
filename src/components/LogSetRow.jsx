@@ -59,6 +59,7 @@ export default function LogSetRow({
         latestRef.current.actualWeight = set.weight;
         setLocalWeight(String(set.weight));
       }
+      navigator.vibrate?.(50);
     }
 
     onUpdate({ ...loggedSet, ...latestRef.current });
