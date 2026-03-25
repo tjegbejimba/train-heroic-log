@@ -32,6 +32,13 @@
 - Improved service worker (network-first + versioned cache)
 - NAS backend with offline-first sync
 - YouTube link bulk importer (standalone GUI + CLI)
+- Exercise history drilldown (tap exercise in Library → see all logged sessions)
+- Grouped set display ("3 × 8 @ 135 lb" instead of repeating identical sets)
+- Flexible template set editor (Reps/Time toggle, unit header, removable value column, copy-last-set)
+- Active workout session: auto-fill target on complete, unit-aware labels, bodyweight hides weight input, next-set highlight, incomplete confirmation modal
+- Rest timer with +/−15s and Skip (auto-starts after each completed set)
+- Haptic feedback on set complete
+- Rest duration setting (30s / 1min / 90s / 2min / 3min, default 90s)
 
 🚧 **Next Up:**
 - Deploy to Synology NAS
@@ -54,6 +61,11 @@
 - [x] Add crash recovery - session persists if browser closes
 - [x] Add per-exercise notes input (optional notes during logging)
 - [x] Track startedAt, completedAt timestamps in WorkoutLog
+- [x] Auto-fill target reps/weight when marking a set complete
+- [x] Unit-aware labels in set rows (shows "lb", "kg", "sec" etc. not just "Weight")
+- [x] Bodyweight exercises hide the weight input
+- [x] Highlight next incomplete set per exercise
+- [x] Confirmation modal when finishing with incomplete sets
 
 ### HistoryView Implementation
 - [x] List all completed workouts sorted by date (newest first)
@@ -69,7 +81,7 @@
 - [x] Quick edit YouTube link from library
 - [x] Count: how many workouts contain this exercise
 - [x] Search/filter by exercise name
-- [ ] Exercise history drilldown: tap an exercise to see all dates it was completed, with actual reps and weight logged per set
+- [x] Exercise history drilldown: tap an exercise to see all dates it was completed, with actual reps and weight logged per set
 
 ---
 
@@ -108,7 +120,7 @@
 - [x] Draft mode: preview changes before applying (yellow highlight)
 - [x] Option to recur plan (Copy to Next Week)
 - [x] Clear week button
-- [ ] (Maybe) Tap a day with an existing workout to navigate to that workout in TrainingView
+- [ ] Tap a day with an existing workout to navigate to that workout in TrainingView
 
 ### Template Management
 - [x] Settings page section for templates:
@@ -117,6 +129,11 @@
   - Delete template (with confirm)
   - Preview template details (exercise list)
   - Duplicate template
+- [x] Flexible set editor per exercise:
+  - Reps/Time column label toggle
+  - Unit selector at column header level (one unit per exercise)
+  - Value column can be hidden (for sets/reps only exercises)
+  - Adding a set copies the previous set's values
 - [ ] Import templates from CSV (batch load multiple workouts as templates)
 - [ ] Export templates as JSON for backup
 
@@ -142,7 +159,22 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 
 ---
 
-## Phase 4: Logging Enhancements
+## Phase 4: Workout Timers
+
+Timers during an active session to support rest periods, timed sets, and countdowns.
+
+- [x] **Rest timer** — after completing a set, auto-starts a countdown; vibrates when done
+- [x] **Haptic feedback** — short vibration when marking a set complete
+- [x] **Rest duration setting** — global default (30s / 1min / 90s / 2min / 3min) in Settings
+- [ ] **Audio cue** — optional beep/chime when rest timer ends (in addition to vibration)
+- [ ] **Per-exercise rest duration** — override the global default on a per-exercise basis in the template editor
+- [ ] **Timed set countdown** — for time-based exercises (unit = sec), auto-start a count-up or countdown when beginning a set; auto-complete when it hits zero
+- [ ] **AMRAP / stopwatch** — count-up timer for open-ended sets
+- [ ] Timer visible and controllable without leaving the current set row
+
+---
+
+## Phase 4.5: Logging Enhancements
 
 ### Session Notes & Metadata
 - [ ] Add notes field per set (e.g., "felt weak", "RPE 8")
@@ -156,6 +188,12 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 - [x] Display: total volume lifted per session (sum of reps × weight)
 - [x] Show PR (personal record) indicators in history
 
+### Logging Quality of Life
+- [ ] **"Last time" reference** — show previous logged reps/weight in each set row as a reference (great for progressive overload decisions)
+- [ ] **Quick weight adjust** — +2.5 / +5 / −5 buttons on the weight input instead of always typing
+- [ ] **Workout completion summary screen** — after finishing, show a summary card: total volume, sets completed, duration, PRs hit
+- [ ] **Swipe to complete** — swipe a set row right to mark it done (mobile gesture)
+
 ---
 
 ## Phase 5: Polish & Deployment
@@ -166,7 +204,7 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 - [x] Add success toasts after save actions
 - [x] Smooth transitions between views (fade-in)
 - [ ] Keyboard shortcuts (optional: spacebar to complete set)
-- [ ] Haptic feedback on mobile (vibrate on set complete)
+- [x] Haptic feedback on mobile (vibrate on set complete)
 
 ### Testing
 - [x] Unit tests for CSV parser (Vitest) — 16 tests
@@ -201,7 +239,18 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 
 ---
 
-## Phase 6: Advanced Features (Future)
+## Phase 6: Landing Page
+
+A public-facing landing page for the app — purpose and content TBD.
+
+- [ ] Decide on audience and purpose (personal project showcase, invite others, etc.)
+- [ ] Determine what to show: features, screenshots, install instructions, demo?
+- [ ] Design and build the page (separate from the app itself or as a `/` route?)
+- [ ] Decide on hosting (same NAS, GitHub Pages, or separate)
+
+---
+
+## Phase 7: Advanced Features (Future)
 
 ### Analytics & Insights
 - [ ] Total volume by muscle group over time
@@ -239,51 +288,54 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 
 ## Implementation Priority
 
-**High Priority (MVP):**
-1. ActiveWorkoutView (blocking live logging)
-2. HistoryView (see completed workouts)
-3. Month view calendar (user requested)
-4. Workout templates (user requested)
-5. Weekly planner (user requested)
+**High Priority (next up):**
+1. "Last time" reference in set rows (helps with progressive overload every session)
+2. Per-exercise rest duration in template editor
+3. Workout completion summary screen
+4. Audio cue for rest timer end
+5. Timed set countdown (for sec/time exercises)
 
-**Medium Priority (Polish):**
-6. LibraryView (nice to have, not blocking)
-7. Session timer
-8. Workout notes
-9. CSS polish & responsiveness
-10. PWA icons & testing
+**Medium Priority:**
+6. Quick weight adjust buttons (+2.5 / +5 / −5)
+7. Progression graph (weight over time per exercise)
+8. Export logs as CSV
+9. Swipe to complete set
+10. Keyboard shortcuts
 
 **Low Priority (Future):**
-11. Data export
-12. Analytics
+11. Analytics
+12. Social/sharing
 13. Advanced scheduling
+14. Health integrations
 
 ---
 
 ## Quick Reference: Files to Create/Modify
 
 ### For ActiveWorkoutView
-- `src/components/SetRow.jsx` — NEW: Display + log a single set
-- `src/components/SessionHeader.jsx` — NEW: Timer + cancel button
-- `src/views/ActiveWorkoutView.jsx` — MODIFY: Implement full UI
-- `src/styles/active-workout.css` — NEW: Styling
+- `src/components/LogSetRow.jsx` — set logging row (auto-fill, haptic, unit labels)
+- `src/components/RestTimer.jsx` — rest countdown timer
+- `src/views/ActiveWorkoutView.jsx` — full session view
+- `src/styles/active-workout.css` — styling
+- `src/hooks/useSettings.js` — device-local preferences (rest duration, etc.)
 
 ### For Templates & Planner
-- `src/hooks/useTemplates.js` — NEW: Hook for template CRUD
-- `src/views/WeekPlannerView.jsx` — NEW: Weekly planning UI
-- `src/views/TemplatesView.jsx` — NEW: Browse/manage templates
-- `src/components/TemplatePicker.jsx` — NEW: Modal to select template
-- `src/constants.js` — MODIFY: Add LS_TEMPLATES key
+- `src/hooks/useTemplates.js` — Hook for template CRUD
+- `src/views/WeekPlannerView.jsx` — Weekly planning UI
+- `src/views/TemplatesView.jsx` — Browse/manage templates
+- `src/components/TemplatePicker.jsx` — Modal to select template
+- `src/views/TemplateEditorView.jsx` — Edit template blocks/exercises/sets
+- `src/constants.js` — Add LS_TEMPLATES key
 
 ### For Month View
-- `src/components/MonthCalendar.jsx` — NEW: Full month grid
-- `src/components/CalendarToggle.jsx` — NEW: Week/Month toggle button
-- `src/views/TrainingView.jsx` — MODIFY: Add month view option
+- `src/components/MonthCalendar.jsx` — Full month grid
+- `src/components/CalendarToggle.jsx` — Week/Month toggle button
+- `src/views/TrainingView.jsx` — Add month view option
 
 ### Styling
-- `src/styles/calendar.css` — NEW: Month calendar styles
-- `src/styles/planner.css` — NEW: Planner styles
-- `src/styles/templates.css` — NEW: Template browser styles
+- `src/styles/calendar.css` — Month calendar styles
+- `src/styles/planner.css` — Planner + Settings styles
+- `src/styles/active-workout.css` — Session + timer styles
 
 ---
 
@@ -294,6 +346,7 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 - iOS may evict PWA localStorage after ~7 days of inactivity; NAS sync mitigates this
 - Weekly planner doesn't auto-sync future dates; user confirms before applying
 - Performance should be fine until 1000+ workouts or 5000+ logs
+- `th_settings` is device-local (not synced to server) — intentional for per-device preferences
 
 ---
 
@@ -303,4 +356,3 @@ A **part** (code: `block`) can contain multiple exercises — these should be tr
 - Should weekly planner show predicted dates or let user pick specific dates?
 - Should we show "add to calendar" vs "replace calendar" when planning a week?
 - Should templates include YouTube links or just exercise structure?
-
