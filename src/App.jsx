@@ -69,7 +69,10 @@ export default function App() {
 
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -249,8 +252,6 @@ export default function App() {
           logs={logs}
           saveLog={saveLog}
           getYouTubeLink={getLink}
-          updateSession={updateSession}
-          clearSession={clearSession}
           onComplete={() => {
             clearSession();
             navigate(ROUTE_TRAINING);
@@ -342,6 +343,7 @@ export default function App() {
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
+            await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
               localStorage.clear();
               await clearServer();
@@ -420,6 +422,7 @@ export default function App() {
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
+            await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
               localStorage.clear();
               await clearServer();

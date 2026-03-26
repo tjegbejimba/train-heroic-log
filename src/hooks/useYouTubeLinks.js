@@ -4,7 +4,7 @@ import { readLS, writeLS } from '../storage/index';
 
 /**
  * Hook for managing YouTube links per exercise
- * ExerciseKey format: "WorkoutTitle::ExerciseTitle"
+ * ExerciseKey format: exercise title (plain string, globally unique per exercise)
  * @returns {{ links: Object, setLink: Function, removeLink: Function, getLink: Function }}
  */
 export function useYouTubeLinks() {

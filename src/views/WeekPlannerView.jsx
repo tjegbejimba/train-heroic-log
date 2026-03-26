@@ -41,7 +41,8 @@ export default function WeekPlannerView({
   showToast,
   onNavigateToDate,
 }) {
-  const today = new Date().toISOString().split('T')[0];
+  const _now = new Date();
+  const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
   const [weekStart, setWeekStart] = useState(today);
   const [showPicker, setShowPicker] = useState(null); // dateStr or null
   const [draft, setDraft] = useState({}); // dateStr -> templateId (uncommitted changes)
@@ -146,6 +147,9 @@ export default function WeekPlannerView({
         if (tpl) {
           newDraft[nextDate] = tpl.id;
         } else {
+          // No matching template — clear the destination day so the copy is
+          // consistent (don't silently leave whatever was previously scheduled)
+          newDraft[nextDate] = null;
           skipped++;
         }
       } else {

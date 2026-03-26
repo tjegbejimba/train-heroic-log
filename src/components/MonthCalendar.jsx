@@ -76,8 +76,10 @@ export default function MonthCalendar({
       year: today.getFullYear(),
       month: today.getMonth(),
     });
-    const todayStr = today.toISOString().split('T')[0];
-    onDateChange(todayStr);
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    onDateChange(`${y}-${m}-${d}`);
   };
 
   const jumpToMonth = (month) => {
@@ -101,7 +103,8 @@ export default function MonthCalendar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showPicker]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const _todayObj = new Date();
+  const today = `${_todayObj.getFullYear()}-${String(_todayObj.getMonth() + 1).padStart(2, '0')}-${String(_todayObj.getDate()).padStart(2, '0')}`;
   const days = generateCalendarDays();
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -179,7 +182,7 @@ export default function MonthCalendar({
           const isCompleted = completedDates.has(dateStr);
           const isSelected = dateStr === currentDate;
           const isToday = dateStr === today;
-          const isPast = dateStr < today && dateStr !== today;
+          const isPast = dateStr < today;
 
           const dayStatus = isCompleted
             ? 'completed'
@@ -201,7 +204,7 @@ export default function MonthCalendar({
               <div className="month-calendar__day-number">{day}</div>
               {hasWorkout && (
                 <div className="month-calendar__day-label">
-                  {isCompleted ? '✓' : isCompleted === false && isPast ? '✗' : '•'}
+                  {isCompleted ? '✓' : isPast ? '✗' : '•'}
                 </div>
               )}
               {schedule[dateStr] && (

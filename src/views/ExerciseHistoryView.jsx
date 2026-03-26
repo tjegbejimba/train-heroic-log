@@ -40,7 +40,7 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
             <div key={idx} className="card exercise-history-session">
               <div className="exercise-history-session__meta">
                 <span className="exercise-history-session__date">
-                  {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', {
+                  {new Date(session.date + 'T12:00:00').toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',
