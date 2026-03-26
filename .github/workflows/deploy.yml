@@ -37,4 +37,4 @@ jobs:
           scp -O $SSH_OPTS docker-compose.yml nginx.conf tjegbejimba@100.104.13.117:/volume2/docker/trainlog/
           ssh $SSH_OPTS tjegbejimba@100.104.13.117 "rm -rf /volume2/docker/trainlog/dist/*"
           tar -czf - -C dist . | ssh $SSH_OPTS tjegbejimba@100.104.13.117 "tar -xzf - -C /volume2/docker/trainlog/dist/"
-          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "bash -l -c 'cd /volume2/docker/trainlog && docker compose up -d --pull missing'"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "bash -l -c 'cd /volume2/docker/trainlog && sudo docker compose up -d --pull missing'"
