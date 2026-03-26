@@ -22,7 +22,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   return (
     <div className="rest-timer">
       <div className="rest-timer__top">
-        <span className="rest-timer__label">REST</span>
+        <span className="rest-timer__label">TIMER</span>
         <span className="rest-timer__countdown">
           {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
         </span>

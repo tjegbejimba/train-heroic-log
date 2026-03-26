@@ -25,7 +25,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy dist to NAS
+      - name: Deploy to NAS
         env:
           SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
@@ -33,5 +33,8 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           SSH_OPTS="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "mkdir -p /volume2/docker/trainlog/dist"
+          scp $SSH_OPTS docker-compose.yml nginx.conf tjegbejimba@100.104.13.117:/volume2/docker/trainlog/
           ssh $SSH_OPTS tjegbejimba@100.104.13.117 "rm -rf /volume2/docker/trainlog/dist/*"
           tar -czf - -C dist . | ssh $SSH_OPTS tjegbejimba@100.104.13.117 "tar -xzf - -C /volume2/docker/trainlog/dist/"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "cd /volume2/docker/trainlog && docker compose up -d --pull missing"

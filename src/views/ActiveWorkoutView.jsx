@@ -42,7 +42,6 @@ export default function ActiveWorkoutView({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [restTimerActive, setRestTimerActive] = useState(false);
-  const [restTimerKey, setRestTimerKey] = useState(0);
   const { settings } = useSettings();
 
   // Initialize exercise logs
@@ -87,11 +86,6 @@ export default function ActiveWorkoutView({
     saveLog(logKey, updated);
     updateSession({ logKey });
 
-    // Start rest timer when a set is newly marked complete
-    if (newSetData.completed && !wasCompleted) {
-      setRestTimerKey((k) => k + 1);
-      setRestTimerActive(true);
-    }
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
@@ -151,6 +145,7 @@ export default function ActiveWorkoutView({
         workoutTitle={workoutTitle}
         startedAt={currentLog.startedAt}
         onCancel={() => setShowCancelModal(true)}
+        onTimerOpen={() => setRestTimerActive(true)}
       />
 
       <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
@@ -282,7 +277,6 @@ export default function ActiveWorkoutView({
       {/* Rest timer */}
       {restTimerActive && (
         <RestTimer
-          key={restTimerKey}
           initialSeconds={settings.restDuration}
           onDone={() => setRestTimerActive(false)}
           onSkip={() => setRestTimerActive(false)}

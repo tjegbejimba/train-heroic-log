@@ -213,7 +213,7 @@
     let exercises = [];
     let existingLinks = {};
     let urls = [];
-    let assignments = []; // [{ url, exerciseIdx }]
+    let assignments = []; // [{ url, exerciseIdx, videoTitle, titleMatched }]
 
     async function testConnection() {
       const status = document.getElementById('connStatus');
@@ -247,6 +247,24 @@
       }
     }
 
+    async function fetchVideoTitle(url) {
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(5000) });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.title || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function findExerciseMatch(videoTitle, exerciseList) {
+      if (!videoTitle) return -1;
+      const needle = videoTitle.toLowerCase();
+      return exerciseList.findIndex(name => name.toLowerCase() === needle);
+    }
+
     async function loadExercisesAndProceed() {
       const raw = document.getElementById('urlInput').value;
       urls = raw.split('\n').map(l => l.trim()).filter(l => l.startsWith('http'));
@@ -273,11 +291,24 @@
       });
       exercises = [...nameSet].sort();
 
-      // Init assignments
-      assignments = urls.map(url => ({ url, exerciseIdx: -1 }));
+      // Init assignments with placeholder titles
+      assignments = urls.map(url => ({ url, exerciseIdx: -1, videoTitle: null, titleMatched: false }));
 
-      // Switch to match view
+      // Switch to match view early so user sees progress
       showStep(2);
+      renderMatchList();
+
+      // Fetch video titles in parallel and auto-match
+      const titleResults = await Promise.all(urls.map(fetchVideoTitle));
+      titleResults.forEach((title, idx) => {
+        assignments[idx].videoTitle = title;
+        const matchIdx = findExerciseMatch(title, exercises);
+        if (matchIdx >= 0) {
+          assignments[idx].exerciseIdx = matchIdx;
+          assignments[idx].titleMatched = true;
+        }
+      });
+
       renderMatchList();
     }
 
@@ -294,14 +325,22 @@
         const row = document.createElement('div');
         row.className = 'link-row';
 
-        // URL display
+        // URL / title display
         const urlDiv = document.createElement('div');
         urlDiv.className = 'link-row__url';
         const urlLink = document.createElement('a');
         urlLink.href = a.url;
         urlLink.target = '_blank';
         urlLink.style.color = '#4b7bff';
-        urlLink.textContent = a.url.length > 70 ? a.url.slice(0, 67) + '...' : a.url;
+        if (a.videoTitle) {
+          urlLink.textContent = a.videoTitle;
+        } else if (a.videoTitle === null && a.titleMatched === false) {
+          // Still loading or failed
+          urlLink.textContent = a.url.length > 70 ? a.url.slice(0, 67) + '...' : a.url;
+          urlLink.style.color = '#8e8e93';
+        } else {
+          urlLink.textContent = a.url.length > 70 ? a.url.slice(0, 67) + '...' : a.url;
+        }
         urlDiv.appendChild(urlLink);
 
         // Match dropdown
@@ -348,6 +387,14 @@
           warn.className = 'link-row__has-existing';
           warn.textContent = 'Will overwrite existing link';
           card.appendChild(warn);
+        }
+
+        // Flag when video title didn't match any exercise
+        if (a.videoTitle && !a.titleMatched) {
+          const flag = document.createElement('div');
+          flag.style.cssText = 'color: #ff9f0a; font-size: 12px; margin-top: 6px;';
+          flag.textContent = `⚠ Video says: "${a.videoTitle}" — not found in exercises, please select manually`;
+          card.appendChild(flag);
         }
 
         container.appendChild(card);
