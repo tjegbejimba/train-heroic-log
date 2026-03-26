@@ -406,3 +406,7 @@ Features surfaced by end-to-end flow audit — discuss before beta release.
 - For bodyweight exercises, should we track rep PRs separately from weighted PRs?
 - Should completing a workout always show a summary screen, or only when PRs were hit?
 - Should the "Clear Data" partial-clear use removeLS (sync-aware) instead of removeItem directly?
+- Should completing a workout with 0 sets logged be blocked, or allowed (e.g. as a notes-only/missed session)?
+- Should iOS swipe-back during an active workout trigger the cancel confirmation modal, or silently leave?
+- Crash recovery: if the template was edited after the in-progress session started, should we reconcile the new exercise list or log against the old snapshot?
+- Template rename/delete: auto-update orphaned schedule entries, or prompt the user to re-assign affected days?
