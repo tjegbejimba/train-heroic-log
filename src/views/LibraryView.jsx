@@ -152,15 +152,17 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
     const rows = await Promise.all(
       entries.map(async ({ url, manualName }) => {
         if (manualName) {
-          // User provided name explicitly via pipe separator
-          const isKnown = exerciseNames.some(
+          // User provided name explicitly via pipe separator.
+          // Find the canonical (correctly-cased) exercise name so the link
+          // is stored under the exact key that the app looks up.
+          const canonicalName = exerciseNames.find(
             (n) => n.toLowerCase() === manualName.toLowerCase()
-          );
+          ) || null;
           return {
             url,
             videoTitle: manualName,
-            matchedExercise: isKnown ? manualName : null,
-            status: isKnown ? 'matched' : 'unmatched',
+            matchedExercise: canonicalName,
+            status: canonicalName ? 'matched' : 'unmatched',
           };
         }
         const title = await fetchVideoTitle(url);

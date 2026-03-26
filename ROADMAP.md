@@ -291,22 +291,32 @@ A public-facing landing page for the app — purpose and content TBD.
 **High Priority (next up):**
 1. "Last time" reference in set rows (helps with progressive overload every session)
 2. Per-exercise rest duration in template editor
-3. Workout completion summary screen
+3. Workout completion summary screen + PR summary on finish
 4. Audio cue for rest timer end
 5. Timed set countdown (for sec/time exercises)
+6. Schedule healing after template rename/delete (data correctness bug — orphans schedule entries)
+7. MonthCalendar follow currentDate prop (month view doesn't sync when user taps Today)
 
 **Medium Priority:**
-6. Quick weight adjust buttons (+2.5 / +5 / −5)
-7. Progression graph (weight over time per exercise)
-8. Export logs as CSV
-9. Swipe to complete set
-10. Keyboard shortcuts
+8. Quick weight adjust buttons (+2.5 / +5 / −5)
+9. Progression/volume trend chart per exercise (sparkline in ExerciseHistory drilldown)
+10. Rep-based PR tracking (5RM, 10RM, etc.) + bodyweight rep PR badges
+11. Export logs as CSV
+12. Swipe to complete set
+13. Sticky "Apply Plan" button in WeekPlanner
+14. Draft persistence across week navigation in WeekPlanner
+15. Unsaved changes guard when navigating away from WeekPlanner
 
 **Low Priority (Future):**
-11. Analytics
-12. Social/sharing
-13. Advanced scheduling
-14. Health integrations
+16. Rest timer pause/resume
+17. Auto-scroll to next set after completing
+18. Set completion undo affordance
+19. Sync conflict UI ("X items restored from server")
+20. Failed push retry on reconnect (persist failedKeys across reloads)
+21. Analytics
+22. Social/sharing
+23. Advanced scheduling
+24. Health integrations
 
 ---
 
@@ -350,9 +360,49 @@ A public-facing landing page for the app — purpose and content TBD.
 
 ---
 
+## Potential Features (Beta Discussion)
+
+Features surfaced by end-to-end flow audit — discuss before beta release.
+
+### Active Workout
+- **Workout completion summary screen** — after finishing, show total volume, sets completed, duration, and any PRs hit before returning to Training view (reinforces accomplishment)
+- **Swipe-to-complete sets** — horizontal swipe on a set row to mark done with auto-fill (native fitness app feel on mobile)
+- **Auto-scroll to next set** — after completing a set and starting rest timer, scroll to next incomplete set so it's ready when timer ends
+- **Set completion undo affordance** — long-press completed set or visible "undo" button (currently toggling the checkmark is not discoverable)
+- **Rest timer pause/resume** — tap timer to pause mid-rest (e.g., if interrupted); currently only supports Skip
+- **Per-exercise rest duration** — override global rest setting per exercise in template editor (e.g., 2 min for squats, 45s for curls); stored as `restDuration` field on exercise object
+- **Template divergence warning** — if the workout being logged differs from its source template (template was edited since schedule was set), show a banner in ActiveWorkoutView
+- **Back/swipe guard** — intercept iOS swipe-back during an active workout to show the cancel modal instead of silently leaving
+
+### Strength & Progress Tracking
+- **Rep-based PR tracking** — track best weight per rep count (1RM, 5RM, 10RM) instead of just absolute max; badge new per-rep-scheme records
+- **Bodyweight rep PR tracking** — for exercises with no weight, track highest rep count over time and badge new rep maxes
+- **Volume trend + max weight sparkline** — show a mini chart in the ExerciseHistory drilldown so users can see progress at a glance
+- **PR summary on workout completion** — list PRs achieved in that session on the completion screen
+- **PR indicators in ExerciseHistory drilldown** — highlight which session/set was a record in the exercise history table
+
+### Scheduling & Planner
+- **Sticky "Apply Plan" button** — pin to bottom of viewport in WeekPlanner so it stays visible while scrolling the 7-day grid
+- **Draft persistence across week navigation** — keep unsaved planner drafts when navigating prev/next week
+- **Unsaved changes guard** — confirm dialog when leaving WeekPlanner via NavBar while there are unsaved drafts
+- **Rest day label** — allow explicitly marking a planner day as "Rest Day" (distinct from blank/unscheduled)
+- **MonthCalendar auto-follows currentDate** — when user taps Today in DateStrip while month view is open, auto-navigate the calendar to the correct month
+- **Schedule healing after template rename/delete** — automatically update or nullify `th_schedule` entries when a template is renamed or deleted
+
+### Sync & Data
+- **Sync conflict UI** — lightweight notification when server-wins merge restores something the user deleted while offline ("3 items restored from server")
+- **Failed push retry on reconnect** — persist `failedKeys` across page reloads and retry automatically when server is reachable again
+- **Storage indicator live updates** — subscribe to sync events to refresh the byte count in Settings in real time
+- **Export logs as CSV** — let users pull their full history as a spreadsheet
+
+---
+
 ## Questions for User
 
 - Should templates auto-update when editing an original imported workout?
 - Should weekly planner show predicted dates or let user pick specific dates?
 - Should we show "add to calendar" vs "replace calendar" when planning a week?
 - Should templates include YouTube links or just exercise structure?
+- For bodyweight exercises, should we track rep PRs separately from weighted PRs?
+- Should completing a workout always show a summary screen, or only when PRs were hit?
+- Should the "Clear Data" partial-clear use removeLS (sync-aware) instead of removeItem directly?

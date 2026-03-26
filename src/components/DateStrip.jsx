@@ -36,6 +36,9 @@ export default function DateStrip({
 
   const week = generateWeek(currentDate);
 
+  const _nowObj = new Date();
+  const today = `${_nowObj.getFullYear()}-${String(_nowObj.getMonth() + 1).padStart(2, '0')}-${String(_nowObj.getDate()).padStart(2, '0')}`;
+
   // Scroll to current date when it changes
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -53,8 +56,11 @@ export default function DateStrip({
   }, [currentDate]);
 
   const goToToday = () => {
-    const today = new Date().toISOString().split('T')[0];
-    onDateChange(today);
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    onDateChange(`${y}-${m}-${d}`);
   };
 
   const formatDateDisplay = (dateStr) => {
@@ -97,7 +103,6 @@ export default function DateStrip({
             const isSelected = dateStr === currentDate;
             const hasWorkout = schedule[dateStr] !== undefined;
             const isCompleted = completedDates.has(dateStr);
-            const today = new Date().toISOString().split('T')[0];
             const isToday = dateStr === today;
 
             return (

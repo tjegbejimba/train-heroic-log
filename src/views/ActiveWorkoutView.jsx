@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Video, CheckCircle } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
-import BlockSection from '../components/BlockSection';
 import Modal from '../components/Modal';
 import RestTimer from '../components/RestTimer';
 import { useSettings } from '../hooks/useSettings';
@@ -14,8 +13,6 @@ export default function ActiveWorkoutView({
   logs,
   saveLog,
   getYouTubeLink,
-  updateSession,
-  clearSession,
   onComplete,
   onCancel,
 }) {
@@ -84,8 +81,11 @@ export default function ActiveWorkoutView({
     };
     setCurrentLog(updated);
     saveLog(logKey, updated);
-    updateSession({ logKey });
 
+    // Auto-start rest timer when a set transitions to completed
+    if (!wasCompleted && newSetData.completed) {
+      setRestTimerActive(true);
+    }
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
@@ -112,13 +112,11 @@ export default function ActiveWorkoutView({
       completedAt: new Date().toISOString(),
     };
     saveLog(logKey, completed);
-    clearSession();
     onComplete();
   };
 
   const handleCancelWorkout = () => {
     setShowCancelModal(false);
-    clearSession();
     onCancel();
   };
 

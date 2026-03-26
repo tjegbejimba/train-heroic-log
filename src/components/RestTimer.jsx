@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
-  const [remaining, setRemaining] = useState(initialSeconds);
+  const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
+  const [remaining, setRemaining] = useState(safeInitial);
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -17,7 +18,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
 
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
-  const pct = Math.min(100, ((initialSeconds - remaining) / initialSeconds) * 100);
+  const pct = Math.min(100, ((safeInitial - remaining) / safeInitial) * 100);
 
   return (
     <div className="rest-timer">
