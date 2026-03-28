@@ -68,8 +68,13 @@ app.put('/api/data/:key', (req, res) => {
   if (!VALID_KEYS.includes(key)) {
     return res.status(400).json({ error: 'Invalid key' });
   }
-  writeData(key, req.body.data);
-  res.json({ key, ok: true, updatedAt: new Date().toISOString() });
+  try {
+    writeData(key, req.body.data);
+    res.json({ key, ok: true, updatedAt: new Date().toISOString() });
+  } catch (e) {
+    console.error(`Failed to write ${key}:`, e);
+    res.status(500).json({ error: 'Write failed', key });
+  }
 });
 
 // DELETE /api/data/:key — delete one key
@@ -78,9 +83,14 @@ app.delete('/api/data/:key', (req, res) => {
   if (!VALID_KEYS.includes(key)) {
     return res.status(400).json({ error: 'Invalid key' });
   }
-  const file = dataFile(key);
-  if (fs.existsSync(file)) fs.unlinkSync(file);
-  res.json({ key, ok: true });
+  try {
+    const file = dataFile(key);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    res.json({ key, ok: true });
+  } catch (e) {
+    console.error(`Failed to delete ${key}:`, e);
+    res.status(500).json({ error: 'Delete failed', key });
+  }
 });
 
 // GET /api/data — read all keys at once (for initial sync)
@@ -98,10 +108,19 @@ app.get('/api/data', (req, res) => {
 // PUT /api/data — write all keys at once (for full sync push)
 app.put('/api/data', (req, res) => {
   const updates = req.body;
+  const errors = [];
   for (const key of VALID_KEYS) {
     if (key in updates) {
-      writeData(key, updates[key]);
+      try {
+        writeData(key, updates[key]);
+      } catch (e) {
+        console.error(`Failed to write ${key}:`, e);
+        errors.push(key);
+      }
     }
+  }
+  if (errors.length > 0) {
+    return res.status(500).json({ ok: false, errors, updatedAt: new Date().toISOString() });
   }
   res.json({ ok: true, updatedAt: new Date().toISOString() });
 });

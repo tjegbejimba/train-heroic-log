@@ -75,10 +75,12 @@ function extractUrls(text) {
     .filter((e) => YOUTUBE_URL_RE.test(e.url));
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) {
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap }) {
   const [search, setSearch] = useState('');
   const [editingLink, setEditingLink] = useState(null);
   const [linkDraft, setLinkDraft] = useState('');
+  const [editingNotes, setEditingNotes] = useState(null);
+  const [notesDraft, setNotesDraft] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkRows, setBulkRows] = useState(null); // [{ url, videoTitle, matchedExercise, status }]
@@ -97,21 +99,24 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
           if (!exerciseMap[name]) {
             exerciseMap[name] = {
               title: name,
-              workoutCount: 0,
-              workoutNames: new Set(),
-              totalSets: 0,
+              notes: exercise.notes || '',
+              _allNotes: new Set(),
             };
           }
-          exerciseMap[name].workoutCount++;
-          exerciseMap[name].workoutNames.add(workoutTitle);
-          exerciseMap[name].totalSets += exercise.sets.length;
+          if (exercise.notes) exerciseMap[name]._allNotes.add(exercise.notes);
+          if (!exerciseMap[name].notes && exercise.notes) {
+            exerciseMap[name].notes = exercise.notes;
+          }
         });
       });
     });
 
-    return Object.values(exerciseMap).sort((a, b) =>
-      a.title.localeCompare(b.title)
-    );
+    return Object.values(exerciseMap)
+      .map(({ _allNotes, ...ex }) => ({
+        ...ex,
+        hasConflictedNotes: _allNotes.size > 1,
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [workouts]);
 
   const filtered = useMemo(() => {
@@ -147,15 +152,17 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
     const rows = await Promise.all(
       entries.map(async ({ url, manualName }) => {
         if (manualName) {
-          // User provided name explicitly via pipe separator
-          const isKnown = exerciseNames.some(
+          // User provided name explicitly via pipe separator.
+          // Find the canonical (correctly-cased) exercise name so the link
+          // is stored under the exact key that the app looks up.
+          const canonicalName = exerciseNames.find(
             (n) => n.toLowerCase() === manualName.toLowerCase()
-          );
+          ) || null;
           return {
             url,
             videoTitle: manualName,
-            matchedExercise: isKnown ? manualName : null,
-            status: isKnown ? 'matched' : 'unmatched',
+            matchedExercise: canonicalName,
+            status: canonicalName ? 'matched' : 'unmatched',
           };
         }
         const title = await fetchVideoTitle(url);
@@ -189,8 +196,11 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
   const handleBulkSave = () => {
     if (!bulkRows) return;
     const valid = bulkRows.filter((r) => r.matchedExercise && r.url);
-    valid.forEach((r) => setYouTubeLink(r.matchedExercise, r.url));
-    setBulkSaved(true);
+    const skipped = bulkRows.length - valid.length;
+    // Use setManyYouTubeLinks to update all at once — calling setYouTubeLink in a loop
+    // would cause each call to close over the same stale `links` snapshot, losing all but the last.
+    setManyYouTubeLinks(valid.map((r) => ({ key: r.matchedExercise, url: r.url })));
+    setBulkSaved({ saved: valid.length, skipped });
   };
 
   const handleBulkClose = () => {
@@ -243,7 +253,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
         <div className="card" style={{ margin: '0 var(--space-lg)', marginBottom: 'var(--space-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
             <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Bulk Import</h3>
-            <button className="btn btn-secondary btn-small" onClick={handleBulkClose} style={{ padding: '4px' }}>
+            <button className="btn btn-secondary btn-small" onClick={handleBulkClose} style={{ minWidth: '36px', minHeight: '36px', padding: 'var(--space-sm)' }}>
               <X size={16} />
             </button>
           </div>
@@ -292,7 +302,12 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
             })()}
             {bulkSaved && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-accent-green)', fontSize: 'var(--font-size-sm)' }}>
-                <Check size={14} /> Saved!
+                <Check size={14} /> Saved {bulkSaved.saved} link{bulkSaved.saved !== 1 ? 's' : ''}
+                {bulkSaved.skipped > 0 && (
+                  <span style={{ color: 'var(--color-text-secondary)' }}>
+                    — {bulkSaved.skipped} unmatched skipped
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -345,7 +360,10 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
                   )}
                   {hasExisting && !isDuplicate && (
                     <div style={{ fontSize: '11px', color: 'var(--color-accent-yellow)', marginBottom: '4px' }}>
-                      "{r.matchedExercise}" already has a link — this will overwrite it.
+                      Will overwrite existing:{' '}
+                      <span style={{ opacity: 0.75, wordBreak: 'break-all' }}>
+                        {preImportLinks[r.matchedExercise]}
+                      </span>
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -354,7 +372,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
                       className="input"
                       value={r.matchedExercise || ''}
                       onChange={(e) => handleBulkMatchChange(i, e.target.value)}
-                      style={{ fontSize: '11px', padding: '4px 6px', flex: 1 }}
+                      style={{ flex: 1 }}
                     >
                       <option value="">— Select exercise —</option>
                       {exerciseNames.map((name) => (
@@ -398,23 +416,72 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink }) 
               <div key={exercise.title} className="library-card card">
                 <div className="library-card__header">
                   <div className="library-card__info">
-                    <h3 className="library-card__title">{exercise.title}</h3>
-                    <div className="library-card__meta">
-                      <span>
-                        {exercise.workoutNames.size} workout
-                        {exercise.workoutNames.size !== 1 ? 's' : ''}
-                      </span>
-                      <span className="library-card__dot"></span>
-                      <span>{exercise.totalSets} total sets</span>
-                    </div>
-                    <div className="library-card__workouts">
-                      {[...exercise.workoutNames].map((name) => (
-                        <span key={name} className="library-card__tag">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
+                    <button
+                      className="library-card__title-btn"
+                      onClick={() => onExerciseTap(exercise.title)}
+                    >
+                      <h3 className="library-card__title">{exercise.title}</h3>
+                      <span className="library-card__history-hint text-secondary text-sm">History →</span>
+                    </button>
                   </div>
+                </div>
+
+                <div className="library-card__notes-section">
+                  {editingNotes === exercise.title ? (
+                    <div className="library-card__notes-edit">
+                      {exercise.hasConflictedNotes && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-size-xs)', color: 'var(--color-accent-yellow)', marginBottom: 'var(--space-xs)' }}>
+                          <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+                          Notes differ across workouts — saving will overwrite all instances.
+                        </div>
+                      )}
+                      <textarea
+                        className="input"
+                        rows={3}
+                        placeholder="Add coaching tips (e.g. rest 1 min, 8 each side, stay tight...)"
+                        value={notesDraft}
+                        onChange={(e) => setNotesDraft(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="library-card__link-actions">
+                        <button
+                          className="btn btn-primary btn-small"
+                          onClick={() => {
+                            onUpdateExerciseNotes(exercise.title, notesDraft);
+                            setEditingNotes(null);
+                            setNotesDraft('');
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-small"
+                          onClick={() => {
+                            setEditingNotes(null);
+                            setNotesDraft('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="library-card__notes-toggle"
+                      onClick={() => {
+                        setEditingNotes(exercise.title);
+                        setNotesDraft(exercise.notes || '');
+                      }}
+                    >
+                      {exercise.notes ? (
+                        <p className="text-secondary text-sm">{exercise.notes}</p>
+                      ) : (
+                        <p className="text-secondary text-sm" style={{ opacity: 0.5 }}>
+                          + Add exercise tips
+                        </p>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="library-card__link-section">

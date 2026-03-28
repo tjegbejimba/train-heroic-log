@@ -30,16 +30,34 @@
   justify-content: center;
   gap: var(--space-xs);
   cursor: pointer;
-  transition: background-color var(--transition);
+  transition: background-color var(--transition), color var(--transition);
   border: none;
   background: none;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+  position: relative;
+}
+
+.navbar__tab:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .navbar__tab--active {
   color: var(--color-accent-blue);
-  background-color: rgba(75, 123, 255, 0.05);
+  background-color: rgba(75, 123, 255, 0.06);
+}
+
+.navbar__tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  background-color: var(--color-accent-blue);
+  border-radius: 0 0 3px 3px;
 }
 
 .navbar__icon {
@@ -170,6 +188,27 @@
   text-transform: uppercase;
 }
 
+/* ========== Superset grouping ========== */
+.superset-group {
+  border-left: 3px solid var(--color-accent-blue);
+  margin-bottom: var(--space-md);
+}
+
+.superset-group__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.superset-group__exercises .exercise-row:last-child,
+.superset-group__exercises .active-workout-view__exercise:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
 /* ========== ExerciseRow ========== */
 .exercise-row {
   margin-bottom: var(--space-md);
@@ -202,6 +241,16 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.exercise-row__toggle:hover .exercise-row__badge {
+  background-color: rgba(75, 123, 255, 0.15);
+  color: var(--color-accent-blue);
+}
+
+.exercise-row__toggle:hover .exercise-row__title {
+  color: var(--color-accent-blue);
 }
 
 .exercise-row__info {
@@ -212,6 +261,7 @@
   font-size: var(--font-size-base);
   font-weight: 600;
   margin-bottom: var(--space-xs);
+  transition: color var(--transition);
 }
 
 .exercise-row__sets {
@@ -230,6 +280,20 @@
   margin-top: var(--space-md);
   padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
+}
+
+.exercise-row__notes-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.exercise-row__notes-edit textarea {
+  width: 100%;
+  resize: vertical;
 }
 
 .exercise-row__video {
@@ -311,4 +375,31 @@
 
 .training-view__exercises {
   margin-top: var(--space-lg);
+}
+
+/* ========== Mobile ========== */
+@media (max-width: 768px) {
+  /* Date strip: taller tap targets */
+  .date-strip__day {
+    min-height: 56px;
+    padding: var(--space-md) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  /* Exercise rows: larger tap zone */
+  .exercise-row {
+    padding: var(--space-lg) var(--space-lg);
+  }
+
+  .exercise-row__toggle {
+    padding: var(--space-sm) 0;
+  }
+
+  /* Library notes toggle: full-width touch target */
+  .library-card__notes-toggle {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
 }

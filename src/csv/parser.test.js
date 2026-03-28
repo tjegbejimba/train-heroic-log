@@ -58,7 +58,7 @@ describe('parseCSV', () => {
     expect(scheduleMap['2026-03-22']).toBe('Push Day');
   });
 
-  it('groups multiple exercises into same workout', () => {
+  it('gives each exercise its own block', () => {
     const csv = makeCSV([
       ['WorkoutTitle', 'ScheduledDate', 'ExerciseTitle', 'ExerciseData', 'BlockValue', 'BlockUnits'],
       ['Push Day', '3/22/2026', 'Bench Press', '6 rep x 135 lb', '3', 'min'],
@@ -66,7 +66,9 @@ describe('parseCSV', () => {
     ]);
     const { workoutMap } = parseCSV(csv);
 
-    expect(workoutMap['Push Day'].blocks[0].exercises).toHaveLength(2);
+    expect(workoutMap['Push Day'].blocks).toHaveLength(2);
+    expect(workoutMap['Push Day'].blocks[0].exercises[0].title).toBe('Bench Press');
+    expect(workoutMap['Push Day'].blocks[1].exercises[0].title).toBe('Overhead Press');
   });
 
   it('separates different workouts', () => {
@@ -126,5 +128,27 @@ describe('parseCSV', () => {
     ]);
     const { workoutMap } = parseCSV(csv);
     expect(workoutMap['Full Body'].blocks).toHaveLength(2);
+  });
+
+  it('deduplicates exercises across multiple dates of the same workout', () => {
+    const csv = makeCSV([
+      ['WorkoutTitle', 'ScheduledDate', 'ExerciseTitle', 'ExerciseData', 'BlockValue', 'BlockUnits'],
+      ['Push Day', '3/1/2026', 'Bench Press', '"3, 3, 3 rep x 135 lb"', '3', 'min'],
+      ['Push Day', '3/8/2026', 'Bench Press', '"3, 3, 3 rep x 140 lb"', '3', 'min'],
+      ['Push Day', '3/15/2026', 'Bench Press', '"3, 3, 3 rep x 145 lb"', '3', 'min'],
+    ]);
+    const { workoutMap, scheduleMap } = parseCSV(csv);
+
+    // Should use only one date's sets, not concatenate all 9
+    const sets = workoutMap['Push Day'].blocks[0].exercises[0].sets;
+    expect(sets).toHaveLength(3);
+
+    // All three dates should still appear in the schedule
+    expect(scheduleMap['2026-03-01']).toBe('Push Day');
+    expect(scheduleMap['2026-03-08']).toBe('Push Day');
+    expect(scheduleMap['2026-03-15']).toBe('Push Day');
+
+    // Should use the most recent date's data (145 lb)
+    expect(sets[0].weight).toBe(145);
   });
 });

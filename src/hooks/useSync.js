@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { checkServerHealth, pullFromServer, pushAllToServer } from '../storage/sync';
+import { checkServerHealth, pullFromServer, pushAllToServer, clearServerData } from '../storage/sync';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -34,6 +34,17 @@ export function useSync() {
     });
   }, []);
 
+  // Listen for background push results
+  useEffect(() => {
+    function handleSyncPush(e) {
+      const { ok } = e.detail;
+      setSyncStatus(ok ? 'online' : 'offline');
+      if (ok) setLastSynced(new Date().toISOString());
+    }
+    window.addEventListener('sync-push', handleSyncPush);
+    return () => window.removeEventListener('sync-push', handleSyncPush);
+  }, []);
+
   // Pull from server — returns { ok, changed }
   // changed=true means local data was updated and caller should reload state
   const pullSync = useCallback(async () => {
@@ -53,5 +64,10 @@ export function useSync() {
     return ok;
   }, []);
 
-  return { syncStatus, lastSynced, pullSync, pushSync };
+  // Clear all data on server
+  const clearServer = useCallback(async () => {
+    return clearServerData(ALL_KEYS);
+  }, []);
+
+  return { syncStatus, lastSynced, pullSync, pushSync, clearServer };
 }

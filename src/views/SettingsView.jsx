@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useToast } from '../components/Toast';
+import { writeLS } from '../storage/index';
+import { flushPendingPushes } from '../storage/sync';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -9,6 +12,7 @@ import {
   LS_WORKOUT_LOGS,
   LS_ACTIVE_SESSION,
   LS_TEMPLATES,
+  ROUTE_EDIT_TEMPLATE,
 } from '../constants';
 
 export default function SettingsView({
@@ -17,6 +21,7 @@ export default function SettingsView({
   deleteTemplate,
   renameTemplate,
   duplicateTemplate,
+  navigate,
   onClearAllData,
   syncStatus,
   lastSynced,
@@ -24,11 +29,14 @@ export default function SettingsView({
   onPushSync,
 }) {
   const showToast = useToast();
+  const { settings, updateSettings } = useSettings();
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearSelections, setClearSelections] = useState({});
+  const [templateSearch, setTemplateSearch] = useState('');
 
   const handleStartRename = (tpl) => {
     setRenamingId(tpl.id);
@@ -111,7 +119,7 @@ export default function SettingsView({
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
           const validKeys = [
@@ -124,11 +132,14 @@ export default function SettingsView({
           let restored = 0;
           validKeys.forEach((key) => {
             if (data[key]) {
-              localStorage.setItem(key, JSON.stringify(data[key]));
+              writeLS(key, data[key]); // write to LS + queue sync push
               restored++;
             }
           });
-          showToast(`Restored ${restored} data sections. Reload to apply.`, 'info', 4000);
+          await flushPendingPushes(); // push to server before reload
+          sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
+          showToast(`Restored ${restored} data sections!`);
+          setTimeout(() => window.location.reload(), 500); // brief delay so toast shows
         } catch {
           showToast('Invalid backup file', 'error');
         }
@@ -138,11 +149,33 @@ export default function SettingsView({
     input.click();
   };
 
-  const handleClearAll = () => {
-    setShowClearConfirm(false);
-    onClearAllData();
-    showToast('All data cleared');
+  const clearDataLabels = {
+    [LS_WORKOUTS]: 'Workouts',
+    [LS_SCHEDULE]: 'Schedule',
+    [LS_WORKOUT_LOGS]: 'Workout Logs',
+    [LS_TEMPLATES]: 'Templates',
+    [LS_YOUTUBE_LINKS]: 'YouTube Links',
+    [LS_ACTIVE_SESSION]: 'Active Session',
   };
+
+  const handleClearAll = () => {
+    const keys = Object.keys(clearSelections).filter((k) => clearSelections[k]);
+    setShowClearConfirm(false);
+    if (keys.length === Object.keys(clearDataLabels).length) {
+      onClearAllData();
+    } else {
+      onClearAllData(keys);
+    }
+    const count = keys.length;
+    showToast(`Cleared ${count} data section${count !== 1 ? 's' : ''}`);
+  };
+
+  const toggleClearSelection = (key) => {
+    setClearSelections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const selectedClearCount = Object.values(clearSelections).filter(Boolean).length;
+  const allSelected = selectedClearCount === Object.keys(clearDataLabels).length;
 
   return (
     <div className="view settings-view">
@@ -151,6 +184,23 @@ export default function SettingsView({
       </div>
 
       <div className="settings-view__content">
+        {/* Workout section */}
+        <div className="card">
+          <h3 className="mb-md">Workout</h3>
+          <p className="text-secondary text-sm mb-sm">Default rest duration</p>
+          <div className="settings-view__rest-options">
+            {[30, 60, 90, 120, 180].map((s) => (
+              <button
+                key={s}
+                className={`btn btn-small${settings.restDuration === s ? ' btn-primary' : ' btn-secondary'}`}
+                onClick={() => updateSettings({ restDuration: s })}
+              >
+                {s < 60 ? `${s}s` : `${s / 60}min`}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Sync section */}
         <div className="card">
           <h3 className="mb-md">NAS Sync</h3>
@@ -229,9 +279,19 @@ export default function SettingsView({
           <h3 className="mb-md text-red">Danger Zone</h3>
           <button
             className="btn btn-danger w-full"
-            onClick={() => setShowClearConfirm(true)}
+            onClick={() => {
+              setClearSelections({
+                [LS_WORKOUTS]: true,
+                [LS_SCHEDULE]: true,
+                [LS_WORKOUT_LOGS]: true,
+                [LS_TEMPLATES]: true,
+                [LS_YOUTUBE_LINKS]: true,
+                [LS_ACTIVE_SESSION]: true,
+              });
+              setShowClearConfirm(true);
+            }}
           >
-            Clear All Data
+            Clear Data...
           </button>
         </div>
 
@@ -248,7 +308,19 @@ export default function SettingsView({
             </p>
           ) : (
             <div className="settings-templates">
-              {templateList.map((tpl) => {
+              <input
+                type="text"
+                className="input"
+                placeholder="Search templates..."
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+                style={{ marginBottom: 'var(--space-md)' }}
+              />
+              {templateList
+                .filter((tpl) =>
+                  tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
+                )
+                .map((tpl) => {
                 const isExpanded = expandedId === tpl.id;
                 const exerciseCount = tpl.blocks.reduce(
                   (sum, b) => sum + b.exercises.length,
@@ -314,6 +386,12 @@ export default function SettingsView({
                         </div>
                         <div className="settings-template-item__actions">
                           <button
+                            className="btn btn-primary btn-small"
+                            onClick={() => navigate(ROUTE_EDIT_TEMPLATE, { templateId: tpl.id })}
+                          >
+                            Edit
+                          </button>
+                          <button
                             className="btn btn-secondary btn-small"
                             onClick={() => handleStartRename(tpl)}
                           >
@@ -361,14 +439,56 @@ export default function SettingsView({
       )}
 
       {showClearConfirm && (
-        <Modal
-          title="Clear All Data?"
-          message="This will delete all workouts, logs, templates, and settings. This cannot be undone. Export a backup first!"
-          onConfirm={handleClearAll}
-          onCancel={() => setShowClearConfirm(false)}
-          confirmText="Delete Everything"
-          cancelText="Cancel"
-        />
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 className="modal__title">Clear Data</h2>
+            <p className="modal__message" style={{ marginBottom: 'var(--space-md)' }}>
+              Select which data to delete. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600, paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--color-border)' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => {
+                    const next = !allSelected;
+                    const updated = {};
+                    Object.keys(clearDataLabels).forEach((k) => { updated[k] = next; });
+                    setClearSelections(updated);
+                  }}
+                />
+                Select All
+              </label>
+              {Object.entries(clearDataLabels).map(([key, label]) => (
+                <label
+                  key={key}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!clearSelections[key]}
+                    onChange={() => toggleClearSelection(key)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="modal__actions flex gap-md">
+              <button className="btn btn-secondary flex-1" onClick={() => setShowClearConfirm(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger flex-1"
+                onClick={handleClearAll}
+                disabled={selectedClearCount === 0}
+              >
+                Delete{selectedClearCount > 0 ? ` (${selectedClearCount})` : ''}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

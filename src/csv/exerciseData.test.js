@@ -67,11 +67,124 @@ describe('parseExerciseData', () => {
     expect(sets[1]).toMatchObject({ reps: 6, weight: 120 });
     expect(sets[2]).toMatchObject({ reps: 4, weight: 140 });
   });
+
+  // --- Yards ---
+  it('parses yard-based distances', () => {
+    const sets = parseExerciseData('1 rep x 100 yards');
+    expect(sets).toHaveLength(1);
+    expect(sets[0]).toMatchObject({ reps: 1, weight: 100, unit: 'yd' });
+  });
+
+  it('parses singular yard', () => {
+    const sets = parseExerciseData('2, 2 rep x 50 yard');
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toMatchObject({ reps: 2, weight: 50, unit: 'yd' });
+  });
+
+  it('parses sprint yard data', () => {
+    const sets = parseExerciseData('1, 1, 1, 1 rep x 10, 10, 10, 10 yard');
+    expect(sets).toHaveLength(4);
+    sets.forEach((s) => expect(s).toMatchObject({ reps: 1, weight: 10, unit: 'yd' }));
+  });
+
+  // --- Meters ---
+  it('parses meter-based distances', () => {
+    const sets = parseExerciseData('1 rep x 200 meters');
+    expect(sets).toHaveLength(1);
+    expect(sets[0]).toMatchObject({ reps: 1, weight: 200, unit: 'm' });
+  });
+
+  // --- Percent word ---
+  it('parses "percent" word (not just % symbol)', () => {
+    const sets = parseExerciseData('480 time x 35 percent');
+    expect(sets).toHaveLength(1);
+    expect(sets[0]).toMatchObject({ reps: 480, weight: 35, unit: '%' });
+  });
+
+  // --- RPE ---
+  it('parses RPE-based data', () => {
+    const sets = parseExerciseData('15, 15, 15 time x 6, 6, 6 RPE');
+    expect(sets).toHaveLength(3);
+    expect(sets[0]).toMatchObject({ reps: 15, weight: 6, unit: 'RPE' });
+  });
+
+  // --- Inches ---
+  it('parses inch-based data (box heights)', () => {
+    const sets = parseExerciseData('5, 5 rep x 24, 24 inch');
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toMatchObject({ reps: 5, weight: 24, unit: 'in' });
+  });
+
+  // --- Feet ---
+  it('parses foot-based data (distance)', () => {
+    const sets = parseExerciseData('5, 5 rep x 5, 5 foot');
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toMatchObject({ reps: 5, weight: 5, unit: 'ft' });
+  });
+
+  // --- Seconds ---
+  it('parses second-based data', () => {
+    const sets = parseExerciseData('30 second x 135 pound');
+    expect(sets).toHaveLength(1);
+    expect(sets[0]).toMatchObject({ reps: 30, weight: 135, unit: 'lb' });
+  });
+
+  // --- Rep on weight side (bodyweight) ---
+  it('parses mirrored rep x rep as bodyweight', () => {
+    const sets = parseExerciseData('10, 10, 10 rep x 10, 10, 10 rep');
+    expect(sets).toHaveLength(3);
+    expect(sets[0]).toMatchObject({ reps: 10, weight: null, unit: 'bw' });
+  });
+
+  it('parses "rep x rep" (empty prescribed) as bodyweight', () => {
+    const sets = parseExerciseData('rep x  rep');
+    expect(sets).toHaveLength(0); // no actual reps data
+  });
+
+  // --- Zero reps with actual reps on weight side ---
+  it('parses 0 reps with actual counts on weight side', () => {
+    const sets = parseExerciseData('0, 0, 0 rep x 20, 15, 17 rep');
+    expect(sets).toHaveLength(3);
+    expect(sets[0]).toMatchObject({ reps: 20, weight: null, unit: 'bw' });
+    expect(sets[1]).toMatchObject({ reps: 15, weight: null, unit: 'bw' });
+    expect(sets[2]).toMatchObject({ reps: 17, weight: null, unit: 'bw' });
+  });
+
+  // --- Reversed columns ---
+  it('handles reversed columns (weight on reps side)', () => {
+    const sets = parseExerciseData('135, 135, 135 pound x 40, 40, 40 time');
+    expect(sets).toHaveLength(3);
+    expect(sets[0]).toMatchObject({ reps: 40, weight: 135, unit: 'lb' });
+  });
+
+  // --- HH:MM time format ---
+  it('parses HH:MM time format as seconds', () => {
+    const sets = parseExerciseData('00:20, 00:20, 00:20 time x 6, 6, 6 RPE');
+    expect(sets).toHaveLength(3);
+    expect(sets[0]).toMatchObject({ reps: 20, weight: 6, unit: 'RPE' });
+  });
+
+  it('parses MM:SS time format', () => {
+    const sets = parseExerciseData('00:45, 00:45 time x 5, 5 RPE');
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toMatchObject({ reps: 45, weight: 5, unit: 'RPE' });
+  });
+
+  // --- Bare/minimal patterns ---
+  it('handles bare "x" pattern', () => {
+    const sets = parseExerciseData('x');
+    expect(sets).toHaveLength(0);
+  });
+
+  it('handles "rep x" with no weight', () => {
+    const sets = parseExerciseData('rep x');
+    expect(sets).toHaveLength(0);
+  });
 });
 
 describe('formatSet', () => {
   it('formats standard set', () => {
-    expect(formatSet({ reps: 6, weight: 40, unit: 'lb' })).toBe('6 × 40lb');
+    expect(formatSet({ reps: 6, weight: 40, unit: 'lb' })).toBe('6 × 40 lb');
   });
 
   it('formats AMRAP', () => {
@@ -87,6 +200,30 @@ describe('formatSet', () => {
   });
 
   it('formats percentage set', () => {
-    expect(formatSet({ reps: 3, weight: 60, unit: '%' })).toBe('3 × 60%');
+    expect(formatSet({ reps: 3, weight: 60, unit: '%' })).toBe('3 × 60 %');
+  });
+
+  it('formats yard set', () => {
+    expect(formatSet({ reps: 1, weight: 100, unit: 'yd' })).toBe('1 × 100 yd');
+  });
+
+  it('formats meter set', () => {
+    expect(formatSet({ reps: 1, weight: 200, unit: 'm' })).toBe('1 × 200 m');
+  });
+
+  it('formats RPE set', () => {
+    expect(formatSet({ reps: 15, weight: 6, unit: 'RPE' })).toBe('15 × 6 RPE');
+  });
+
+  it('formats inch set', () => {
+    expect(formatSet({ reps: 5, weight: 24, unit: 'in' })).toBe('5 × 24 in');
+  });
+
+  it('formats foot set', () => {
+    expect(formatSet({ reps: 5, weight: 5, unit: 'ft' })).toBe('5 × 5 ft');
+  });
+
+  it('formats time/sec set', () => {
+    expect(formatSet({ reps: 20, weight: 6, unit: 'time' })).toBe('20 × 6 sec');
   });
 });
