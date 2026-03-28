@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import YouTubeLinkInput from './YouTubeLinkInput';
-import { formatSet } from '../csv/exerciseData';
+import { formatSet, groupSets } from '../csv/exerciseData';
 
 export default function ExerciseRow({
   blockLetter,
   exercise,
   youtubeLink,
   onYoutubeLinkChange,
+  onExerciseNotesChange,
   isExpanded,
   onToggleExpand,
 }) {
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(exercise.notes || '');
   return (
     <div className={`exercise-row ${isExpanded ? 'exercise-row--expanded' : ''}`}>
       <button
@@ -20,10 +23,10 @@ export default function ExerciseRow({
         <div className="exercise-row__info">
           <h3 className="exercise-row__title">{exercise.title}</h3>
           <div className="exercise-row__sets">
-            {exercise.sets.map((set, i) => (
+            {groupSets(exercise.sets).map(({ set, count }, i) => (
               <span key={i} className="text-blue">
                 {i > 0 && ' • '}
-                {formatSet(set)}
+                {formatSet(set, count)}
               </span>
             ))}
           </div>
@@ -35,11 +38,53 @@ export default function ExerciseRow({
 
       {isExpanded && (
         <div className="exercise-row__details">
-          {exercise.notes && (
-            <div className="mb-md">
-              <p className="text-secondary text-sm">{exercise.notes}</p>
-            </div>
-          )}
+          <div className="exercise-row__notes mb-md">
+            {editingNotes ? (
+              <div className="exercise-row__notes-edit">
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="Add coaching tips (e.g. rest 1 min, 8 each side, stay tight...)"
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-sm mt-sm">
+                  <button
+                    className="btn btn-primary btn-small"
+                    onClick={() => {
+                      onExerciseNotesChange(notesDraft);
+                      setEditingNotes(false);
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => {
+                      setNotesDraft(exercise.notes || '');
+                      setEditingNotes(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="exercise-row__notes-toggle"
+                onClick={() => setEditingNotes(true)}
+              >
+                {exercise.notes ? (
+                  <p className="text-secondary text-sm">{exercise.notes}</p>
+                ) : (
+                  <p className="text-secondary text-sm" style={{ opacity: 0.5 }}>
+                    + Add exercise tips
+                  </p>
+                )}
+              </button>
+            )}
+          </div>
 
           <YouTubeLinkInput
             url={youtubeLink}

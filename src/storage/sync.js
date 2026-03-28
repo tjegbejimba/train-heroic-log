@@ -14,6 +14,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
+let failedKeys = new Set(); // keys that failed to push (for retry)
 
 /**
  * Check if the server is reachable
@@ -50,7 +51,15 @@ export async function pullFromServer() {
       // Read the raw stored string once — used for efficient change detection
       // below (avoids re-serializing local and sidesteps key-order false positives)
       const localRaw = localStorage.getItem(key);
-      const local = localRaw ? JSON.parse(localRaw) : null;
+      let local = null;
+      if (localRaw) {
+        try {
+          local = JSON.parse(localRaw);
+        } catch (e) {
+          console.warn(`Ignoring malformed localStorage value for key "${key}" during sync pull`, e);
+          local = null;
+        }
+      }
 
       if (data === null) {
         if (updatedAt === null) {
@@ -107,19 +116,96 @@ export function pushToServer(key, data) {
   const timeoutId = setTimeout(async () => {
     pendingPushes.delete(key);
     try {
-      await fetch(`${API_BASE}/data/${key}`, {
+      const res = await fetch(`${API_BASE}/data/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data }),
         signal: AbortSignal.timeout(5000),
       });
+      if (res.ok) {
+        failedKeys.delete(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      } else {
+        failedKeys.add(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
+      }
     } catch {
-      // Silent fail — localStorage has the data, will sync next time
-      console.warn(`Sync push failed for ${key} — will retry on next write`);
+      failedKeys.add(key);
+      console.warn(`Sync push failed for ${key}`);
+      window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
     }
   }, 500);
 
   pendingPushes.set(key, timeoutId);
+}
+
+/**
+ * Immediately flush all debounced pushes (don't wait for timers).
+ * Call this before page reload to prevent data loss.
+ */
+export async function flushPendingPushes() {
+  const keys = [...pendingPushes.keys()];
+  for (const key of keys) {
+    clearTimeout(pendingPushes.get(key));
+    pendingPushes.delete(key);
+  }
+  if (keys.length === 0) return;
+  await Promise.all(keys.map(async (key) => {
+    try {
+      const data = readLS(key, null);
+      const res = await fetch(`${API_BASE}/data/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        failedKeys.delete(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      } else {
+        failedKeys.add(key);
+      }
+    } catch {
+      failedKeys.add(key);
+    }
+  }));
+}
+
+/**
+ * Check if there are pending debounced pushes.
+ */
+export function hasPendingPushes() {
+  return pendingPushes.size > 0;
+}
+
+/**
+ * Retry pushing keys that previously failed.
+ * Called after a successful pull to ensure local changes reach the server.
+ */
+export async function retryFailedPushes() {
+  if (failedKeys.size === 0) return;
+  const keys = [...failedKeys];
+  await Promise.all(keys.map(async (key) => {
+    try {
+      const data = readLS(key, null);
+      if (data === null) {
+        failedKeys.delete(key);
+        return;
+      }
+      const res = await fetch(`${API_BASE}/data/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        failedKeys.delete(key);
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      }
+    } catch {
+      // Still failed — will retry on next opportunity
+    }
+  }));
 }
 
 /**
@@ -141,6 +227,29 @@ export async function pushAllToServer(keys) {
     return res.ok;
   } catch {
     console.warn('Full sync push failed');
+    return false;
+  }
+}
+
+/**
+ * Clear all data on the server (push null for every key)
+ */
+export async function clearServerData(keys) {
+  if (!syncEnabled) return false;
+  try {
+    const payload = {};
+    for (const key of keys) {
+      payload[key] = null;
+    }
+    const res = await fetch(`${API_BASE}/data`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
+    });
+    return res.ok;
+  } catch {
+    console.warn('Server data clear failed');
     return false;
   }
 }

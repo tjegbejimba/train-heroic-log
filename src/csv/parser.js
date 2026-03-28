@@ -38,23 +38,39 @@ export function parseCSV(csvText) {
     const scheduleMap = {};
     const parseErrors = [];
 
-    // Group rows by workout
-    const workoutGroups = {};
-    dataRows.forEach((row) => {
+    // Group rows by workout title, then by date
+    const rowObjects = dataRows.map((row) => {
       const rowObj = {};
       headers.forEach((header, i) => {
         rowObj[header] = (row[i] || '').trim();
       });
-
-      const workoutTitle = rowObj.WorkoutTitle || 'Untitled';
-      if (!workoutGroups[workoutTitle]) {
-        workoutGroups[workoutTitle] = [];
-      }
-      workoutGroups[workoutTitle].push(rowObj);
+      return rowObj;
     });
 
-    // Process each workout
-    Object.entries(workoutGroups).forEach(([workoutTitle, rows]) => {
+    // Build per-workout, per-date groups
+    const workoutDateGroups = {}; // { workoutTitle: { date: [rows] } }
+    rowObjects.forEach((rowObj) => {
+      const workoutTitle = rowObj.WorkoutTitle || 'Untitled';
+      const rawDate = rowObj.RescheduledDate || rowObj.ScheduledDate || '';
+      const date = normalizeDate(rawDate);
+
+      if (!workoutDateGroups[workoutTitle]) {
+        workoutDateGroups[workoutTitle] = {};
+      }
+      const dateKey = date !== 'invalid-date' ? date : '_no_date';
+      if (!workoutDateGroups[workoutTitle][dateKey]) {
+        workoutDateGroups[workoutTitle][dateKey] = [];
+      }
+      workoutDateGroups[workoutTitle][dateKey].push(rowObj);
+    });
+
+    // Process each workout — use the most recent date's rows for the definition
+    Object.entries(workoutDateGroups).forEach(([workoutTitle, dateMap]) => {
+      const dates = Object.keys(dateMap).sort();
+      // Pick the most recent valid date for the workout definition
+      const bestDate = dates.filter((d) => d !== '_no_date').pop() || dates[0];
+      const rows = dateMap[bestDate];
+
       const blocks = {};
       const blockOrder = [];
 
@@ -78,18 +94,25 @@ export function parseCSV(csvText) {
         blocks[blockKey].exercises[exerciseTitle].push(row);
       });
 
-      // Convert blocks object to array and parse exercises
-      const blockArray = blockOrder.map((blockKey) => {
+      // Convert blocks to array — each exercise gets its own block
+      // (prevents accidentally supersetting an entire workout)
+      const blockArray = [];
+      blockOrder.forEach((blockKey) => {
         const block = blocks[blockKey];
-        const exercises = Object.entries(block.exercises).map(([exerciseTitle, rows]) => {
+        Object.entries(block.exercises).forEach(([exerciseTitle, rows]) => {
           const sets = resolveExerciseSets(rows);
-          return {
-            title: exerciseTitle,
-            notes: rows[0].ExerciseNotes || '',
-            sets,
-          };
+          blockArray.push({
+            value: block.value,
+            units: block.units,
+            instructions: block.instructions,
+            notes: block.notes,
+            exercises: [{
+              title: exerciseTitle,
+              notes: rows[0].ExerciseNotes || '',
+              sets,
+            }],
+          });
         });
-        return { ...block, exercises };
       });
 
       workoutMap[workoutTitle] = {
@@ -98,12 +121,12 @@ export function parseCSV(csvText) {
         blocks: blockArray,
       };
 
-      // Build schedule from first row (prefer RescheduledDate)
-      const firstRow = rows[0];
-      const date = normalizeDate(firstRow.RescheduledDate || firstRow.ScheduledDate);
-      if (date && date !== 'invalid-date') {
-        scheduleMap[date] = workoutTitle;
-      }
+      // Build schedule entries for ALL dates of this workout
+      dates.forEach((date) => {
+        if (date !== '_no_date' && date !== 'invalid-date') {
+          scheduleMap[date] = workoutTitle;
+        }
+      });
     });
 
     return { workoutMap, scheduleMap, parseErrors };

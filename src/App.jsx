@@ -6,6 +6,7 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
+import { flushPendingPushes, retryFailedPushes } from './storage/sync';
 import { useToast } from './components/Toast';
 import {
   ROUTE_IMPORT,
@@ -15,6 +16,8 @@ import {
   ROUTE_LIBRARY,
   ROUTE_PLANNER,
   ROUTE_SETTINGS,
+  ROUTE_EDIT_TEMPLATE,
+  ROUTE_EXERCISE_HISTORY,
 } from './constants';
 
 import ImportView from './views/ImportView';
@@ -24,6 +27,8 @@ import HistoryView from './views/HistoryView';
 import LibraryView from './views/LibraryView';
 import WeekPlannerView from './views/WeekPlannerView';
 import SettingsView from './views/SettingsView';
+import TemplateEditorView from './views/TemplateEditorView';
+import ExerciseHistoryView from './views/ExerciseHistoryView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
 
@@ -31,9 +36,9 @@ import './styles/App.css';
 
 export default function App() {
   // Data hooks
-  const { workouts, saveWorkouts } = useWorkouts();
+  const { workouts, saveWorkouts, updateExerciseNotes } = useWorkouts();
   const { schedule, saveSchedule, getWorkoutForDate, setWorkoutDate } = useSchedule();
-  const { links, setLink, getLink } = useYouTubeLinks();
+  const { links, setLink, setManyLinks, getLink } = useYouTubeLinks();
   const { logs, saveLog, getLog, deleteLog, completedDates, allLogs } = useWorkoutLogs();
   const { session, createSession, updateSession, clearSession } = useActiveWorkout();
   const {
@@ -46,7 +51,7 @@ export default function App() {
     duplicateTemplate,
     createTemplateFromWorkout,
   } = useTemplates();
-  const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
+  const { syncStatus, lastSynced, pullSync, pushSync, clearServer } = useSync();
   const showToast = useToast();
 
   // Navigation state — after a sync-triggered reload, always land on Training
@@ -64,17 +69,28 @@ export default function App() {
 
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
 
   // On startup, pull from server and reload if new data arrived
   useEffect(() => {
-    pullSync().then(({ changed }) => {
+    const skipSync = sessionStorage.getItem('skipSync');
+    if (skipSync) {
+      sessionStorage.removeItem('skipSync');
+      return;
+    }
+    pullSync().then(async ({ ok, changed }) => {
       if (changed) {
+        await flushPendingPushes(); // don't lose in-flight writes
         sessionStorage.setItem('syncReload', '1');
         window.location.reload();
+      } else if (ok) {
+        retryFailedPushes(); // push any previously-failed keys
       }
     });
   }, []);
@@ -108,19 +124,27 @@ export default function App() {
   // When applying a template to the schedule, ensure the workout exists
   const handleSetWorkoutDate = (dateStr, workoutTitle) => {
     if (workoutTitle) {
-      // Check if workout exists, if not create from template
+      // Create workout from template if it doesn't exist yet
       if (!workouts[workoutTitle]) {
         const tpl = templateList.find((t) => t.name === workoutTitle);
         if (tpl) {
-          const updatedWorkouts = {
+          saveWorkouts({
             ...workouts,
-            [workoutTitle]: {
-              title: workoutTitle,
-              blocks: tpl.blocks,
-              notes: tpl.notes || '',
-            },
-          };
-          saveWorkouts(updatedWorkouts);
+            [workoutTitle]: { title: workoutTitle, blocks: tpl.blocks, notes: tpl.notes || '' },
+          });
+        }
+      }
+    } else {
+      // Clearing a date — remove orphaned workout if no other date still uses it
+      const evictedTitle = schedule[dateStr];
+      if (evictedTitle) {
+        const stillUsed = Object.entries(schedule).some(
+          ([d, t]) => d !== dateStr && t === evictedTitle
+        );
+        if (!stillUsed && workouts[evictedTitle]) {
+          const updated = { ...workouts };
+          delete updated[evictedTitle];
+          saveWorkouts(updated);
         }
       }
     }
@@ -138,21 +162,36 @@ export default function App() {
           onImport={(workoutMap, scheduleMap) => {
             saveWorkouts(workoutMap);
             saveSchedule(scheduleMap);
-            // Auto-create a template for each workout title
-            const templateMap = {};
-            Object.values(workoutMap).forEach((workout, i) => {
-              const id = `tpl_${Date.now()}_${i}`;
-              templateMap[id] = {
-                id,
-                name: workout.title,
-                createdDate: new Date().toISOString(),
-                blocks: workout.blocks,
-                notes: workout.notes || '',
-              };
+            // Auto-create a template for each workout title (skip duplicates by name)
+            const existingByName = {};
+            Object.entries(templates).forEach(([id, tpl]) => {
+              existingByName[tpl.name] = id;
             });
-            saveTemplates({ ...templates, ...templateMap });
+
+            const updatedTemplates = { ...templates };
+            Object.values(workoutMap).forEach((workout, i) => {
+              const existingId = existingByName[workout.title];
+              if (existingId) {
+                // Update existing template with fresh data
+                updatedTemplates[existingId] = {
+                  ...updatedTemplates[existingId],
+                  blocks: workout.blocks,
+                  notes: workout.notes || updatedTemplates[existingId].notes || '',
+                };
+              } else {
+                const id = `tpl_${Date.now()}_${i}`;
+                updatedTemplates[id] = {
+                  id,
+                  name: workout.title,
+                  createdDate: new Date().toISOString(),
+                  blocks: workout.blocks,
+                  notes: workout.notes || '',
+                };
+              }
+            });
+            saveTemplates(updatedTemplates);
             navigate(ROUTE_TRAINING);
-            const count = Object.keys(templateMap).length;
+            const count = Object.keys(workoutMap).length;
             showToast(`Imported ${count} workout${count !== 1 ? 's' : ''} as templates!`);
           }}
         />
@@ -171,11 +210,32 @@ export default function App() {
           setWorkoutDate={setWorkoutDate}
           getYouTubeLink={getLink}
           setYouTubeLink={setLink}
+          onUpdateExerciseNotes={(workoutTitle, exerciseTitle, notes) => {
+            updateExerciseNotes(workoutTitle, exerciseTitle, notes);
+            // Keep matching template in sync
+            const tpl = templateList.find((t) => t.name === workoutTitle);
+            if (tpl) {
+              const updatedBlocks = tpl.blocks.map((block) => ({
+                ...block,
+                exercises: block.exercises.map((ex) =>
+                  ex.title === exerciseTitle ? { ...ex, notes } : ex
+                ),
+              }));
+              saveTemplate(tpl.id, { ...tpl, blocks: updatedBlocks });
+            }
+          }}
           onStartWorkout={(logKey) => {
             createSession(logKey, new Date().toISOString());
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
           }}
           onSaveAsTemplate={(workout) => {
+            const exists = templateList.some(
+              (t) => t.name.toLowerCase() === workout.title.toLowerCase()
+            );
+            if (exists) {
+              showToast('A template with this name already exists', 'error');
+              return false;
+            }
             createTemplateFromWorkout(workout);
             showToast('Template saved!');
           }}
@@ -192,8 +252,6 @@ export default function App() {
           logs={logs}
           saveLog={saveLog}
           getYouTubeLink={getLink}
-          updateSession={updateSession}
-          clearSession={clearSession}
           onComplete={() => {
             clearSession();
             navigate(ROUTE_TRAINING);
@@ -223,6 +281,35 @@ export default function App() {
           workouts={workouts}
           youtubeLinks={links}
           setYouTubeLink={setLink}
+          setManyYouTubeLinks={setManyLinks}
+          onExerciseTap={(exerciseTitle) => navigate(ROUTE_EXERCISE_HISTORY, { exerciseTitle })}
+          onUpdateExerciseNotes={(exerciseTitle, notes) => {
+            // Update across all workouts that use this exercise
+            const updatedWorkouts = {};
+            Object.entries(workouts).forEach(([title, workout]) => {
+              const updatedBlocks = workout.blocks.map((block) => ({
+                ...block,
+                exercises: block.exercises.map((ex) =>
+                  ex.title === exerciseTitle ? { ...ex, notes } : ex
+                ),
+              }));
+              updatedWorkouts[title] = { ...workout, blocks: updatedBlocks };
+            });
+            saveWorkouts(updatedWorkouts);
+
+            // Update across all templates that use this exercise
+            const updatedTemplates = {};
+            Object.entries(templates).forEach(([id, tpl]) => {
+              const updatedBlocks = tpl.blocks.map((block) => ({
+                ...block,
+                exercises: block.exercises.map((ex) =>
+                  ex.title === exerciseTitle ? { ...ex, notes } : ex
+                ),
+              }));
+              updatedTemplates[id] = { ...tpl, blocks: updatedBlocks };
+            });
+            saveTemplates(updatedTemplates);
+          }}
         />
       );
       break;
@@ -232,9 +319,14 @@ export default function App() {
         <WeekPlannerView
           schedule={schedule}
           setWorkoutDate={handleSetWorkoutDate}
+          showToast={showToast}
           templateList={templateList}
           templates={templates}
           workouts={workouts}
+          onNavigateToDate={(dateStr) => {
+            setCurrentDate(dateStr);
+            navigate(ROUTE_TRAINING);
+          }}
         />
       );
       break;
@@ -249,8 +341,17 @@ export default function App() {
           deleteTemplate={deleteTemplate}
           renameTemplate={renameTemplate}
           duplicateTemplate={duplicateTemplate}
-          onClearAllData={() => {
-            localStorage.clear();
+          navigate={navigate}
+          onClearAllData={async (keys) => {
+            await flushPendingPushes(); // flush any in-flight writes before clearing
+            if (!keys) {
+              localStorage.clear();
+              await clearServer();
+            } else {
+              keys.forEach((k) => localStorage.removeItem(k));
+              await pushSync();
+            }
+            sessionStorage.setItem('skipSync', '1');
             window.location.reload();
           }}
           syncStatus={syncStatus}
@@ -260,17 +361,108 @@ export default function App() {
             if (ok) {
               showToast(changed ? 'Synced from server!' : 'Already up to date');
               if (changed) {
+                await flushPendingPushes();
                 sessionStorage.setItem('syncReload', '1');
                 window.location.reload();
               }
             } else {
-              showToast('Server unreachable');
+              showToast('Server unreachable', 'error');
             }
           }}
           onPushSync={async () => {
             const ok = await pushSync();
-            showToast(ok ? 'Pushed to server!' : 'Server unreachable');
+            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
           }}
+        />
+      );
+      break;
+
+    case ROUTE_EDIT_TEMPLATE: {
+      const tpl = templates[params.templateId];
+      // Build exercise names list from all workouts
+      const exerciseNameSet = new Set();
+      Object.values(workouts).forEach((w) =>
+        w.blocks.forEach((b) =>
+          b.exercises.forEach((ex) => exerciseNameSet.add(ex.title))
+        )
+      );
+      const exerciseNames = [...exerciseNameSet].sort((a, b) => a.localeCompare(b));
+
+      currentView = tpl ? (
+        <TemplateEditorView
+          template={tpl}
+          exerciseNames={exerciseNames}
+          onSave={(updated) => {
+            saveTemplate(updated.id, updated);
+            // Also update matching workout if it exists
+            if (workouts[tpl.name]) {
+              const updatedWorkouts = { ...workouts };
+              // If name changed, remove old key and add new
+              if (tpl.name !== updated.name) {
+                delete updatedWorkouts[tpl.name];
+              }
+              updatedWorkouts[updated.name] = {
+                title: updated.name,
+                blocks: updated.blocks,
+                notes: updated.notes || '',
+              };
+              saveWorkouts(updatedWorkouts);
+            }
+            navigate(ROUTE_SETTINGS);
+            showToast('Template saved!');
+          }}
+          onCancel={() => navigate(ROUTE_SETTINGS)}
+        />
+      ) : (
+        <SettingsView
+          onReimport={() => navigate(ROUTE_IMPORT)}
+          templateList={templateList}
+          deleteTemplate={deleteTemplate}
+          renameTemplate={renameTemplate}
+          duplicateTemplate={duplicateTemplate}
+          navigate={navigate}
+          onClearAllData={async (keys) => {
+            await flushPendingPushes(); // flush any in-flight writes before clearing
+            if (!keys) {
+              localStorage.clear();
+              await clearServer();
+            } else {
+              keys.forEach((k) => localStorage.removeItem(k));
+              await pushSync();
+            }
+            sessionStorage.setItem('skipSync', '1');
+            window.location.reload();
+          }}
+          syncStatus={syncStatus}
+          lastSynced={lastSynced}
+          onPullSync={async () => {
+            const { ok, changed } = await pullSync();
+            if (ok) {
+              showToast(changed ? 'Synced from server!' : 'Already up to date');
+              if (changed) {
+                await flushPendingPushes();
+                sessionStorage.setItem('syncReload', '1');
+                window.location.reload();
+              }
+            } else {
+              showToast('Server unreachable', 'error');
+            }
+          }}
+          onPushSync={async () => {
+            const ok = await pushSync();
+            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
+          }}
+        />
+      );
+      break;
+    }
+
+    case ROUTE_EXERCISE_HISTORY:
+      currentView = (
+        <ExerciseHistoryView
+          exerciseTitle={params.exerciseTitle}
+          allLogs={allLogs}
+          navigate={navigate}
         />
       );
       break;
@@ -283,7 +475,7 @@ export default function App() {
     <div className="app">
       {currentView}
 
-      {view !== ROUTE_ACTIVE_WORKOUT && (
+      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && (
         <NavBar
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}

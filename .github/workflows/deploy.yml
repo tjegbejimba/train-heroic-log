@@ -1,0 +1,40 @@
+name: Deploy to NAS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy to NAS
+        env:
+          SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          SSH_OPTS="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "mkdir -p /volume2/docker/trainlog/dist"
+          scp -O $SSH_OPTS docker-compose.yml nginx.conf tjegbejimba@100.104.13.117:/volume2/docker/trainlog/
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "rm -rf /volume2/docker/trainlog/dist/*"
+          tar -czf - -C dist . | ssh $SSH_OPTS tjegbejimba@100.104.13.117 "tar -xzf - -C /volume2/docker/trainlog/dist/"
+          ssh $SSH_OPTS tjegbejimba@100.104.13.117 "cd /volume2/docker/trainlog && sudo /usr/local/bin/docker compose up -d --build --force-recreate"

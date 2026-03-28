@@ -29,6 +29,7 @@
   /* Shadows */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.45);
 
   /* Transitions */
   --transition: 150ms ease-in-out;
@@ -132,6 +133,10 @@ button {
   color: white;
 }
 
+.btn-primary:hover {
+  background-color: #6690ff;
+}
+
 .btn-primary:active {
   opacity: 0.8;
 }
@@ -142,13 +147,21 @@ button {
   border: 1px solid var(--color-border);
 }
 
-.btn-secondary:active {
+.btn-secondary:hover {
   background-color: var(--color-border);
+}
+
+.btn-secondary:active {
+  background-color: #3c3c3e;
 }
 
 .btn-danger {
   background-color: var(--color-accent-red);
   color: white;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.15);
 }
 
 .btn-danger:active {
@@ -188,6 +201,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(75, 123, 255, 0.15);
 }
 
 textarea {
@@ -210,6 +224,7 @@ input[type='checkbox'] {
   border-radius: 12px;
   padding: var(--space-lg);
   margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-card);
 }
 
 .card-divider {
@@ -442,5 +457,21 @@ input[type='checkbox'] {
 @media (max-width: 768px) {
   .view {
     padding-bottom: 70px;
+  }
+
+  /* Ensure all buttons meet the 44px minimum tap target */
+  .btn {
+    min-height: 44px;
+  }
+
+  /* Prevent iOS Safari from zooming on input focus (font-size < 16px triggers zoom) */
+  input[type='text'],
+  input[type='number'],
+  input[type='email'],
+  input[type='url'],
+  input[type='file'],
+  textarea,
+  select {
+    font-size: 16px;
   }
 }

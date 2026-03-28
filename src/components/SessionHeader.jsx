@@ -5,6 +5,7 @@ export default function SessionHeader({
   workoutTitle,
   startedAt,
   onCancel,
+  onTimerOpen,
 }) {
   const [elapsed, setElapsed] = useState('00:00');
 
@@ -46,7 +47,9 @@ export default function SessionHeader({
       </div>
 
       <div className="session-header__right">
-        {/* Placeholder for future features like rest timer, etc */}
+        <button className="btn btn-secondary" onClick={onTimerOpen}>
+          <Timer size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Timer
+        </button>
       </div>
     </div>
   );

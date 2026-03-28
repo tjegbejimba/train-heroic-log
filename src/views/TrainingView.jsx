@@ -15,6 +15,7 @@ export default function TrainingView({
   getWorkoutForDate,
   getYouTubeLink,
   setYouTubeLink,
+  onUpdateExerciseNotes,
   onStartWorkout,
   onSaveAsTemplate,
   navigate,
@@ -72,32 +73,48 @@ export default function TrainingView({
             />
 
             <div className="training-view__exercises">
-              {workout.blocks.map((block, blockIdx) => (
-                <div key={blockIdx}>
-                  {block.exercises.length > 0 && (
-                    <BlockSection block={block} />
-                  )}
-                  {block.exercises.map((exercise, exIdx) => (
-                    <ExerciseRow
-                      key={exIdx}
-                      blockLetter={String.fromCharCode(65 + exIdx)} // A, B, C...
-                      exercise={exercise}
-                      youtubeLink={getYouTubeLink(exercise.title)}
-                      onYoutubeLinkChange={(url) =>
-                        setYouTubeLink(exercise.title, url)
-                      }
-                      isExpanded={expandedExercise === `${blockIdx}-${exIdx}`}
-                      onToggleExpand={() =>
-                        setExpandedExercise(
-                          expandedExercise === `${blockIdx}-${exIdx}`
-                            ? null
-                            : `${blockIdx}-${exIdx}`
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              ))}
+              {(() => {
+                let globalIdx = 0;
+                return workout.blocks.map((block, blockIdx) => {
+                  const isSuperset = block.exercises.length > 1;
+                  const exercises = block.exercises.map((exercise, exIdx) => {
+                    const letter = String.fromCharCode(65 + globalIdx);
+                    globalIdx++;
+                    return (
+                      <ExerciseRow
+                        key={exIdx}
+                        blockLetter={letter}
+                        exercise={exercise}
+                        youtubeLink={getYouTubeLink(exercise.title)}
+                        onYoutubeLinkChange={(url) =>
+                          setYouTubeLink(exercise.title, url)
+                        }
+                        onExerciseNotesChange={(notes) =>
+                          onUpdateExerciseNotes(workoutTitle, exercise.title, notes)
+                        }
+                        isExpanded={expandedExercise === `${blockIdx}-${exIdx}`}
+                        onToggleExpand={() =>
+                          setExpandedExercise(
+                            expandedExercise === `${blockIdx}-${exIdx}`
+                              ? null
+                              : `${blockIdx}-${exIdx}`
+                          )
+                        }
+                      />
+                    );
+                  });
+
+                  if (isSuperset) {
+                    return (
+                      <div key={blockIdx} className="superset-group">
+                        <div className="superset-group__label">Superset</div>
+                        <div className="superset-group__exercises">{exercises}</div>
+                      </div>
+                    );
+                  }
+                  return <div key={blockIdx}>{exercises}</div>;
+                });
+              })()}
             </div>
           </>
         ) : (

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Video, CheckCircle } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
-import BlockSection from '../components/BlockSection';
 import Modal from '../components/Modal';
+import RestTimer from '../components/RestTimer';
+import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 
 export default function ActiveWorkoutView({
@@ -12,8 +13,6 @@ export default function ActiveWorkoutView({
   logs,
   saveLog,
   getYouTubeLink,
-  updateSession,
-  clearSession,
   onComplete,
   onCancel,
 }) {
@@ -38,6 +37,9 @@ export default function ActiveWorkoutView({
   });
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [restTimerActive, setRestTimerActive] = useState(false);
+  const { settings } = useSettings();
 
   // Initialize exercise logs
   useEffect(() => {
@@ -64,6 +66,8 @@ export default function ActiveWorkoutView({
 
   // Save log on every change (crash recovery)
   const updateExerciseSet = (exerciseTitle, setIndex, newSetData) => {
+    const wasCompleted = currentLog.exercises[exerciseTitle]?.[setIndex]?.completed;
+
     const updated = {
       ...currentLog,
       exercises: {
@@ -77,7 +81,11 @@ export default function ActiveWorkoutView({
     };
     setCurrentLog(updated);
     saveLog(logKey, updated);
-    updateSession({ logKey }); // Update active session timestamp
+
+    // Auto-start rest timer when a set transitions to completed
+    if (!wasCompleted && newSetData.completed) {
+      setRestTimerActive(true);
+    }
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
@@ -104,13 +112,11 @@ export default function ActiveWorkoutView({
       completedAt: new Date().toISOString(),
     };
     saveLog(logKey, completed);
-    clearSession();
     onComplete();
   };
 
   const handleCancelWorkout = () => {
     setShowCancelModal(false);
-    clearSession();
     onCancel();
   };
 
@@ -129,6 +135,7 @@ export default function ActiveWorkoutView({
   const completedSets = allSets.filter((s) => s.completed).length;
   const totalSets = allSets.length;
   const allDone = totalSets > 0 && completedSets === totalSets;
+  const progressPct = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
     <div className="view active-workout-view">
@@ -136,15 +143,16 @@ export default function ActiveWorkoutView({
         workoutTitle={workoutTitle}
         startedAt={currentLog.startedAt}
         onCancel={() => setShowCancelModal(true)}
+        onTimerOpen={() => setRestTimerActive(true)}
       />
 
-      <div className="active-workout-view__content">
+      <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
         {/* Progress bar */}
         <div className="active-workout-view__progress">
           <div className="progress-bar">
             <div
               className="progress-bar__fill"
-              style={{ width: `${(completedSets / totalSets) * 100}%` }}
+              style={{ width: `${progressPct}%` }}
             />
           </div>
           <p className="progress-text">
@@ -153,50 +161,91 @@ export default function ActiveWorkoutView({
         </div>
 
         {/* Exercises */}
-        {workout.blocks.map((block, blockIdx) => (
-          <div key={blockIdx}>
-            {block.exercises.length > 0 && <BlockSection block={block} />}
-
-            {block.exercises.map((exercise, exIdx) => {
+        {(() => {
+          let globalIdx = 0;
+          return workout.blocks.map((block, blockIdx) => {
+            const isSuperset = block.exercises.length > 1;
+            const exerciseCards = block.exercises.map((exercise, exIdx) => {
               const exerciseLogs = currentLog.exercises[exercise.title] || [];
+              const letter = String.fromCharCode(65 + globalIdx);
+              globalIdx++;
 
               return (
                 <div key={exIdx} className="active-workout-view__exercise">
                   <div className="active-workout-view__exercise-header">
                     <h3 className="active-workout-view__exercise-title">
-                      {String.fromCharCode(65 + exIdx)}. {exercise.title}
+                      {letter}. {exercise.title}
                     </h3>
-                    {exercise.notes && (
-                      <p className="text-secondary text-sm">{exercise.notes}</p>
+                    {exercise.workoutNotes && (
+                      <p className="active-workout-view__workout-notes">{exercise.workoutNotes}</p>
                     )}
                   </div>
 
                   <div className="active-workout-view__sets">
-                    {exercise.sets.map((set, setIdx) => (
-                      <LogSetRow
-                        key={setIdx}
-                        setIndex={setIdx}
-                        set={set}
-                        loggedSet={exerciseLogs[setIdx]}
-                        onUpdate={(newSetData) =>
-                          updateExerciseSet(exercise.title, setIdx, newSetData)
-                        }
-                      />
-                    ))}
+                    {exercise.sets.map((set, setIdx) => {
+                      const firstIncomplete = exerciseLogs.findIndex((s) => !s?.completed);
+                      return (
+                        <LogSetRow
+                          key={setIdx}
+                          setIndex={setIdx}
+                          set={set}
+                          loggedSet={exerciseLogs[setIdx]}
+                          isNext={setIdx === firstIncomplete}
+                          onUpdate={(newSetData) =>
+                            updateExerciseSet(exercise.title, setIdx, newSetData)
+                          }
+                        />
+                      );
+                    })}
                   </div>
 
-                  {/* Exercise notes */}
+                  {/* Form notes + video */}
+                  {(exercise.notes || getYouTubeLink(exercise.title)) && (
+                    <details className="active-workout-view__video-details">
+                      <summary className="active-workout-view__video-summary">
+                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                        {exercise.notes && getYouTubeLink(exercise.title)
+                          ? 'Form Notes & Video'
+                          : exercise.notes
+                          ? 'Form Notes'
+                          : 'View Form Video'}
+                      </summary>
+                      {exercise.notes && (
+                        <p className="active-workout-view__form-notes">{exercise.notes}</p>
+                      )}
+                      {getYouTubeLink(exercise.title) && (
+                        <div className="active-workout-view__video-embed">
+                          <iframe
+                            width="100%"
+                            height="220"
+                            src={`https://www.youtube.com/embed/${extractVideoId(
+                              getYouTubeLink(exercise.title)
+                            )}`}
+                            title={exercise.title}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                    </details>
+                  )}
+
+                  {/* Personal session notes */}
                   <div className="active-workout-view__notes">
                     <input
                       type="text"
                       className="input active-workout-view__notes-input"
-                      placeholder="Notes (e.g. felt weak, RPE 8, elbow pain)"
+                      placeholder="Your notes (e.g. felt weak, RPE 8, elbow pain)"
                       value={(currentLog.exerciseNotes || {})[exercise.title] || ''}
                       onChange={(e) =>
                         updateExerciseNote(exercise.title, e.target.value)
                       }
                     />
                   </div>
+                </div>
+              );
+            });
 
                   {/* YouTube link */}
                   {getYouTubeLink(exercise.title) && (
@@ -220,11 +269,17 @@ export default function ActiveWorkoutView({
                       </div>
                     </details>
                   )}
+            if (isSuperset) {
+              return (
+                <div key={blockIdx} className="superset-group">
+                  <div className="superset-group__label">Superset</div>
+                  <div className="superset-group__exercises">{exerciseCards}</div>
                 </div>
               );
-            })}
-          </div>
-        ))}
+            }
+            return <div key={blockIdx}>{exerciseCards}</div>;
+          });
+        })()}
 
         {/* Overall workout note */}
         <div className="active-workout-view__workout-note">
@@ -239,18 +294,27 @@ export default function ActiveWorkoutView({
         </div>
       </div>
 
-      {/* Complete button */}
-      {allDone && (
-        <div className="active-workout-view__footer">
-          <button
-            className="btn btn-primary btn--large w-full"
-            onClick={handleCompleteWorkout}
-          >
-            <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Complete Workout
-          </button>
-        </div>
+      {/* Rest timer */}
+      {restTimerActive && (
+        <RestTimer
+          initialSeconds={settings.restDuration}
+          onDone={() => setRestTimerActive(false)}
+          onSkip={() => setRestTimerActive(false)}
+        />
       )}
+
+      {/* Complete button */}
+      <div className="active-workout-view__footer">
+        <button
+          className="btn btn-primary btn--large w-full"
+          onClick={allDone ? handleCompleteWorkout : () => setShowCompleteModal(true)}
+        >
+          <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+          {allDone
+            ? 'Complete Workout'
+            : `Complete Workout (${completedSets}/${totalSets})`}
+        </button>
+      </div>
 
       {/* Cancel modal */}
       {showCancelModal && (
@@ -260,6 +324,18 @@ export default function ActiveWorkoutView({
           onConfirm={handleCancelWorkout}
           onCancel={() => setShowCancelModal(false)}
           confirmText="Cancel Workout"
+          cancelText="Keep Going"
+        />
+      )}
+
+      {/* Incomplete sets confirmation */}
+      {showCompleteModal && (
+        <Modal
+          title="Finish Early?"
+          message={`${totalSets - completedSets} set${totalSets - completedSets !== 1 ? 's' : ''} not yet completed. Mark workout as finished anyway?`}
+          onConfirm={() => { setShowCompleteModal(false); handleCompleteWorkout(); }}
+          onCancel={() => setShowCompleteModal(false)}
+          confirmText="Finish Anyway"
           cancelText="Keep Going"
         />
       )}

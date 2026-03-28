@@ -23,7 +23,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
 
     chronological.forEach((log) => {
       Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
-        sets.forEach((set) => {
+        sets.forEach((set, setIdx) => {
           if (!set.completed || !set.actualWeight || set.actualWeight === '') return;
           const w = parseFloat(set.actualWeight);
           if (isNaN(w) || w <= 0) return;
@@ -34,6 +34,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
               reps: set.actualReps,
               logKey: log.key,
               date: log.date,
+              setIdx,
             };
           }
         });
@@ -83,13 +84,14 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
     return `${Math.round(vol)} lbs`;
   };
 
-  const isSetPR = (exName, set, logKey) => {
+  const isSetPR = (exName, set, logKey, setIdx) => {
     if (!set.completed || !set.actualWeight) return false;
     const pr = prMap[exName];
     return (
       pr &&
       pr.logKey === logKey &&
-      parseFloat(set.actualWeight) === pr.weight
+      parseFloat(set.actualWeight) === pr.weight &&
+      setIdx === pr.setIdx
     );
   };
 
@@ -206,7 +208,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                             <span></span>
                           </div>
                           {sets.map((set, idx) => {
-                            const isPR = isSetPR(exName, set, log.key);
+                            const isPR = isSetPR(exName, set, log.key, idx);
                             return (
                               <div
                                 key={idx}
