@@ -246,7 +246,6 @@ export default function ActiveWorkoutView({
                 </div>
               );
             });
-
             if (isSuperset) {
               return (
                 <div key={blockIdx} className="superset-group">
