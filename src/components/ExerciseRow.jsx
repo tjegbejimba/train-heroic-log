@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import YouTubeLinkInput from './YouTubeLinkInput';
 import { formatSet, groupSets } from '../csv/exerciseData';
+import { extractVideoId } from '../utils/youtube';
 
 export default function ExerciseRow({
   blockLetter,
@@ -110,15 +111,3 @@ export default function ExerciseRow({
   );
 }
 
-function extractVideoId(url) {
-  const patterns = [
-    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
-    /youtu\.be\/([a-zA-Z0-9_-]+)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return '';
-}

@@ -7,6 +7,7 @@ import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
 import { flushPendingPushes, retryFailedPushes } from './storage/sync';
+import { removeLS, clearLS } from './storage/index';
 import { useToast } from './components/Toast';
 import {
   ROUTE_IMPORT,
@@ -18,6 +19,7 @@ import {
   ROUTE_SETTINGS,
   ROUTE_EDIT_TEMPLATE,
   ROUTE_EXERCISE_HISTORY,
+  parseLogKey,
 } from './constants';
 
 import ImportView from './views/ImportView';
@@ -98,7 +100,13 @@ export default function App() {
   // Check for crash recovery on mount
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
-      setShowResumeModal(true);
+      const { workoutTitle } = parseLogKey(session.logKey);
+      if (workouts[workoutTitle]) {
+        setShowResumeModal(true);
+      } else {
+        // Workout was deleted — discard the orphaned active session
+        clearSession();
+      }
     }
   }, []);
 
@@ -149,6 +157,45 @@ export default function App() {
       }
     }
     setWorkoutDate(dateStr, workoutTitle);
+  };
+
+  // Wrapped rename handler that also updates schedule and workouts (Bug 2 + Bug 4)
+  const handleRenameTemplate = (id, newName) => {
+    const tpl = templates[id];
+    if (!tpl) return;
+    const oldName = tpl.name;
+    // Bug 4: Check for duplicate name (allow if same template)
+    if (oldName !== newName) {
+      const nameCollision = templateList.find(
+        (t) => t.id !== id && t.name.toLowerCase() === newName.toLowerCase()
+      );
+      if (nameCollision) {
+        showToast('A template with this name already exists', 'error');
+        return;
+      }
+    }
+    renameTemplate(id, newName);
+    // Update schedule entries pointing to old name
+    if (oldName !== newName) {
+      const updatedSchedule = { ...schedule };
+      let scheduleChanged = false;
+      Object.entries(updatedSchedule).forEach(([date, title]) => {
+        if (title === oldName) {
+          updatedSchedule[date] = newName;
+          scheduleChanged = true;
+        }
+      });
+      if (scheduleChanged) {
+        saveSchedule(updatedSchedule);
+      }
+      // Update workouts map if the old name exists
+      if (workouts[oldName]) {
+        const updatedWorkouts = { ...workouts };
+        delete updatedWorkouts[oldName];
+        updatedWorkouts[newName] = { ...workouts[oldName], title: newName };
+        saveWorkouts(updatedWorkouts);
+      }
+    }
   };
 
   // Render current view
@@ -339,17 +386,16 @@ export default function App() {
           }}
           templateList={templateList}
           deleteTemplate={deleteTemplate}
-          renameTemplate={renameTemplate}
+          renameTemplate={handleRenameTemplate}
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
-              localStorage.clear();
+              clearLS();
               await clearServer();
             } else {
-              keys.forEach((k) => localStorage.removeItem(k));
-              await pushSync();
+              keys.forEach((k) => removeLS(k));
             }
             sessionStorage.setItem('skipSync', '1');
             window.location.reload();
@@ -393,6 +439,17 @@ export default function App() {
           template={tpl}
           exerciseNames={exerciseNames}
           onSave={(updated) => {
+            // Bug 4: Check for duplicate template names (allow if same template)
+            if (tpl.name !== updated.name) {
+              const nameCollision = templateList.find(
+                (t) => t.id !== updated.id && t.name.toLowerCase() === updated.name.toLowerCase()
+              );
+              if (nameCollision) {
+                showToast('A template with this name already exists', 'error');
+                return;
+              }
+            }
+
             saveTemplate(updated.id, updated);
             // Also update matching workout if it exists
             if (workouts[tpl.name]) {
@@ -408,6 +465,20 @@ export default function App() {
               };
               saveWorkouts(updatedWorkouts);
             }
+            // Bug 2: If renamed, update schedule entries pointing to old name
+            if (tpl.name !== updated.name) {
+              const updatedSchedule = { ...schedule };
+              let scheduleChanged = false;
+              Object.entries(updatedSchedule).forEach(([date, title]) => {
+                if (title === tpl.name) {
+                  updatedSchedule[date] = updated.name;
+                  scheduleChanged = true;
+                }
+              });
+              if (scheduleChanged) {
+                saveSchedule(updatedSchedule);
+              }
+            }
             navigate(ROUTE_SETTINGS);
             showToast('Template saved!');
           }}
@@ -418,17 +489,16 @@ export default function App() {
           onReimport={() => navigate(ROUTE_IMPORT)}
           templateList={templateList}
           deleteTemplate={deleteTemplate}
-          renameTemplate={renameTemplate}
+          renameTemplate={handleRenameTemplate}
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
-              localStorage.clear();
+              clearLS();
               await clearServer();
             } else {
-              keys.forEach((k) => localStorage.removeItem(k));
-              await pushSync();
+              keys.forEach((k) => removeLS(k));
             }
             sessionStorage.setItem('skipSync', '1');
             window.location.reload();

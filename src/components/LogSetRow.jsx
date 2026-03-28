@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { formatSet } from '../csv/exerciseData';
 
@@ -27,6 +27,32 @@ export default function LogSetRow({
     actualWeight: loggedSet?.actualWeight ?? '',
     completed: loggedSet?.completed ?? false,
   });
+
+  // Sync local state from prop when loggedSet changes externally
+  // (e.g. undo: completed goes from true to false, or crash recovery)
+  useEffect(() => {
+    const propReps = loggedSet?.actualReps ?? '';
+    const propWeight = loggedSet?.actualWeight ?? '';
+    const propCompleted = loggedSet?.completed ?? false;
+
+    // Sync on undo (completed transitions from true to false)
+    const wasCompleted = latestRef.current.completed;
+    const isUndo = wasCompleted && !propCompleted;
+
+    // Sync when both local values are still empty (initial load / crash recovery)
+    const localEmpty = localReps === '' && localWeight === '';
+
+    if (isUndo || localEmpty) {
+      setLocalReps(propReps === 0 ? '0' : (propReps || ''));
+      setLocalWeight(propWeight === 0 ? '0' : (propWeight || ''));
+      setIsCompleted(propCompleted);
+      latestRef.current = {
+        actualReps: propReps,
+        actualWeight: propWeight,
+        completed: propCompleted,
+      };
+    }
+  }, [loggedSet?.actualReps, loggedSet?.actualWeight, loggedSet?.completed]);
 
   const isBodyweight = set.unit === 'bw' || set.unit === 'reps';
   const weightLabel = UNIT_LABELS[set.unit] || 'Weight';

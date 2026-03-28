@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Youtube, CheckCircle, ChevronDown, Pencil } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
@@ -6,6 +6,7 @@ import Modal from '../components/Modal';
 import RestTimer from '../components/RestTimer';
 import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
+import { extractVideoId } from '../utils/youtube';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -42,6 +43,7 @@ export default function ActiveWorkoutView({
   const [expandedNotes, setExpandedNotes] = useState({});
   const [editingNote, setEditingNote] = useState(null);
   const { settings } = useSettings();
+  const workoutNoteTimerRef = useRef(null);
 
   // Initialize exercise logs
   useEffect(() => {
@@ -54,6 +56,7 @@ export default function ActiveWorkoutView({
           setIndex: setIdx,
           targetReps: exercise.sets[setIdx].reps,
           targetWeight: exercise.sets[setIdx].weight,
+          unit: exercise.sets[setIdx].unit || exercise.unit || 'lb',
           actualReps: '',
           actualWeight: '',
           completed: false,
@@ -102,11 +105,18 @@ export default function ActiveWorkoutView({
     saveLog(logKey, updated);
   };
 
-  const updateWorkoutNote = (note) => {
-    const updated = { ...currentLog, workoutNote: note };
-    setCurrentLog(updated);
-    saveLog(logKey, updated);
-  };
+  const updateWorkoutNote = useCallback((note) => {
+    setCurrentLog((prev) => {
+      const updated = { ...prev, workoutNote: note };
+      if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current);
+      workoutNoteTimerRef.current = setTimeout(() => saveLog(logKey, updated), 500);
+      return updated;
+    });
+  }, [logKey, saveLog]);
+
+  useEffect(() => {
+    return () => { if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current); };
+  }, []);
 
   const handleCompleteWorkout = () => {
     const completed = {
@@ -290,7 +300,14 @@ export default function ActiveWorkoutView({
                         placeholder="Note (e.g. felt weak, RPE 8, elbow pain)"
                         value={sessionNote}
                         onChange={(e) => updateExerciseNote(exercise.title, e.target.value)}
-                        onBlur={() => setEditingNote(null)}
+                        onBlur={(e) => {
+                          const noteContainer = e.currentTarget.closest('.aw-exercise-note');
+                          setTimeout(() => {
+                            // If focus moved to another element inside the same note area, don't dismiss
+                            if (noteContainer && noteContainer.contains(document.activeElement)) return;
+                            setEditingNote(null);
+                          }, 150);
+                        }}
                         autoFocus
                       />
                     ) : (
@@ -382,15 +399,3 @@ export default function ActiveWorkoutView({
   );
 }
 
-function extractVideoId(url) {
-  const patterns = [
-    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
-    /youtu\.be\/([a-zA-Z0-9_-]+)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return '';
-}

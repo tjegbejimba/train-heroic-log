@@ -14,9 +14,8 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
 
   // Build PR map: for each exercise, track best weight per rep count
   const prMap = useMemo(() => {
-    // { exerciseName: { "reps:weight" => { logKey, date } } }
-    // Track the best weight for each exercise (highest weight with at least 1 completed set)
-    const bests = {}; // exerciseName -> { weight, reps, logKey, date }
+    // bests[exName][repCount] = { weight, logKey, date, setIdx }
+    const bests = {};
 
     // Process logs in chronological order (oldest first)
     const chronological = [...completedLogs].reverse();
@@ -26,12 +25,14 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
         sets.forEach((set, setIdx) => {
           if (!set.completed || !set.actualWeight || set.actualWeight === '') return;
           const w = parseFloat(set.actualWeight);
-          if (isNaN(w) || w <= 0) return;
+          const reps = parseInt(set.actualReps, 10);
+          if (isNaN(w) || w <= 0 || isNaN(reps) || reps <= 0) return;
 
-          if (!bests[exName] || w > bests[exName].weight) {
-            bests[exName] = {
+          if (!bests[exName]) bests[exName] = {};
+          const prev = bests[exName][reps];
+          if (!prev || w > prev.weight) {
+            bests[exName][reps] = {
               weight: w,
-              reps: set.actualReps,
               logKey: log.key,
               date: log.date,
               setIdx,
@@ -62,37 +63,74 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
+  // Helper: look up the unit for an exercise from the workout definition or the logged set
+  const getExerciseUnit = (exName, sets) => {
+    // New logs store unit on each set
+    if (sets[0]?.unit) return sets[0].unit;
+    // Fall back to workout definition
+    if (workouts) {
+      for (const w of Object.values(workouts)) {
+        for (const block of w.blocks || []) {
+          for (const ex of block.exercises || []) {
+            if (ex.title === exName && ex.sets?.[0]?.unit) {
+              return ex.sets[0].unit;
+            }
+          }
+        }
+      }
+    }
+    return 'lb';
+  };
+
+  // Units where volume (reps x weight) is meaningful
+  const VOLUME_UNITS = new Set(['lb', 'kg']);
+
   const calcVolume = (exercises) => {
-    let total = 0;
-    Object.values(exercises || {}).forEach((sets) => {
+    const totals = {}; // unit -> total
+    Object.entries(exercises || {}).forEach(([exName, sets]) => {
+      const unit = getExerciseUnit(exName, sets);
+      if (!VOLUME_UNITS.has(unit)) return;
       sets.forEach((set) => {
         if (set.completed && set.actualReps && set.actualWeight) {
           const reps = parseFloat(set.actualReps);
           const weight = parseFloat(set.actualWeight);
           if (!isNaN(reps) && !isNaN(weight)) {
-            total += reps * weight;
+            totals[unit] = (totals[unit] || 0) + reps * weight;
           }
         }
       });
     });
-    return total;
+    return totals;
   };
 
-  const formatVolume = (vol) => {
-    if (vol === 0) return null;
-    if (vol >= 1000) return `${(vol / 1000).toFixed(1)}k lbs`;
-    return `${Math.round(vol)} lbs`;
+  const formatVolume = (totals) => {
+    const parts = Object.entries(totals)
+      .filter(([, vol]) => vol > 0)
+      .map(([unit, vol]) => {
+        const label = unit;
+        if (vol >= 1000) return `${(vol / 1000).toFixed(1)}k ${label}`;
+        return `${Math.round(vol)} ${label}`;
+      });
+    if (parts.length === 0) return null;
+    return parts.join(' \u00b7 ');
   };
 
-  const isSetPR = (exName, set, logKey, setIdx) => {
-    if (!set.completed || !set.actualWeight) return false;
-    const pr = prMap[exName];
-    return (
+  const getSetPR = (exName, set, logKey, setIdx) => {
+    if (!set.completed || !set.actualWeight) return null;
+    const reps = parseInt(set.actualReps, 10);
+    if (isNaN(reps) || reps <= 0) return null;
+    const exPRs = prMap[exName];
+    if (!exPRs) return null;
+    const pr = exPRs[reps];
+    if (
       pr &&
       pr.logKey === logKey &&
       parseFloat(set.actualWeight) === pr.weight &&
       setIdx === pr.setIdx
-    );
+    ) {
+      return reps;
+    }
+    return null;
   };
 
   const handleDelete = () => {
@@ -208,7 +246,8 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                             <span></span>
                           </div>
                           {sets.map((set, idx) => {
-                            const isPR = isSetPR(exName, set, log.key, idx);
+                            const prReps = getSetPR(exName, set, log.key, idx);
+                            const isPR = prReps !== null;
                             return (
                               <div
                                 key={idx}
@@ -233,7 +272,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                                     : '--'}
                                   {isPR && (
                                     <span className="history-card__pr-badge">
-                                      PR
+                                      PR @ {prReps} rep{prReps !== 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </span>

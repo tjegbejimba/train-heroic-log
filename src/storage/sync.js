@@ -14,7 +14,21 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
-let failedKeys = new Set(); // keys that failed to push (for retry)
+
+// Restore failed keys from sessionStorage so they survive page reloads
+let failedKeys = new Set();
+try {
+  const stored = sessionStorage.getItem('sync_failed_keys');
+  if (stored) {
+    JSON.parse(stored).forEach((k) => failedKeys.add(k));
+  }
+} catch { /* ignore parse errors */ }
+
+function persistFailedKeys() {
+  try {
+    sessionStorage.setItem('sync_failed_keys', JSON.stringify([...failedKeys]));
+  } catch { /* sessionStorage may be unavailable */ }
+}
 
 /**
  * Check if the server is reachable
@@ -124,13 +138,16 @@ export function pushToServer(key, data) {
       });
       if (res.ok) {
         failedKeys.delete(key);
+        persistFailedKeys();
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       } else {
         failedKeys.add(key);
+        persistFailedKeys();
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
       }
     } catch {
       failedKeys.add(key);
+      persistFailedKeys();
       console.warn(`Sync push failed for ${key}`);
       window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
     }
@@ -161,12 +178,15 @@ export async function flushPendingPushes() {
       });
       if (res.ok) {
         failedKeys.delete(key);
+        persistFailedKeys();
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       } else {
         failedKeys.add(key);
+        persistFailedKeys();
       }
     } catch {
       failedKeys.add(key);
+      persistFailedKeys();
     }
   }));
 }
@@ -190,6 +210,7 @@ export async function retryFailedPushes() {
       const data = readLS(key, null);
       if (data === null) {
         failedKeys.delete(key);
+        persistFailedKeys();
         return;
       }
       const res = await fetch(`${API_BASE}/data/${key}`, {
@@ -200,6 +221,7 @@ export async function retryFailedPushes() {
       });
       if (res.ok) {
         failedKeys.delete(key);
+        persistFailedKeys();
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       }
     } catch {

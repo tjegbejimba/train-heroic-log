@@ -455,10 +455,10 @@ function cloneBlock(block) {
     ...block,
     exercises: block.exercises.map((ex) => ({
       ...ex,
-      repsLabel: ex.repsLabel || 'Reps',
+      repsUnit: ex.repsUnit || ex.repsLabel || 'reps',
       showValue: ex.showValue !== false,
       unit: ex.unit || ex.sets[0]?.unit || 'lb',
-      sets: ex.sets.map((s) => ({ ...s })),
+      sets: ex.sets.map((s) => ({ ...s, repsUnit: s.repsUnit || s.repsLabel || 'reps' })),
     })),
   };
 }
