@@ -1,14 +1,14 @@
 import { useState, useMemo, useRef } from 'react';
 import { ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 
-const UNIT_OPTIONS = ['lb', 'kg', 'bw', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
+const UNIT_OPTIONS = ['lb', 'kg', 'bw', 'reps', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
 
-function makeEmptySet(unit = 'lb') {
-  return { reps: null, weight: null, unit, rawReps: '', rawWeight: '' };
+function makeEmptySet(unit = 'lb', repsUnit = 'reps') {
+  return { reps: null, weight: null, unit, repsUnit, rawReps: '', rawWeight: '' };
 }
 
 function makeEmptyExercise() {
-  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsLabel: 'Reps', showValue: true, unit: 'lb' };
+  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsUnit: 'reps', showValue: true, unit: 'lb' };
 }
 
 function makeEmptyBlock() {
@@ -140,13 +140,13 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     setBlocks(next);
   }
 
-  function toggleRepsLabel(bIdx, eIdx) {
+  function updateRepsUnit(bIdx, eIdx, repsUnit) {
     const next = [...blocks];
     next[bIdx] = {
       ...next[bIdx],
       exercises: next[bIdx].exercises.map((ex, i) => {
         if (i !== eIdx) return ex;
-        return { ...ex, repsLabel: ex.repsLabel === 'Time' ? 'Reps' : 'Time' };
+        return { ...ex, repsUnit, sets: ex.sets.map((s) => ({ ...s, repsUnit })) };
       }),
     };
     setBlocks(next);
@@ -350,13 +350,15 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                 <div className={`tpl-editor__sets${ex.showValue === false ? ' tpl-editor__sets--no-value' : ''}`}>
                   <div className="tpl-editor__sets-header">
                     <span className="text-secondary text-sm">Set</span>
-                    <button
-                      className="tpl-editor__reps-toggle"
-                      onClick={() => toggleRepsLabel(bIdx, eIdx)}
-                      title="Toggle Reps / Time"
+                    <select
+                      className="input tpl-editor__set-unit"
+                      value={ex.repsUnit || 'reps'}
+                      onChange={(e) => updateRepsUnit(bIdx, eIdx, e.target.value)}
                     >
-                      {ex.repsLabel || 'Reps'} ▾
-                    </button>
+                      {UNIT_OPTIONS.map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
                     <div className="tpl-editor__value-header">
                       {ex.showValue !== false ? (
                         <>

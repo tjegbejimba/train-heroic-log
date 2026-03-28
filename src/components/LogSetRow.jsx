@@ -27,8 +27,9 @@ export default function LogSetRow({
     completed: loggedSet?.completed ?? false,
   });
 
-  const isBodyweight = set.unit === 'bw';
+  const isBodyweight = set.unit === 'bw' || set.unit === 'reps';
   const weightLabel = UNIT_LABELS[set.unit] || 'Weight';
+  const repsLabel = set.repsUnit && set.repsUnit !== 'reps' ? (UNIT_LABELS[set.repsUnit] || set.repsUnit) : 'Reps';
 
   const handleRepsChange = (value) => {
     const numVal = value === '' ? '' : parseInt(value, 10);
@@ -82,7 +83,7 @@ export default function LogSetRow({
 
       <div className="log-set-row__inputs">
         <div className="log-set-row__input-group">
-          <label className="log-set-row__input-label">Reps</label>
+          <label className="log-set-row__input-label">{repsLabel}</label>
           <input
             type="number"
             inputMode="numeric"
