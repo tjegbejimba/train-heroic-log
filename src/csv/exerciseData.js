@@ -177,7 +177,7 @@ function parseTime(str) {
 
 const UNIT_LABELS = {
   lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm', bw: 'BW',
-  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec',
+  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec', reps: 'reps',
 };
 
 /**
@@ -191,15 +191,18 @@ const UNIT_LABELS = {
 export function formatSet(set, count = 1) {
   if (!set) return '';
 
-  const repsStr = set.reps === null ? 'AMRAP' : `${set.reps}`;
+  const repsUnitLabel = set.repsUnit && set.repsUnit !== 'reps' ? ` ${UNIT_LABELS[set.repsUnit] || set.repsUnit}` : '';
+  const repsStr = set.reps === null ? 'AMRAP' : `${set.reps}${repsUnitLabel}`;
   const unitLabel = UNIT_LABELS[set.unit] || set.unit;
+  const noWeight = set.unit === 'reps';
   const isBodyweight = set.weight === null || set.unit === 'bw';
 
   if (count > 1) {
-    if (isBodyweight) return `${count} × ${repsStr}`;
+    if (noWeight || isBodyweight) return `${count} × ${repsStr}`;
     return `${count} × ${repsStr} @ ${set.weight} ${unitLabel}`;
   }
 
+  if (noWeight) return repsStr;
   const weightStr = isBodyweight ? 'BW' : `${set.weight} ${unitLabel}`;
   return `${repsStr} × ${weightStr}`;
 }
@@ -218,7 +221,8 @@ export function groupSets(sets) {
       last &&
       last.set.reps === set.reps &&
       last.set.weight === set.weight &&
-      last.set.unit === set.unit
+      last.set.unit === set.unit &&
+      last.set.repsUnit === set.repsUnit
     ) {
       last.count++;
     } else {

@@ -366,12 +366,12 @@ export default function App() {
                 window.location.reload();
               }
             } else {
-              showToast('Server unreachable');
+              showToast('Server unreachable', 'error');
             }
           }}
           onPushSync={async () => {
             const ok = await pushSync();
-            showToast(ok ? 'Pushed to server!' : 'Server unreachable');
+            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
           }}
         />
       );
@@ -445,12 +445,12 @@ export default function App() {
                 window.location.reload();
               }
             } else {
-              showToast('Server unreachable');
+              showToast('Server unreachable', 'error');
             }
           }}
           onPushSync={async () => {
             const ok = await pushSync();
-            showToast(ok ? 'Pushed to server!' : 'Server unreachable');
+            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
           }}
         />
       );
