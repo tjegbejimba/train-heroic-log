@@ -246,29 +246,6 @@ export default function ActiveWorkoutView({
                 </div>
               );
             });
-
-                  {/* YouTube link */}
-                  {getYouTubeLink(exercise.title) && (
-                    <details className="active-workout-view__video-details">
-                      <summary className="active-workout-view__video-summary">
-                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
-                        View Form Video
-                      </summary>
-                      <div className="active-workout-view__video-embed">
-                        <iframe
-                          width="100%"
-                          height="220"
-                          src={`https://www.youtube.com/embed/${extractVideoId(
-                            getYouTubeLink(exercise.title)
-                          )}?mute=1`}
-                          title={exercise.title}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    </details>
-                  )}
             if (isSuperset) {
               return (
                 <div key={blockIdx} className="superset-group">
