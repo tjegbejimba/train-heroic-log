@@ -51,7 +51,7 @@ export default function ExerciseRow({
               <iframe
                 width="100%"
                 height="250"
-                src={`https://www.youtube.com/embed/${extractVideoId(youtubeLink)}`}
+                src={`https://www.youtube.com/embed/${extractVideoId(youtubeLink)}?mute=1`}
                 title={exercise.title}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
