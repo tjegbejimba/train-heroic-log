@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
@@ -20,23 +21,60 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const secs = remaining % 60;
   const pct = Math.min(100, ((safeInitial - remaining) / safeInitial) * 100);
 
+  const isUrgent = remaining <= 10;
+
   return (
-    <div className="rest-timer">
-      <div className="rest-timer__top">
-        <span className="rest-timer__label">TIMER</span>
-        <span className="rest-timer__countdown">
-          {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
-        </span>
-        <button className="btn btn-secondary btn-small rest-timer__skip" onClick={onSkip}>
+    <div className={`rest-timer${isUrgent ? ' rest-timer--urgent' : ''}`}>
+      <div className="rest-timer__progress-ring-wrap">
+        <svg className="rest-timer__ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle
+            className="rest-timer__ring-track"
+            cx="50" cy="50" r="44"
+            fill="none"
+            strokeWidth="6"
+          />
+          <circle
+            className="rest-timer__ring-fill"
+            cx="50" cy="50" r="44"
+            fill="none"
+            strokeWidth="6"
+            strokeDasharray={`${2 * Math.PI * 44}`}
+            strokeDashoffset={`${2 * Math.PI * 44 * (pct / 100)}`}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+          />
+        </svg>
+        <div className="rest-timer__inner">
+          <span className="rest-timer__label">REST</span>
+          <span className="rest-timer__countdown">
+            {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
+          </span>
+        </div>
+      </div>
+
+      <div className="rest-timer__controls">
+        <button
+          className="rest-timer__adjust-btn"
+          onClick={() => adjust(-15)}
+          aria-label="Subtract 15 seconds"
+        >
+          −15s
+        </button>
+        <button
+          className="rest-timer__skip-btn"
+          onClick={onSkip}
+          aria-label="Skip rest"
+        >
+          <X size={16} />
           Skip
         </button>
-      </div>
-      <div className="rest-timer__bar">
-        <div className="rest-timer__bar-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="rest-timer__adjust">
-        <button className="btn btn-secondary btn-small" onClick={() => adjust(-15)}>−15s</button>
-        <button className="btn btn-secondary btn-small" onClick={() => adjust(+15)}>+15s</button>
+        <button
+          className="rest-timer__adjust-btn"
+          onClick={() => adjust(+15)}
+          aria-label="Add 15 seconds"
+        >
+          +15s
+        </button>
       </div>
     </div>
   );

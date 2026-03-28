@@ -7,7 +7,7 @@ export default function SessionHeader({
   onCancel,
   onTimerOpen,
 }) {
-  const [elapsed, setElapsed] = useState('00:00');
+  const [elapsed, setElapsed] = useState('0:00');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,11 +21,11 @@ export default function SessionHeader({
 
       if (hours > 0) {
         setElapsed(
-          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+          `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
         );
       } else {
         setElapsed(
-          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+          `${minutes}:${String(seconds).padStart(2, '0')}`
         );
       }
     }, 1000);
@@ -35,22 +35,21 @@ export default function SessionHeader({
 
   return (
     <div className="session-header">
-      <div className="session-header__left">
-        <button className="btn btn-secondary" onClick={onCancel}>
-          <X size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Cancel
-        </button>
-      </div>
+      <button className="session-header__cancel" onClick={onCancel} aria-label="Cancel workout">
+        <X size={20} />
+      </button>
 
       <div className="session-header__center">
-        <h2 className="session-header__title">{workoutTitle}</h2>
-        <div className="session-header__timer" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Timer size={14} />{elapsed}</div>
+        <span className="session-header__title">{workoutTitle}</span>
+        <div className="session-header__elapsed">
+          <Timer size={12} />
+          <span>{elapsed}</span>
+        </div>
       </div>
 
-      <div className="session-header__right">
-        <button className="btn btn-secondary" onClick={onTimerOpen}>
-          <Timer size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Timer
-        </button>
-      </div>
+      <button className="session-header__timer-btn" onClick={onTimerOpen} aria-label="Open rest timer">
+        <Timer size={20} />
+      </button>
     </div>
   );
 }

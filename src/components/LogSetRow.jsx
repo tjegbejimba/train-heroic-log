@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Check } from 'lucide-react';
 import { formatSet } from '../csv/exerciseData';
 
 const UNIT_LABELS = {
@@ -74,13 +75,13 @@ export default function LogSetRow({
 
   return (
     <div className={classNames}>
-      <div className="log-set-row__set-num">Set {setIndex + 1}</div>
-
-      <div className="log-set-row__target">
-        <div className="log-set-row__label">Target</div>
-        <div className="log-set-row__value">{formatSet(set)}</div>
+      {/* Set number + target */}
+      <div className="log-set-row__meta">
+        <span className="log-set-row__set-num">{setIndex + 1}</span>
+        <span className="log-set-row__target">{formatSet(set)}</span>
       </div>
 
+      {/* Input fields */}
       <div className="log-set-row__inputs">
         <div className="log-set-row__input-group">
           <label className="log-set-row__input-label">{repsLabel}</label>
@@ -90,7 +91,7 @@ export default function LogSetRow({
             min="0"
             value={localReps}
             onChange={(e) => handleRepsChange(e.target.value)}
-            placeholder={set.reps != null ? String(set.reps) : '0'}
+            placeholder={set.reps != null ? String(set.reps) : '—'}
             disabled={isCompleted}
             className="log-set-row__input"
           />
@@ -106,7 +107,7 @@ export default function LogSetRow({
               step="0.5"
               value={localWeight}
               onChange={(e) => handleWeightChange(e.target.value)}
-              placeholder={set.weight != null ? String(set.weight) : '0'}
+              placeholder={set.weight != null ? String(set.weight) : '—'}
               disabled={isCompleted}
               className="log-set-row__input"
             />
@@ -114,12 +115,13 @@ export default function LogSetRow({
         )}
       </div>
 
+      {/* Complete toggle */}
       <button
-        className={`log-set-row__complete ${isCompleted ? 'log-set-row__complete--active' : ''}`}
+        className={`log-set-row__complete${isCompleted ? ' log-set-row__complete--active' : ''}`}
         onClick={handleToggleComplete}
-        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+        aria-label={isCompleted ? 'Mark incomplete' : 'Mark complete'}
       >
-        {isCompleted ? '✓' : '○'}
+        <Check size={20} strokeWidth={3} />
       </button>
     </div>
   );

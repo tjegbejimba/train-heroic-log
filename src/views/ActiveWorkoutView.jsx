@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Video, CheckCircle } from 'lucide-react';
+import { Youtube, CheckCircle, ChevronDown, Pencil } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import LogSetRow from '../components/LogSetRow';
 import Modal from '../components/Modal';
@@ -39,6 +39,8 @@ export default function ActiveWorkoutView({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [restTimerActive, setRestTimerActive] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState({});
+  const [editingNote, setEditingNote] = useState(null);
   const { settings } = useSettings();
 
   // Initialize exercise logs
@@ -120,6 +122,10 @@ export default function ActiveWorkoutView({
     onCancel();
   };
 
+  const toggleFormNotes = (exerciseTitle) => {
+    setExpandedNotes((prev) => ({ ...prev, [exerciseTitle]: !prev[exerciseTitle] }));
+  };
+
   if (!workout) {
     return (
       <div className="view active-workout-view">
@@ -146,42 +152,79 @@ export default function ActiveWorkoutView({
         onTimerOpen={() => setRestTimerActive(true)}
       />
 
-      <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
-        {/* Progress bar */}
-        <div className="active-workout-view__progress">
-          <div className="progress-bar">
-            <div
-              className="progress-bar__fill"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <p className="progress-text">
-            {completedSets} of {totalSets} sets completed
-          </p>
+      {/* Sticky progress bar directly under header */}
+      <div className="aw-progress">
+        <div className="aw-progress__bar">
+          <div className="aw-progress__fill" style={{ width: `${progressPct}%` }} />
         </div>
+        <span className="aw-progress__label">
+          {completedSets}/{totalSets} sets
+        </span>
+      </div>
 
-        {/* Exercises */}
+      <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
+        {/* Exercise blocks */}
         {(() => {
           let globalIdx = 0;
           return workout.blocks.map((block, blockIdx) => {
             const isSuperset = block.exercises.length > 1;
+
             const exerciseCards = block.exercises.map((exercise, exIdx) => {
               const exerciseLogs = currentLog.exercises[exercise.title] || [];
               const letter = String.fromCharCode(65 + globalIdx);
               globalIdx++;
 
+              const exerciseSets = exerciseLogs.length;
+              const completedExSets = exerciseLogs.filter((s) => s?.completed).length;
+              const allExDone = exerciseSets > 0 && completedExSets === exerciseSets;
+              const hasFormNotes = !!(exercise.notes || getYouTubeLink(exercise.title));
+              const notesExpanded = expandedNotes[exercise.title];
+              const sessionNote = (currentLog.exerciseNotes || {})[exercise.title] || '';
+
               return (
-                <div key={exIdx} className="active-workout-view__exercise">
-                  <div className="active-workout-view__exercise-header">
-                    <h3 className="active-workout-view__exercise-title">
-                      {letter}. {exercise.title}
-                    </h3>
-                    {exercise.workoutNotes && (
-                      <p className="active-workout-view__workout-notes">{exercise.workoutNotes}</p>
-                    )}
+                <div
+                  key={exIdx}
+                  className={`aw-exercise-card${allExDone ? ' aw-exercise-card--done' : ''}`}
+                >
+                  {/* Card header */}
+                  <div className="aw-exercise-card__header">
+                    <div className="aw-exercise-card__badge">{letter}</div>
+                    <div className="aw-exercise-card__title-wrap">
+                      <h3 className="aw-exercise-card__title">{exercise.title}</h3>
+                      {exercise.workoutNotes && (
+                        <p className="aw-exercise-card__workout-notes">{exercise.workoutNotes}</p>
+                      )}
+                    </div>
+                    <div className="aw-exercise-card__header-actions">
+                      {allExDone && (
+                        <span className="aw-exercise-card__done-badge">
+                          <CheckCircle size={16} />
+                        </span>
+                      )}
+                      {getYouTubeLink(exercise.title) && (
+                        <a
+                          href={getYouTubeLink(exercise.title)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aw-exercise-card__yt-btn"
+                          aria-label={`Watch ${exercise.title} video`}
+                        >
+                          <Youtube size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="active-workout-view__sets">
+                  {/* Column labels */}
+                  <div className="aw-sets-header">
+                    <span className="aw-sets-header__set">SET</span>
+                    <span className="aw-sets-header__target">TARGET</span>
+                    <span className="aw-sets-header__inputs">ACTUAL</span>
+                    <span className="aw-sets-header__done" aria-hidden="true" />
+                  </div>
+
+                  {/* Set rows */}
+                  <div className="aw-exercise-card__sets">
                     {exercise.sets.map((set, setIdx) => {
                       const firstIncomplete = exerciseLogs.findIndex((s) => !s?.completed);
                       return (
@@ -199,58 +242,77 @@ export default function ActiveWorkoutView({
                     })}
                   </div>
 
-                  {/* Form notes + video */}
-                  {(exercise.notes || getYouTubeLink(exercise.title)) && (
-                    <details className="active-workout-view__video-details">
-                      <summary className="active-workout-view__video-summary">
-                        <Video size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
-                        {exercise.notes && getYouTubeLink(exercise.title)
-                          ? 'Form Notes & Video'
-                          : exercise.notes
-                          ? 'Form Notes'
-                          : 'View Form Video'}
-                      </summary>
-                      {exercise.notes && (
-                        <p className="active-workout-view__form-notes">{exercise.notes}</p>
-                      )}
-                      {getYouTubeLink(exercise.title) && (
-                        <div className="active-workout-view__video-embed">
-                          <iframe
-                            width="100%"
-                            height="220"
-                            src={`https://www.youtube.com/embed/${extractVideoId(
-                              getYouTubeLink(exercise.title)
-                            )}`}
-                            title={exercise.title}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
+                  {/* Form notes collapsible */}
+                  {hasFormNotes && (
+                    <div className="aw-form-notes">
+                      <button
+                        className="aw-form-notes__toggle"
+                        onClick={() => toggleFormNotes(exercise.title)}
+                        aria-expanded={notesExpanded}
+                      >
+                        <span>Form Notes</span>
+                        <ChevronDown
+                          size={16}
+                          className={`aw-form-notes__chevron${notesExpanded ? ' aw-form-notes__chevron--open' : ''}`}
+                        />
+                      </button>
+                      {notesExpanded && (
+                        <div className="aw-form-notes__body">
+                          {exercise.notes && (
+                            <p className="aw-form-notes__text">{exercise.notes}</p>
+                          )}
+                          {getYouTubeLink(exercise.title) && (
+                            <div className="aw-form-notes__video">
+                              <iframe
+                                width="100%"
+                                height="200"
+                                src={`https://www.youtube.com/embed/${extractVideoId(
+                                  getYouTubeLink(exercise.title)
+                                )}`}
+                                title={exercise.title}
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
-                    </details>
+                    </div>
                   )}
 
-                  {/* Personal session notes */}
-                  <div className="active-workout-view__notes">
-                    <input
-                      type="text"
-                      className="input active-workout-view__notes-input"
-                      placeholder="Your notes (e.g. felt weak, RPE 8, elbow pain)"
-                      value={(currentLog.exerciseNotes || {})[exercise.title] || ''}
-                      onChange={(e) =>
-                        updateExerciseNote(exercise.title, e.target.value)
-                      }
-                    />
+                  {/* Session note for this exercise */}
+                  <div className="aw-exercise-note">
+                    {editingNote === exercise.title ? (
+                      <input
+                        type="text"
+                        className="aw-exercise-note__input"
+                        placeholder="Note (e.g. felt weak, RPE 8, elbow pain)"
+                        value={sessionNote}
+                        onChange={(e) => updateExerciseNote(exercise.title, e.target.value)}
+                        onBlur={() => setEditingNote(null)}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        className={`aw-exercise-note__trigger${sessionNote ? ' aw-exercise-note__trigger--has-note' : ''}`}
+                        onClick={() => setEditingNote(exercise.title)}
+                      >
+                        <Pencil size={13} />
+                        <span>{sessionNote || 'Add a note…'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             });
             if (isSuperset) {
               return (
-                <div key={blockIdx} className="superset-group">
-                  <div className="superset-group__label">Superset</div>
-                  <div className="superset-group__exercises">{exerciseCards}</div>
+                <div key={blockIdx} className="aw-superset">
+                  <div className="aw-superset__label">
+                    <span className="aw-superset__pill">Superset</span>
+                  </div>
+                  <div className="aw-superset__exercises">{exerciseCards}</div>
                 </div>
               );
             }
@@ -258,11 +320,11 @@ export default function ActiveWorkoutView({
           });
         })()}
 
-        {/* Overall workout note */}
-        <div className="active-workout-view__workout-note">
-          <h3 className="active-workout-view__workout-note-label">Session Notes</h3>
+        {/* Overall session notes */}
+        <div className="aw-session-note">
+          <h3 className="aw-session-note__label">Session Notes</h3>
           <textarea
-            className="input active-workout-view__workout-note-input"
+            className="aw-session-note__input"
             placeholder="How did the session feel? (e.g. tired today, great pump, low energy)"
             value={currentLog.workoutNote || ''}
             onChange={(e) => updateWorkoutNote(e.target.value)}
@@ -271,7 +333,7 @@ export default function ActiveWorkoutView({
         </div>
       </div>
 
-      {/* Rest timer */}
+      {/* Rest timer — floating */}
       {restTimerActive && (
         <RestTimer
           initialSeconds={settings.restDuration}
@@ -281,15 +343,15 @@ export default function ActiveWorkoutView({
       )}
 
       {/* Complete button */}
-      <div className="active-workout-view__footer">
+      <div className="aw-footer">
         <button
-          className="btn btn-primary btn--large w-full"
+          className={`aw-footer__complete-btn${allDone ? ' aw-footer__complete-btn--ready' : ''}`}
           onClick={allDone ? handleCompleteWorkout : () => setShowCompleteModal(true)}
         >
-          <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+          <CheckCircle size={20} />
           {allDone
             ? 'Complete Workout'
-            : `Complete Workout (${completedSets}/${totalSets})`}
+            : `Finish  (${completedSets}/${totalSets} sets)`}
         </button>
       </div>
 
