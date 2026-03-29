@@ -43,6 +43,7 @@ export default function SettingsView({
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [reminderDraft, setReminderDraft] = useState(settings.reminderTime || '');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearSelections, setClearSelections] = useState({});
   const [templateSearch, setTemplateSearch] = useState('');
@@ -304,14 +305,19 @@ export default function SettingsView({
                 <input
                   type="time"
                   className="input settings-view__reminder-time"
-                  value={settings.reminderTime || ''}
-                  onChange={(e) => handleReminderTimeChange(e.target.value)}
+                  value={reminderDraft}
+                  onChange={(e) => setReminderDraft(e.target.value)}
+                  onBlur={(e) => {
+                    if (e.target.value !== settings.reminderTime) {
+                      handleReminderTimeChange(e.target.value);
+                    }
+                  }}
                 />
               </div>
               {settings.reminderTime && (
                 <button
                   className="btn btn-secondary btn-small mt-sm"
-                  onClick={() => handleReminderTimeChange('')}
+                  onClick={() => { setReminderDraft(''); handleReminderTimeChange(''); }}
                 >
                   Turn off reminder
                 </button>
