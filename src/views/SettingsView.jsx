@@ -97,13 +97,21 @@ export default function SettingsView({
     }
   };
 
+  const today = new Date().toISOString().slice(0, 10);
+  const [exportUntil, setExportUntil] = useState('');
+
   const handleExportCalendar = () => {
     const schedule = readLS('th_schedule', {});
     const workouts = readLS('th_workouts', {});
-    const count = Object.keys(schedule).length;
-    if (count === 0) { showToast('No scheduled workouts to export', 'error'); return; }
-    downloadICS(schedule, workouts);
-    showToast(`Exported ${count} scheduled workout${count !== 1 ? 's' : ''}`);
+    const filtered = Object.keys(schedule).filter(
+      (d) => d >= today && (!exportUntil || d <= exportUntil)
+    );
+    if (filtered.length === 0) {
+      showToast('No upcoming workouts in that range', 'error');
+      return;
+    }
+    downloadICS(schedule, workouts, today, exportUntil || undefined);
+    showToast(`Exported ${filtered.length} workout${filtered.length !== 1 ? 's' : ''}`);
   };
 
   const handleStartRename = (tpl) => {
@@ -360,6 +368,27 @@ export default function SettingsView({
         {/* Data section */}
         <div className="card">
           <h3 className="mb-md">Data</h3>
+          <p className="text-secondary text-sm mb-sm">Export to Calendar</p>
+          <div className="settings-view__reminder-row mb-sm">
+            <label className="text-sm">From</label>
+            <input
+              type="date"
+              className="input settings-view__reminder-time"
+              value={today}
+              disabled
+            />
+          </div>
+          <div className="settings-view__reminder-row mb-md">
+            <label className="text-sm">Until</label>
+            <input
+              type="date"
+              className="input settings-view__reminder-time"
+              value={exportUntil}
+              min={today}
+              onChange={(e) => setExportUntil(e.target.value)}
+              placeholder="No end date"
+            />
+          </div>
           <div className="settings-view__data-actions">
             <button
               className="btn btn-secondary w-full"
@@ -369,8 +398,8 @@ export default function SettingsView({
               Export Schedule (.ics)
             </button>
           </div>
-          <p className="text-secondary text-sm mb-md" style={{ fontSize: '11px' }}>
-            Import into Apple Calendar, Google Calendar, or Outlook.
+          <p className="text-secondary text-sm mt-sm mb-md" style={{ fontSize: '11px' }}>
+            Imports into Apple Calendar, Google Calendar, or Outlook. Leave "Until" blank to export all future workouts.
           </p>
           <div className="settings-view__data-actions">
             <button className="btn btn-secondary w-full" onClick={onReimport}>

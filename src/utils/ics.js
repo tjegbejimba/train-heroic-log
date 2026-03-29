@@ -45,9 +45,14 @@ function buildDescription(workout) {
 /**
  * @param {Object} schedule  — th_schedule: { 'YYYY-MM-DD': 'WorkoutTitle' }
  * @param {Object} workouts  — th_workouts: { 'WorkoutTitle': workoutObj }
+ * @param {string} [from]    — YYYY-MM-DD start date (inclusive), defaults to today
+ * @param {string} [to]      — YYYY-MM-DD end date (inclusive), defaults to no limit
  * @returns {string} ICS file content
  */
-export function generateICS(schedule, workouts) {
+export function generateICS(schedule, workouts, from, to) {
+  const today = new Date().toISOString().slice(0, 10);
+  const startDate = from || today;
+
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -58,7 +63,7 @@ export function generateICS(schedule, workouts) {
   ];
 
   const entries = Object.entries(schedule || {})
-    .filter(([, title]) => title)
+    .filter(([date, title]) => title && date >= startDate && (!to || date <= to))
     .sort(([a], [b]) => a.localeCompare(b));
 
   for (const [date, workoutTitle] of entries) {
@@ -84,8 +89,8 @@ export function generateICS(schedule, workouts) {
 /**
  * Trigger a browser download of the ICS file.
  */
-export function downloadICS(schedule, workouts, filename = 'trainlog-schedule.ics') {
-  const content = generateICS(schedule, workouts);
+export function downloadICS(schedule, workouts, from, to, filename = 'trainlog-schedule.ics') {
+  const content = generateICS(schedule, workouts, from, to);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
