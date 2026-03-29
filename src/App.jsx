@@ -297,6 +297,7 @@ export default function App() {
           logKey={params.logKey}
           workouts={workouts}
           logs={logs}
+          allLogs={allLogs}
           saveLog={saveLog}
           getYouTubeLink={getLink}
           onComplete={() => {

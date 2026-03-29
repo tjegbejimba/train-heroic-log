@@ -12,6 +12,7 @@ export default function ActiveWorkoutView({
   logKey,
   workouts,
   logs,
+  allLogs,
   saveLog,
   getYouTubeLink,
   onComplete,
@@ -39,6 +40,8 @@ export default function ActiveWorkoutView({
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [completedLog, setCompletedLog] = useState(null);
   const [restTimerActive, setRestTimerActive] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState({});
   const [editingNote, setEditingNote] = useState(null);
@@ -124,7 +127,63 @@ export default function ActiveWorkoutView({
       completedAt: new Date().toISOString(),
     };
     saveLog(logKey, completed);
-    onComplete();
+    setCompletedLog(completed);
+    setShowSummaryModal(true);
+  };
+
+  // Build summary data for the completion modal
+  const buildSummary = (log) => {
+    if (!log) return null;
+    const allSetsFlat = Object.values(log.exercises).flat();
+    const doneSets = allSetsFlat.filter((s) => s.completed);
+    const totalCompleted = doneSets.length;
+
+    // Volume grouped by unit
+    const volumeByUnit = {};
+    doneSets.forEach((s) => {
+      if (s.actualReps && s.actualWeight) {
+        const unit = s.unit || 'lb';
+        volumeByUnit[unit] = (volumeByUnit[unit] || 0) + (s.actualReps * s.actualWeight);
+      }
+    });
+
+    // PR detection: compare each completed set against previous best (max weight for same reps)
+    const prs = [];
+    if (allLogs) {
+      const today = new Date().toISOString().slice(0, 10);
+      // Build previous best: { exerciseTitle: { reps: maxWeight } }
+      const prevBest = {};
+      Object.values(allLogs).forEach((prevLog) => {
+        if (!prevLog || !prevLog.date || !prevLog.exercises) return;
+        if (prevLog.date >= today) return;
+        Object.entries(prevLog.exercises).forEach(([exTitle, sets]) => {
+          sets.forEach((s) => {
+            if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
+            if (!prevBest[exTitle]) prevBest[exTitle] = {};
+            const reps = s.actualReps;
+            if (prevBest[exTitle][reps] === undefined || s.actualWeight > prevBest[exTitle][reps]) {
+              prevBest[exTitle][reps] = s.actualWeight;
+            }
+          });
+        });
+      });
+
+      // Check current session sets against previous bests
+      const prSeen = new Set();
+      Object.entries(log.exercises).forEach(([exTitle, sets]) => {
+        sets.forEach((s) => {
+          if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
+          const best = prevBest[exTitle]?.[s.actualReps];
+          const key = `${exTitle}:${s.actualReps}:${s.actualWeight}`;
+          if ((best === undefined || s.actualWeight > best) && !prSeen.has(key)) {
+            prSeen.add(key);
+            prs.push({ exTitle, reps: s.actualReps, weight: s.actualWeight, unit: s.unit || 'lb' });
+          }
+        });
+      });
+    }
+
+    return { totalCompleted, volumeByUnit, prs };
   };
 
   const handleCancelWorkout = () => {
@@ -247,6 +306,9 @@ export default function ActiveWorkoutView({
                           onUpdate={(newSetData) =>
                             updateExerciseSet(exercise.title, setIdx, newSetData)
                           }
+                          allLogs={allLogs}
+                          workoutTitle={workoutTitle}
+                          exerciseTitle={exercise.title}
                         />
                       );
                     })}
@@ -395,6 +457,43 @@ export default function ActiveWorkoutView({
           cancelText="Keep Going"
         />
       )}
+
+      {/* Workout completion summary modal */}
+      {showSummaryModal && (() => {
+        const summary = buildSummary(completedLog);
+        return (
+          <Modal
+            title="Workout complete! 🎉"
+            onConfirm={() => { setShowSummaryModal(false); onComplete(); }}
+            confirmText="Done"
+            onCancel={null}
+            cancelText={null}
+          >
+            {summary && (
+              <div className="aw-summary">
+                <p className="aw-summary__stat">
+                  <strong>{summary.totalCompleted}</strong> sets completed
+                </p>
+                {Object.entries(summary.volumeByUnit).map(([unit, vol]) => (
+                  <p key={unit} className="aw-summary__stat">
+                    Total volume: <strong>{vol.toLocaleString()} {unit}</strong>
+                  </p>
+                ))}
+                {summary.prs.length > 0 && (
+                  <div className="aw-summary__prs">
+                    <p className="aw-summary__pr-heading">Personal Records:</p>
+                    {summary.prs.map((pr, i) => (
+                      <p key={i} className="aw-summary__pr-item">
+                        🏆 {pr.exTitle}: {pr.reps} reps × {pr.weight} {pr.unit}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

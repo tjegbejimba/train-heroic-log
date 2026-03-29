@@ -2,12 +2,29 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { showLocalNotification } from '../storage/push';
 
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) { /* silently ignore */ }
+}
+
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
   const [remaining, setRemaining] = useState(safeInitial);
 
   useEffect(() => {
     if (remaining <= 0) {
+      playBeep();
       navigator.vibrate?.([100, 50, 100]);
       showLocalNotification('Rest complete', {
         body: 'Time for your next set',

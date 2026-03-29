@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 export default function Modal({
   title,
   message,
@@ -5,19 +7,35 @@ export default function Modal({
   onCancel,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  children,
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onCancel) {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
   return (
-    <div className="modal-overlay">
-      <div className="modal">
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="modal__title">{title}</h2>
-        <p className="modal__message">{message}</p>
+        {message && <p className="modal__message">{message}</p>}
+        {children}
         <div className="modal__actions flex gap-md">
-          <button className="btn btn-secondary flex-1" onClick={onCancel}>
-            {cancelText}
-          </button>
-          <button className="btn btn-primary flex-1" onClick={onConfirm}>
-            {confirmText}
-          </button>
+          {onCancel && (
+            <button className="btn btn-secondary flex-1" onClick={onCancel}>
+              {cancelText}
+            </button>
+          )}
+          {onConfirm && (
+            <button className="btn btn-primary flex-1" onClick={onConfirm}>
+              {confirmText}
+            </button>
+          )}
         </div>
       </div>
     </div>

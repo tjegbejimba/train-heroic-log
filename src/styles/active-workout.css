@@ -878,3 +878,93 @@
     padding-right: var(--space-md);
   }
 }
+
+/* =====================================================
+   LOG SET ROW — LAST TIME HINT
+   ===================================================== */
+.log-set-row__target-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.log-set-row__last-hint {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* =====================================================
+   LOG SET ROW — WEIGHT ADJUST BUTTONS
+   ===================================================== */
+.log-set-row__weight-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.log-set-row__adjust-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition), background-color var(--transition);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.log-set-row__adjust-btn:hover {
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
+  background-color: rgba(75, 123, 255, 0.08);
+}
+
+.log-set-row__adjust-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* =====================================================
+   WORKOUT COMPLETION SUMMARY MODAL
+   ===================================================== */
+.aw-summary {
+  padding: var(--space-sm) 0;
+}
+
+.aw-summary__stat {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.aw-summary__prs {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.aw-summary__pr-heading {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-sm);
+}
+
+.aw-summary__pr-item {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-green);
+  margin-bottom: 4px;
+}

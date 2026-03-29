@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { formatSet } from '../csv/exerciseData';
+import { parseLogKey } from '../constants';
 
 const UNIT_LABELS = {
   lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm',
@@ -13,6 +14,9 @@ export default function LogSetRow({
   loggedSet,
   onUpdate,
   isNext,
+  allLogs,
+  workoutTitle,
+  exerciseTitle,
 }) {
   const [localReps, setLocalReps] = useState(loggedSet?.actualReps ?? '');
   const [localWeight, setLocalWeight] = useState(loggedSet?.actualWeight ?? '');
@@ -57,6 +61,32 @@ export default function LogSetRow({
   const isBodyweight = set.unit === 'bw' || set.unit === 'reps';
   const weightLabel = UNIT_LABELS[set.unit] || 'Weight';
   const repsLabel = set.repsUnit && set.repsUnit !== 'reps' ? (UNIT_LABELS[set.repsUnit] || set.repsUnit) : 'Reps';
+
+  // Compute "last time" hint: find most recent log (before today) with this exercise
+  const lastHint = (() => {
+    if (!allLogs || !workoutTitle || !exerciseTitle) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const matchingLogs = Object.values(allLogs)
+      .filter((log) => {
+        if (!log || !log.date || !log.exercises) return false;
+        if (log.date >= today) return false;
+        const parsed = parseLogKey(log.logKey);
+        return parsed.workoutTitle === workoutTitle && log.exercises[exerciseTitle];
+      })
+      .sort((a, b) => (b.date > a.date ? 1 : -1));
+    if (matchingLogs.length === 0) return null;
+    const prevSets = matchingLogs[0].exercises[exerciseTitle];
+    if (!prevSets || !prevSets[setIndex]) return null;
+    const prev = prevSets[setIndex];
+    if (prev.actualReps === '' && prev.actualWeight === '') return null;
+    if (prev.actualReps !== '' && prev.actualWeight !== '' && !isBodyweight) {
+      return `Last: ${prev.actualReps} × ${prev.actualWeight} ${UNIT_LABELS[prev.unit] || prev.unit || ''}`.trim();
+    }
+    if (prev.actualReps !== '' && isBodyweight) {
+      return `Last: ${prev.actualReps} reps`;
+    }
+    return null;
+  })();
 
   const handleRepsChange = (value) => {
     const numVal = value === '' ? '' : parseInt(value, 10);
@@ -104,7 +134,12 @@ export default function LogSetRow({
       {/* Set number + target */}
       <div className="log-set-row__meta">
         <span className="log-set-row__set-num">{setIndex + 1}</span>
-        <span className="log-set-row__target">{formatSet(set)}</span>
+        <div className="log-set-row__target-wrap">
+          <span className="log-set-row__target">{formatSet(set)}</span>
+          {lastHint && (
+            <span className="log-set-row__last-hint">{lastHint}</span>
+          )}
+        </div>
       </div>
 
       {/* Input fields */}
@@ -126,17 +161,41 @@ export default function LogSetRow({
         {!isBodyweight && (
           <div className="log-set-row__input-group">
             <label className="log-set-row__input-label">{weightLabel}</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.5"
-              value={localWeight}
-              onChange={(e) => handleWeightChange(e.target.value)}
-              placeholder={set.weight != null ? String(set.weight) : '—'}
-              disabled={isCompleted}
-              className="log-set-row__input"
-            />
+            <div className="log-set-row__weight-row">
+              {localWeight !== '' && (
+                <button
+                  className="log-set-row__adjust-btn"
+                  onClick={() => handleWeightChange(String(parseFloat(localWeight) - 2.5))}
+                  disabled={isCompleted}
+                  aria-label="Decrease weight by 2.5"
+                  type="button"
+                >
+                  −2.5
+                </button>
+              )}
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.5"
+                value={localWeight}
+                onChange={(e) => handleWeightChange(e.target.value)}
+                placeholder={set.weight != null ? String(set.weight) : '—'}
+                disabled={isCompleted}
+                className="log-set-row__input"
+              />
+              {localWeight !== '' && (
+                <button
+                  className="log-set-row__adjust-btn"
+                  onClick={() => handleWeightChange(String(parseFloat(localWeight) + 2.5))}
+                  disabled={isCompleted}
+                  aria-label="Increase weight by 2.5"
+                  type="button"
+                >
+                  +2.5
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
