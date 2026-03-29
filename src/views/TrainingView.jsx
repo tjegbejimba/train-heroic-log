@@ -1,10 +1,35 @@
 import { useState } from 'react';
-import { CalendarDays, CalendarRange } from 'lucide-react';
+import { CalendarRange, Moon } from 'lucide-react';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
-import WorkoutPreviewCard from '../components/WorkoutPreviewCard';
-import BlockSection from '../components/BlockSection';
 import ExerciseRow from '../components/ExerciseRow';
+
+const MAX_CHIPS = 6;
+
+function ExerciseChips({ workout }) {
+  const exercises = [];
+  workout.blocks.forEach((block) => {
+    block.exercises.forEach((ex) => exercises.push(ex.title));
+  });
+
+  const visible = exercises.slice(0, MAX_CHIPS);
+  const overflow = exercises.length - MAX_CHIPS;
+
+  return (
+    <div className="training-card__chips">
+      {visible.map((title) => (
+        <span key={title} className="training-card__chip">
+          {title}
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="training-card__chip training-card__chip--overflow">
+          +{overflow} more
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function TrainingView({
   currentDate,
@@ -66,12 +91,23 @@ export default function TrainingView({
       <div className="training-view__content">
         {workout ? (
           <>
-            <WorkoutPreviewCard
-              workout={workout}
-              onStartWorkout={handleStartWorkout}
-              onSaveAsTemplate={onSaveAsTemplate}
-            />
+            {/* Redesigned workout card */}
+            <div className="training-card">
+              <div className="training-card__header">
+                <h2 className="training-card__title">{workout.title}</h2>
+              </div>
+              <ExerciseChips workout={workout} />
+              <div className="training-card__actions">
+                <button
+                  className="btn btn-primary training-card__start-btn"
+                  onClick={handleStartWorkout}
+                >
+                  Start Workout
+                </button>
+              </div>
+            </div>
 
+            {/* Exercise list below the card */}
             <div className="training-view__exercises">
               {(() => {
                 let globalIdx = 0;
@@ -118,10 +154,15 @@ export default function TrainingView({
             </div>
           </>
         ) : (
-          <div className="empty-state">
-            <div className="empty-state-icon"><CalendarDays size={48} /></div>
-            <h3>No workout scheduled</h3>
-            <p className="text-secondary">Select a day with a workout to begin</p>
+          /* Rest day card */
+          <div className="training-rest-card">
+            <div className="training-rest-card__icon">
+              <Moon size={36} strokeWidth={1.5} />
+            </div>
+            <h3 className="training-rest-card__heading">Rest Day</h3>
+            <p className="training-rest-card__message">
+              Recovery is part of the plan. Rest up and come back strong.
+            </p>
           </div>
         )}
       </div>

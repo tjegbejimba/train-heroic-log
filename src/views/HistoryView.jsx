@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { BarChart2, FileText, ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react';
+import { BarChart2, FileText, CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function HistoryView({ allLogs, deleteLog, workouts }) {
@@ -45,13 +45,19 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
     return bests;
   }, [completedLogs]);
 
-  const formatDate = (dateStr) => {
+  const formatDayNumber = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+    return d.getDate();
+  };
+
+  const formatMonthAbbr = (dateStr) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short' });
+  };
+
+  const formatDayAbbr = (dateStr) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
   const formatDuration = (startedAt, completedAt) => {
@@ -133,6 +139,17 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
     return null;
   };
 
+  // Count PRs for a log entry
+  const countPRs = (log) => {
+    let count = 0;
+    Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
+      sets.forEach((set, setIdx) => {
+        if (getSetPR(exName, set, log.key, setIdx) !== null) count++;
+      });
+    });
+    return count;
+  };
+
   const handleDelete = () => {
     if (deleteTarget) {
       deleteLog(deleteTarget);
@@ -178,128 +195,144 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
             .filter((s) => s.completed).length;
           const volume = calcVolume(log.exercises);
           const volumeStr = formatVolume(volume);
+          const prCount = countPRs(log);
+          const duration = formatDuration(log.startedAt, log.completedAt);
 
           return (
-            <div key={log.key} className="history-card card">
-              <button
-                className="history-card__toggle"
-                onClick={() => setExpandedKey(isExpanded ? null : log.key)}
-              >
-                <div className="history-card__summary">
-                  <div className="history-card__date">
-                    {formatDate(log.date)}
-                  </div>
-                  <h3 className="history-card__title">{log.workoutTitle}</h3>
-                  <div className="history-card__meta">
-                    <span>
-                      {formatDuration(log.startedAt, log.completedAt)}
-                    </span>
-                    <span className="history-card__dot"></span>
-                    <span>{exerciseNames.length} exercises</span>
-                    <span className="history-card__dot"></span>
-                    <span>
-                      {completedSets}/{totalSets} sets
-                    </span>
-                    {volumeStr && (
-                      <>
-                        <span className="history-card__dot"></span>
-                        <span>{volumeStr}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="history-card__chevron">
-                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+            <div key={log.key} className="history-entry">
+              {/* Left column: date badge */}
+              <div className="history-entry__date-col">
+                <span className="history-entry__day-num">
+                  {formatDayNumber(log.date)}
                 </span>
-              </button>
+                <span className="history-entry__month">
+                  {formatMonthAbbr(log.date)}
+                </span>
+                <span className="history-entry__weekday">
+                  {formatDayAbbr(log.date)}
+                </span>
+              </div>
 
-              {isExpanded && (
-                <div className="history-card__details">
-                  {/* Overall workout note */}
-                  {log.workoutNote && (
-                    <div className="history-card__workout-note">
-                      <span className="history-card__workout-note-label">
-                        Session Note
-                      </span>
-                      <p>{log.workoutNote}</p>
+              {/* Right column: card */}
+              <div className="history-card">
+                <button
+                  className="history-card__toggle"
+                  onClick={() => setExpandedKey(isExpanded ? null : log.key)}
+                >
+                  <div className="history-card__summary">
+                    <div className="history-card__title-row">
+                      <h3 className="history-card__title">{log.workoutTitle}</h3>
+                      {prCount > 0 && (
+                        <span className="history-card__pr-count-badge">
+                          {prCount} PR{prCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
-                  )}
-
-                  {exerciseNames.map((exName) => {
-                    const sets = log.exercises[exName];
-                    return (
-                      <div key={exName} className="history-card__exercise">
-                        <h4 className="history-card__exercise-name">
-                          {exName}
-                        </h4>
-                        {(log.exerciseNotes || {})[exName] && (
-                          <p className="history-card__exercise-note">
-                            <FileText size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                            {log.exerciseNotes[exName]}
-                          </p>
-                        )}
-                        <div className="history-card__sets-table">
-                          <div className="history-card__sets-header">
-                            <span>Set</span>
-                            <span>Target</span>
-                            <span>Actual</span>
-                            <span></span>
-                          </div>
-                          {sets.map((set, idx) => {
-                            const prReps = getSetPR(exName, set, log.key, idx);
-                            const isPR = prReps !== null;
-                            return (
-                              <div
-                                key={idx}
-                                className={`history-card__set-row ${
-                                  set.completed
-                                    ? 'history-card__set-row--completed'
-                                    : ''
-                                } ${isPR ? 'history-card__set-row--pr' : ''}`}
-                              >
-                                <span className="text-secondary">
-                                  {idx + 1}
-                                </span>
-                                <span className="text-secondary">
-                                  {set.targetReps != null
-                                    ? `${set.targetReps} × ${set.targetWeight || 'BW'}`
-                                    : '--'}
-                                </span>
-                                <span>
-                                  {set.actualReps !== '' &&
-                                  set.actualReps != null
-                                    ? `${set.actualReps} × ${set.actualWeight !== '' && set.actualWeight != null ? set.actualWeight : 'BW'}`
-                                    : '--'}
-                                  {isPR && (
-                                    <span className="history-card__pr-badge">
-                                      PR @ {prReps} rep{prReps !== 1 ? 's' : ''}
-                                    </span>
-                                  )}
-                                </span>
-                                <span>
-                                  {set.completed
-                                    ? <CheckCircle2 size={15} style={{ color: 'var(--color-accent-blue)' }} />
-                                    : <Circle size={15} style={{ opacity: 0.3 }} />}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                    <div className="history-card__meta">
+                      {duration !== '--' && (
+                        <span>{duration}</span>
+                      )}
+                      {volumeStr && (
+                        <>
+                          <span className="history-card__dot" />
+                          <span>{volumeStr}</span>
+                        </>
+                      )}
+                      <span className="history-card__dot" />
+                      <span>{completedSets}/{totalSets} sets</span>
+                    </div>
+                  </div>
 
                   <button
-                    className="btn btn-secondary btn-small history-card__delete"
+                    className="history-card__delete-btn"
+                    aria-label="Delete log"
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeleteTarget(log.key);
                     }}
                   >
-                    Delete Log
+                    <Trash2 size={16} />
                   </button>
-                </div>
-              )}
+                </button>
+
+                {isExpanded && (
+                  <div className="history-card__details">
+                    {/* Overall workout note */}
+                    {log.workoutNote && (
+                      <div className="history-card__workout-note">
+                        <span className="history-card__workout-note-label">
+                          Session Note
+                        </span>
+                        <p>{log.workoutNote}</p>
+                      </div>
+                    )}
+
+                    {exerciseNames.map((exName) => {
+                      const sets = log.exercises[exName];
+                      return (
+                        <div key={exName} className="history-card__exercise">
+                          <h4 className="history-card__exercise-name">
+                            {exName}
+                          </h4>
+                          {(log.exerciseNotes || {})[exName] && (
+                            <p className="history-card__exercise-note">
+                              <FileText size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                              {log.exerciseNotes[exName]}
+                            </p>
+                          )}
+                          <div className="history-card__sets-table">
+                            <div className="history-card__sets-header">
+                              <span>Set</span>
+                              <span>Target</span>
+                              <span>Actual</span>
+                              <span></span>
+                            </div>
+                            {sets.map((set, idx) => {
+                              const prReps = getSetPR(exName, set, log.key, idx);
+                              const isPR = prReps !== null;
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`history-card__set-row ${
+                                    set.completed
+                                      ? 'history-card__set-row--completed'
+                                      : ''
+                                  } ${isPR ? 'history-card__set-row--pr' : ''}`}
+                                >
+                                  <span className="text-secondary">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-secondary">
+                                    {set.targetReps != null
+                                      ? `${set.targetReps} × ${set.targetWeight || 'BW'}`
+                                      : '--'}
+                                  </span>
+                                  <span>
+                                    {set.actualReps !== '' &&
+                                    set.actualReps != null
+                                      ? `${set.actualReps} × ${set.actualWeight !== '' && set.actualWeight != null ? set.actualWeight : 'BW'}`
+                                      : '--'}
+                                    {isPR && (
+                                      <span className="history-card__pr-badge">
+                                        PR @ {prReps} rep{prReps !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span>
+                                    {set.completed
+                                      ? <CheckCircle2 size={15} style={{ color: 'var(--color-accent-green)' }} />
+                                      : <Circle size={15} style={{ opacity: 0.3 }} />}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
