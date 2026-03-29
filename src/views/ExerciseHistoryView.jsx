@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { ROUTE_LIBRARY } from '../constants';
+import ProgressChart from '../components/ProgressChart';
 
 export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }) {
   const sessions = useMemo(() => {
@@ -13,6 +14,33 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
         exerciseNote: (log.exerciseNotes || {})[exerciseTitle] || null,
       }));
   }, [allLogs, exerciseTitle]);
+
+  const chartSessions = useMemo(() => {
+    const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    let runningMax = -Infinity;
+    return sorted.reduce((acc, session) => {
+      const completedSets = (session.sets || []).filter(
+        (s) => s.completed === true && s.actualWeight != null && s.actualWeight !== '' && Number(s.actualWeight) > 0
+      );
+      if (completedSets.length === 0) return acc;
+
+      const bestSet = completedSets.reduce((best, s) =>
+        Number(s.actualWeight) > Number(best.actualWeight) ? s : best
+      );
+      const bestWeight = Number(bestSet.actualWeight);
+      const bestReps = Number(bestSet.actualReps) || 0;
+      const volume = completedSets.reduce(
+        (sum, s) => sum + (Number(s.actualReps) || 0) * Number(s.actualWeight),
+        0
+      );
+      const unit = (completedSets[0].unit) || 'lb';
+      const isPR = bestWeight > runningMax;
+      if (isPR) runningMax = bestWeight;
+
+      acc.push({ date: session.date, bestWeight, bestReps, volume, unit, isPR });
+      return acc;
+    }, []);
+  }, [sessions]);
 
   return (
     <div className="view exercise-history-view">
@@ -29,6 +57,12 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
           {sessions.length} session{sessions.length !== 1 ? 's' : ''} logged
         </p>
       </div>
+
+      {chartSessions.length >= 2 && (
+        <div className="exercise-history-view__chart-wrapper">
+          <ProgressChart sessions={chartSessions} />
+        </div>
+      )}
 
       {sessions.length === 0 ? (
         <div className="empty-state">

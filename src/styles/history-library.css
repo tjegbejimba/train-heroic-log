@@ -471,3 +471,17 @@
   margin-top: var(--space-sm);
   font-style: italic;
 }
+
+/* ========== ProgressChart ========== */
+.exercise-history-view__chart-wrapper {
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.progress-chart {
+  width: 100%;
+  margin-bottom: 16px;
+  background: var(--color-surface, #1c1c1e);
+  border-radius: 12px;
+  padding: 12px;
+}
