@@ -153,11 +153,8 @@ export default function MonthCalendar({
         <button className="btn btn-secondary btn-small" onClick={goToNextMonth}>
           →
         </button>
-      </div>
-
-      <div className="month-calendar__controls">
         <button className="btn btn-secondary btn-small" onClick={goToToday}>
-          TODAY
+          Today
         </button>
       </div>
 

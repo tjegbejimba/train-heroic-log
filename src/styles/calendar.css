@@ -351,7 +351,6 @@
   }
 
   .month-calendar__header {
-    flex-direction: column;
     gap: var(--space-sm);
   }
 
