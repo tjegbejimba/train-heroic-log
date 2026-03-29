@@ -82,3 +82,37 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Handle server-sent push notifications (Web Push / VAPID)
+self.addEventListener('push', (event) => {
+  let data = { title: 'TrainLog', body: '' };
+  try {
+    data = event.data ? event.data.json() : data;
+  } catch {
+    data.body = event.data ? event.data.text() : '';
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag || 'trainlog-push',
+      data: data.data || {},
+    })
+  );
+});
+
+// Bring app to focus (or open it) when a notification is tapped
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow?.('/');
+    })
+  );
+});

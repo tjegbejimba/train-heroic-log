@@ -1,4 +1,10 @@
 import { useState, useMemo } from 'react';
+import {
+  notificationsSupported,
+  requestNotificationPermission,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from '../storage/push';
 import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -37,6 +43,45 @@ export default function SettingsView({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearSelections, setClearSelections] = useState({});
   const [templateSearch, setTemplateSearch] = useState('');
+  const [notifStatus, setNotifStatus] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'unavailable'
+  );
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  const handleEnableNotifications = async () => {
+    if (!notificationsSupported()) {
+      showToast('Notifications not supported on this device', 'error');
+      return;
+    }
+    setNotifLoading(true);
+    const permission = await requestNotificationPermission();
+    if (permission !== 'granted') {
+      showToast(
+        permission === 'denied'
+          ? 'Notifications blocked — enable in browser settings'
+          : 'Notification permission dismissed',
+        'error'
+      );
+      setNotifLoading(false);
+      return;
+    }
+    const subOk = await subscribeToPush();
+    showToast(
+      subOk ? 'Notifications enabled!' : 'Rest timer notifications enabled (server push unavailable)'
+    );
+    updateSettings({ notificationsEnabled: true });
+    setNotifStatus('granted');
+    setNotifLoading(false);
+  };
+
+  const handleDisableNotifications = async () => {
+    setNotifLoading(true);
+    await unsubscribeFromPush();
+    updateSettings({ notificationsEnabled: false });
+    setNotifStatus(typeof Notification !== 'undefined' ? Notification.permission : 'unavailable');
+    showToast('Notifications disabled');
+    setNotifLoading(false);
+  };
 
   const handleStartRename = (tpl) => {
     setRenamingId(tpl.id);
@@ -199,6 +244,46 @@ export default function SettingsView({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Notifications section */}
+        <div className="card">
+          <h3 className="mb-md">Notifications</h3>
+          {!notificationsSupported() ? (
+            <p className="text-secondary text-sm">
+              Not available on this device (requires HTTPS and a supported browser).
+            </p>
+          ) : notifStatus === 'denied' ? (
+            <p className="text-secondary text-sm">
+              Notifications are blocked. Enable them in your browser or OS settings, then reload.
+            </p>
+          ) : settings.notificationsEnabled ? (
+            <>
+              <p className="text-secondary text-sm mb-md">
+                You'll get a notification when the rest timer finishes, even when your phone is locked.
+              </p>
+              <button
+                className="btn btn-secondary w-full"
+                onClick={handleDisableNotifications}
+                disabled={notifLoading}
+              >
+                {notifLoading ? 'Disabling…' : 'Disable Notifications'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-secondary text-sm mb-md">
+                Get notified when your rest timer finishes — works even when the app is in the background.
+              </p>
+              <button
+                className="btn btn-primary w-full"
+                onClick={handleEnableNotifications}
+                disabled={notifLoading}
+              >
+                {notifLoading ? 'Enabling…' : 'Enable Notifications'}
+              </button>
+            </>
+          )}
         </div>
 
         {/* Sync section */}

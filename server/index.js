@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import webpush from 'web-push';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -10,6 +11,28 @@ const PORT = process.env.PORT || 3001;
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// VAPID setup — keys auto-generated on first start, persisted to data dir
+const VAPID_FILE = path.join(DATA_DIR, 'vapid.json');
+const SUBS_FILE  = path.join(DATA_DIR, 'push_subscriptions.json');
+
+let vapidKeys;
+if (fs.existsSync(VAPID_FILE)) {
+  vapidKeys = JSON.parse(fs.readFileSync(VAPID_FILE, 'utf-8'));
+} else {
+  vapidKeys = webpush.generateVAPIDKeys();
+  fs.writeFileSync(VAPID_FILE, JSON.stringify(vapidKeys, null, 2), 'utf-8');
+  console.log('Generated new VAPID keys →', VAPID_FILE);
+}
+webpush.setVapidDetails('mailto:admin@trainlog.local', vapidKeys.publicKey, vapidKeys.privateKey);
+
+function readSubscriptions() {
+  if (!fs.existsSync(SUBS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf-8')); } catch { return []; }
+}
+function writeSubscriptions(subs) {
+  fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2), 'utf-8');
 }
 
 // Valid storage keys (mirrors localStorage keys)
@@ -46,7 +69,7 @@ app.use(express.json({ limit: '50mb' }));
 // CORS for dev (frontend on :5173, backend on :3001)
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -123,6 +146,52 @@ app.put('/api/data', (req, res) => {
     return res.status(500).json({ ok: false, errors, updatedAt: new Date().toISOString() });
   }
   res.json({ ok: true, updatedAt: new Date().toISOString() });
+});
+
+// GET /api/push/vapid-public-key
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: vapidKeys.publicKey });
+});
+
+// POST /api/push/subscribe
+app.post('/api/push/subscribe', (req, res) => {
+  const subscription = req.body;
+  if (!subscription?.endpoint) {
+    return res.status(400).json({ error: 'Invalid subscription' });
+  }
+  const subs = readSubscriptions();
+  if (!subs.some((s) => s.endpoint === subscription.endpoint)) {
+    subs.push(subscription);
+    writeSubscriptions(subs);
+  }
+  res.json({ ok: true });
+});
+
+// POST /api/push/unsubscribe
+app.post('/api/push/unsubscribe', (req, res) => {
+  const { endpoint } = req.body || {};
+  if (!endpoint) return res.status(400).json({ error: 'endpoint required' });
+  writeSubscriptions(readSubscriptions().filter((s) => s.endpoint !== endpoint));
+  res.json({ ok: true });
+});
+
+// POST /api/push/notify — send to all subscribers (internal / future use)
+app.post('/api/push/notify', async (req, res) => {
+  const { title = 'TrainLog', body = '', data = {} } = req.body || {};
+  const payload = JSON.stringify({ title, body, data });
+  const subs = readSubscriptions();
+  const dead = [];
+  await Promise.allSettled(
+    subs.map((sub) =>
+      webpush.sendNotification(sub, payload).catch((err) => {
+        if (err.statusCode === 410 || err.statusCode === 404) dead.push(sub.endpoint);
+      })
+    )
+  );
+  if (dead.length > 0) {
+    writeSubscriptions(readSubscriptions().filter((s) => !dead.includes(s.endpoint)));
+  }
+  res.json({ ok: true, sent: subs.length - dead.length, total: subs.length });
 });
 
 // Health check

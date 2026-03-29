@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { showLocalNotification } from '../storage/push';
 
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
@@ -8,6 +9,12 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   useEffect(() => {
     if (remaining <= 0) {
       navigator.vibrate?.([100, 50, 100]);
+      showLocalNotification('Rest complete', {
+        body: 'Time for your next set',
+        tag: 'rest-timer',
+        renotify: true,
+        silent: false,
+      });
       onDone();
       return;
     }
