@@ -26,6 +26,11 @@ Docker (production):
 npm run build && docker compose up -d   # Build + run nginx + API
 ```
 
+Deploy (push to main triggers GitHub Actions → deploys to NAS via Tailscale SSH):
+```bash
+git push origin main
+```
+
 YouTube link importer:
 ```bash
 node scripts/import-youtube-links.js --list              # List all exercises
@@ -145,3 +150,17 @@ Dark theme (`#111111` background, `#4B7BFF` primary blue). CSS is split into fea
 ### Service Worker
 
 `public/sw.js` uses network-first for JS/CSS assets and cache-first for images/icons. Registered in `src/main.jsx` on load.
+
+### Infrastructure
+
+**NAS:** Synology NAS running Docker. nginx container on host port **3080** (`0.0.0.0:3080->80/tcp`). Node/Express API on port **3001**.
+
+**Tailscale HTTPS:**
+- App is served over HTTPS via `tailscale serve`: `https://tjnas.tail217062.ts.net:8443 → http://localhost:3080`
+- DSM occupies port 443, so Tailscale serve uses port **8443**
+- App URL: `https://tjnas.tail217062.ts.net:8443`
+- API URL: `https://tjnas.tail217062.ts.net:8443/api` (set in `.env.development` as `VITE_API_URL`)
+- To reconfigure: `tailscale serve --bg --https=8443 http://localhost:3080`
+- To check: `tailscale serve status`
+
+**Web Push Notifications:** Require HTTPS + PWA (Add to Home Screen on iPhone). iOS 16.4+ only. The app detects `window.isSecureContext` to show actionable guidance when push is unavailable.

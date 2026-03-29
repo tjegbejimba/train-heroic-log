@@ -281,9 +281,15 @@ export default function SettingsView({
         <div className="card">
           <h3 className="mb-md">Notifications</h3>
           {!notificationsSupported() ? (
-            <p className="text-secondary text-sm">
-              Not available on this device (requires HTTPS and a supported browser).
-            </p>
+            !window.isSecureContext ? (
+              <p className="text-secondary text-sm">
+                Notifications require HTTPS. Access the app via your Tailscale HTTPS address (e.g. <strong>https://…ts.net</strong>) and add it to your Home Screen.
+              </p>
+            ) : (
+              <p className="text-secondary text-sm">
+                Not supported on this browser. On iPhone, add the app to your Home Screen first, then enable notifications.
+              </p>
+            )
           ) : notifStatus === 'denied' ? (
             <p className="text-secondary text-sm">
               Notifications are blocked. Enable them in your browser or OS settings, then reload.

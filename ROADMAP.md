@@ -114,6 +114,7 @@
 - Theme selector — dark-only today; light / auto toggle
 - Sync conflict notification — lightweight banner when server data overwrites local changes
 - Version display reads from `package.json` via `import.meta.env.VITE_APP_VERSION`
+- **In-app feedback / bug report** — "Send Feedback" button in Settings opens a short form (title, description, category: Bug / Feature / Other); on submit, POSTs to the NAS backend which creates a GitHub issue via the GitHub API using a stored token. Include app version, device/browser info, and an optional localStorage snapshot for bug reports.
 
 ### Import
 - Re-import warning — alert when a CSV re-import would overwrite existing workout data
