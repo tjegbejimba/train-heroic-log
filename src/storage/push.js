@@ -87,6 +87,27 @@ export async function unsubscribeFromPush() {
 }
 
 /**
+ * Save (or clear) the daily workout reminder config on the server.
+ * @param {string|null} time — "HH:MM" in 24h, or null to disable
+ * @returns {boolean} success
+ */
+export async function saveReminderConfig(time) {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const res = await fetch(`${API_BASE}/push/reminder-config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ time, timezone }),
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('saveReminderConfig failed:', err);
+    return false;
+  }
+}
+
+/**
  * Show a local notification via the SW registration — no server round-trip.
  * Works offline. Silently no-ops if unsupported or permission not granted.
  */

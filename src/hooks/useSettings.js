@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const LS_SETTINGS = 'th_settings';
-const DEFAULTS = { restDuration: 90, notificationsEnabled: false };
+const DEFAULTS = { restDuration: 90, notificationsEnabled: false, reminderTime: null };
 
 /**
  * Hook for managing local app preferences (not synced to server).

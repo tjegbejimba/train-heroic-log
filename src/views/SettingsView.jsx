@@ -4,7 +4,10 @@ import {
   requestNotificationPermission,
   subscribeToPush,
   unsubscribeFromPush,
+  saveReminderConfig,
 } from '../storage/push';
+import { downloadICS } from '../utils/ics';
+import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -77,10 +80,30 @@ export default function SettingsView({
   const handleDisableNotifications = async () => {
     setNotifLoading(true);
     await unsubscribeFromPush();
-    updateSettings({ notificationsEnabled: false });
+    await saveReminderConfig(null);
+    updateSettings({ notificationsEnabled: false, reminderTime: null });
     setNotifStatus(typeof Notification !== 'undefined' ? Notification.permission : 'unavailable');
     showToast('Notifications disabled');
     setNotifLoading(false);
+  };
+
+  const handleReminderTimeChange = async (time) => {
+    const ok = await saveReminderConfig(time || null);
+    updateSettings({ reminderTime: time || null });
+    if (time) {
+      showToast(ok ? `Reminder set for ${time}` : 'Reminder saved (server unreachable)', ok ? 'success' : 'error');
+    } else {
+      showToast('Workout reminder off');
+    }
+  };
+
+  const handleExportCalendar = () => {
+    const schedule = readLS('th_schedule', {});
+    const workouts = readLS('th_workouts', {});
+    const count = Object.keys(schedule).length;
+    if (count === 0) { showToast('No scheduled workouts to export', 'error'); return; }
+    downloadICS(schedule, workouts);
+    showToast(`Exported ${count} scheduled workout${count !== 1 ? 's' : ''}`);
   };
 
   const handleStartRename = (tpl) => {
@@ -260,14 +283,31 @@ export default function SettingsView({
           ) : settings.notificationsEnabled ? (
             <>
               <p className="text-secondary text-sm mb-md">
-                You'll get a notification when the rest timer finishes, even when your phone is locked.
+                Rest timer notifications are on. You'll also get a daily workout reminder if a time is set below.
               </p>
+              <div className="settings-view__reminder-row">
+                <label className="text-sm">Daily workout reminder</label>
+                <input
+                  type="time"
+                  className="input settings-view__reminder-time"
+                  value={settings.reminderTime || ''}
+                  onChange={(e) => handleReminderTimeChange(e.target.value)}
+                />
+              </div>
+              {settings.reminderTime && (
+                <button
+                  className="btn btn-secondary btn-small mt-sm"
+                  onClick={() => handleReminderTimeChange('')}
+                >
+                  Turn off reminder
+                </button>
+              )}
               <button
-                className="btn btn-secondary w-full"
+                className="btn btn-secondary w-full mt-md"
                 onClick={handleDisableNotifications}
                 disabled={notifLoading}
               >
-                {notifLoading ? 'Disabling…' : 'Disable Notifications'}
+                {notifLoading ? 'Disabling…' : 'Disable All Notifications'}
               </button>
             </>
           ) : (
@@ -320,6 +360,18 @@ export default function SettingsView({
         {/* Data section */}
         <div className="card">
           <h3 className="mb-md">Data</h3>
+          <div className="settings-view__data-actions">
+            <button
+              className="btn btn-secondary w-full"
+              onClick={handleExportCalendar}
+            >
+              <Download size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Export Schedule (.ics)
+            </button>
+          </div>
+          <p className="text-secondary text-sm mb-md" style={{ fontSize: '11px' }}>
+            Import into Apple Calendar, Google Calendar, or Outlook.
+          </p>
           <div className="settings-view__data-actions">
             <button className="btn btn-secondary w-full" onClick={onReimport}>
               <FolderOpen size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />

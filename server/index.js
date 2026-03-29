@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import webpush from 'web-push';
+import cron from 'node-cron';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -34,6 +35,62 @@ function readSubscriptions() {
 function writeSubscriptions(subs) {
   fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2), 'utf-8');
 }
+
+// --- Workout reminder cron ---
+const REMINDER_FILE = path.join(DATA_DIR, 'reminder_config.json');
+let reminderTask = null;
+
+function readReminderConfig() {
+  if (!fs.existsSync(REMINDER_FILE)) return null;
+  try { return JSON.parse(fs.readFileSync(REMINDER_FILE, 'utf-8')); } catch { return null; }
+}
+
+async function sendWorkoutReminder() {
+  const schedule = readData('th_schedule');
+  if (!schedule) return;
+  // Get today's date in the server's local time (cron already fires at the right wall-clock time)
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const workoutTitle = schedule[today];
+  if (!workoutTitle) return;
+
+  const subs = readSubscriptions();
+  if (subs.length === 0) return;
+
+  const payload = JSON.stringify({
+    title: 'Workout today',
+    body: workoutTitle,
+    tag: 'workout-reminder',
+  });
+
+  const dead = [];
+  await Promise.allSettled(
+    subs.map((sub) =>
+      webpush.sendNotification(sub, payload).catch((err) => {
+        if (err.statusCode === 410 || err.statusCode === 404) dead.push(sub.endpoint);
+      })
+    )
+  );
+  if (dead.length > 0) {
+    writeSubscriptions(readSubscriptions().filter((s) => !dead.includes(s.endpoint)));
+  }
+  console.log(`Workout reminder sent: "${workoutTitle}" (${subs.length - dead.length} subscribers)`);
+}
+
+function scheduleReminder(config) {
+  if (reminderTask) { reminderTask.stop(); reminderTask = null; }
+  if (!config?.time) return;
+  const [hour, minute] = config.time.split(':');
+  reminderTask = cron.schedule(
+    `${minute} ${hour} * * *`,
+    sendWorkoutReminder,
+    { timezone: config.timezone || 'UTC' }
+  );
+  console.log(`Workout reminder scheduled at ${config.time} (${config.timezone || 'UTC'})`);
+}
+
+// Start reminder on boot if config exists
+const savedReminderConfig = readReminderConfig();
+if (savedReminderConfig) scheduleReminder(savedReminderConfig);
 
 // Valid storage keys (mirrors localStorage keys)
 const VALID_KEYS = [
@@ -192,6 +249,23 @@ app.post('/api/push/notify', async (req, res) => {
     writeSubscriptions(readSubscriptions().filter((s) => !dead.includes(s.endpoint)));
   }
   res.json({ ok: true, sent: subs.length - dead.length, total: subs.length });
+});
+
+// POST /api/push/reminder-config — save reminder time and reschedule cron
+app.post('/api/push/reminder-config', (req, res) => {
+  const { time, timezone } = req.body || {};
+  if (time === null || time === undefined) {
+    if (reminderTask) { reminderTask.stop(); reminderTask = null; }
+    if (fs.existsSync(REMINDER_FILE)) fs.unlinkSync(REMINDER_FILE);
+    return res.json({ ok: true, scheduled: false });
+  }
+  if (!/^\d{2}:\d{2}$/.test(time)) {
+    return res.status(400).json({ error: 'Invalid time, expected HH:MM' });
+  }
+  const config = { time, timezone: timezone || 'UTC' };
+  fs.writeFileSync(REMINDER_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  scheduleReminder(config);
+  res.json({ ok: true, scheduled: true, time, timezone: config.timezone });
 });
 
 // Health check
