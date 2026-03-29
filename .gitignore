@@ -30,3 +30,14 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.development
+
+# Personal data — never commit
+server/data/
+
+# MCP / Claude internals
+.mcp.json
+.claude/
+
+# Scripts scratch files
+scripts/youtubeLinks.txt
