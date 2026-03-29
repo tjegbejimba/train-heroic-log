@@ -249,6 +249,11 @@
   gap: var(--space-sm);
 }
 
+.settings-view__reminder-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .settings-view__rest-options {
   display: flex;
   gap: var(--space-sm);

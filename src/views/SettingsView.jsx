@@ -307,20 +307,29 @@ export default function SettingsView({
                   className="input settings-view__reminder-time"
                   value={reminderDraft}
                   onChange={(e) => setReminderDraft(e.target.value)}
-                  onBlur={(e) => {
-                    if (e.target.value !== settings.reminderTime) {
-                      handleReminderTimeChange(e.target.value);
-                    }
-                  }}
                 />
               </div>
-              {settings.reminderTime && (
+              <div className="settings-view__reminder-actions mt-sm">
                 <button
-                  className="btn btn-secondary btn-small mt-sm"
-                  onClick={() => { setReminderDraft(''); handleReminderTimeChange(''); }}
+                  className="btn btn-primary btn-small"
+                  disabled={!reminderDraft || reminderDraft === settings.reminderTime}
+                  onClick={() => handleReminderTimeChange(reminderDraft)}
                 >
-                  Turn off reminder
+                  Set Reminder
                 </button>
+                {settings.reminderTime && (
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => { setReminderDraft(''); handleReminderTimeChange(''); }}
+                  >
+                    Turn off
+                  </button>
+                )}
+              </div>
+              {settings.reminderTime && (
+                <p className="text-secondary text-sm mt-sm">
+                  Currently set for {settings.reminderTime}
+                </p>
               )}
               <button
                 className="btn btn-secondary w-full mt-md"
