@@ -54,10 +54,10 @@ export default function WeekPlannerView({
   // Refs so the unmount cleanup can read current values without stale closures
   const draftRef = useRef(draft);
   const templatesRef = useRef(templates);
-  const setWorkoutDateRef = useRef(setWorkoutDate);
+  const onApplyPlanRef = useRef(onApplyPlan);
   useEffect(() => { draftRef.current = draft; }, [draft]);
   useEffect(() => { templatesRef.current = templates; }, [templates]);
-  useEffect(() => { setWorkoutDateRef.current = setWorkoutDate; }, [setWorkoutDate]);
+  useEffect(() => { onApplyPlanRef.current = onApplyPlan; }, [onApplyPlan]);
 
   // Auto-apply any unsaved draft when the user navigates away from the planner
   useEffect(() => {
@@ -65,15 +65,16 @@ export default function WeekPlannerView({
       const pending = draftRef.current;
       if (Object.keys(pending).length === 0) return;
       const currentTemplates = templatesRef.current;
-      const setter = setWorkoutDateRef.current;
+      const dateMap = {};
       Object.entries(pending).forEach(([dateStr, templateId]) => {
         if (templateId === null) {
-          setter(dateStr, null);
+          dateMap[dateStr] = null;
         } else {
           const tpl = currentTemplates[templateId];
-          if (tpl) setter(dateStr, tpl.name);
+          if (tpl) dateMap[dateStr] = tpl.name;
         }
       });
+      if (Object.keys(dateMap).length > 0) onApplyPlanRef.current(dateMap);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
