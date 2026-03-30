@@ -1,9 +1,11 @@
 import express from 'express';
 import fs from 'fs';
+import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import webpush from 'web-push';
 import cron from 'node-cron';
+import { buildIssueTitle, buildGithubIssueBody } from './feedback.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -15,8 +17,9 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // VAPID setup — keys auto-generated on first start, persisted to data dir
-const VAPID_FILE = path.join(DATA_DIR, 'vapid.json');
-const SUBS_FILE  = path.join(DATA_DIR, 'push_subscriptions.json');
+const VAPID_FILE    = path.join(DATA_DIR, 'vapid.json');
+const SUBS_FILE     = path.join(DATA_DIR, 'push_subscriptions.json');
+const FEEDBACK_FILE = path.join(DATA_DIR, 'feedback.json');
 
 let vapidKeys;
 if (fs.existsSync(VAPID_FILE)) {
@@ -34,6 +37,41 @@ function readSubscriptions() {
 }
 function writeSubscriptions(subs) {
   fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2), 'utf-8');
+}
+
+function readFeedback() {
+  if (!fs.existsSync(FEEDBACK_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf-8')); } catch { return []; }
+}
+
+function postGithubIssue(token, owner, repo, issuePayload) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(issuePayload);
+    const options = {
+      hostname: 'api.github.com',
+      path: `/repos/${owner}/${repo}/issues`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'TrainLog-Server/1.0',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(JSON.parse(data));
+        else reject(new Error(`GitHub API ${res.statusCode}: ${data}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 // --- Workout reminder cron ---
@@ -266,6 +304,40 @@ app.post('/api/push/reminder-config', (req, res) => {
   fs.writeFileSync(REMINDER_FILE, JSON.stringify(config, null, 2), 'utf-8');
   scheduleReminder(config);
   res.json({ ok: true, scheduled: true, time, timezone: config.timezone });
+});
+
+// Feedback — saves locally and optionally creates a GitHub issue
+app.post('/api/feedback', async (req, res) => {
+  const { title, category, description, meta = {}, snapshot } = req.body || {};
+  if (!title || !category || !description)
+    return res.status(400).json({ error: 'title, category, and description are required' });
+
+  const timestamp = new Date().toISOString();
+  const record = { title, category, description, meta, hasSnapshot: !!snapshot, timestamp };
+
+  try {
+    const existing = readFeedback();
+    existing.push(record);
+    fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Failed to save feedback locally:', e);
+    return res.status(500).json({ error: 'Failed to save feedback' });
+  }
+
+  const { GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO } = process.env;
+  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO)
+    return res.json({ saved: true, github: false });
+
+  try {
+    await postGithubIssue(GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, {
+      title: buildIssueTitle(category, title),
+      body: buildGithubIssueBody(description, meta, snapshot, timestamp),
+    });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('GitHub issue creation failed:', e.message);
+    res.json({ saved: true, github: false, githubError: e.message });
+  }
 });
 
 // Health check

@@ -11,6 +11,7 @@ import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
+import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
 import { writeLS } from '../storage/index';
 import { flushPendingPushes } from '../storage/sync';
@@ -51,6 +52,7 @@ export default function SettingsView({
     typeof Notification !== 'undefined' ? Notification.permission : 'unavailable'
   );
   const [notifLoading, setNotifLoading] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleEnableNotifications = async () => {
     if (!notificationsSupported()) {
@@ -608,8 +610,13 @@ export default function SettingsView({
 
         {/* App info */}
         <div className="card">
-          <div className="text-secondary text-sm text-center">
+          <div className="text-secondary text-sm text-center" style={{ marginBottom: 'var(--space-md)' }}>
             TrainLog v0.1.0
+          </div>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-md)' }}>
+            <button className="btn btn-secondary w-full" onClick={() => setShowFeedback(true)}>
+              Send Feedback
+            </button>
           </div>
         </div>
       </div>
@@ -623,6 +630,10 @@ export default function SettingsView({
           confirmText="Delete"
           cancelText="Keep"
         />
+      )}
+
+      {showFeedback && (
+        <FeedbackModal onClose={() => setShowFeedback(false)} showToast={showToast} />
       )}
 
       {showClearConfirm && (
