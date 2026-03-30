@@ -20,7 +20,12 @@ export function buildGithubIssueBody(description, meta, snapshot, timestamp) {
   let body = `${description}\n\n---\n\n${metaBlock}`;
 
   if (snapshot !== undefined) {
-    body += `\n\n<details>\n<summary>App data snapshot</summary>\n\n\`\`\`json\n${JSON.stringify(snapshot, null, 2)}\n\`\`\`\n</details>`;
+    const snapshotStr = JSON.stringify(snapshot, null, 2);
+    const snapshotBlock = `\n\n<details>\n<summary>App data snapshot</summary>\n\n\`\`\`json\n${snapshotStr}\n\`\`\`\n</details>`;
+    // GitHub issue body limit is 65536 chars — include snapshot only if it fits
+    if (body.length + snapshotBlock.length <= 65536) {
+      body += snapshotBlock;
+    }
   }
 
   return body;
