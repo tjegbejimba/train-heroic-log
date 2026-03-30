@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from '../components/Modal';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -50,6 +50,32 @@ export default function WeekPlannerView({
   const [templateSearch, setTemplateSearch] = useState('');
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+
+  // Refs so the unmount cleanup can read current values without stale closures
+  const draftRef = useRef(draft);
+  const templatesRef = useRef(templates);
+  const setWorkoutDateRef = useRef(setWorkoutDate);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  useEffect(() => { templatesRef.current = templates; }, [templates]);
+  useEffect(() => { setWorkoutDateRef.current = setWorkoutDate; }, [setWorkoutDate]);
+
+  // Auto-apply any unsaved draft when the user navigates away from the planner
+  useEffect(() => {
+    return () => {
+      const pending = draftRef.current;
+      if (Object.keys(pending).length === 0) return;
+      const currentTemplates = templatesRef.current;
+      const setter = setWorkoutDateRef.current;
+      Object.entries(pending).forEach(([dateStr, templateId]) => {
+        if (templateId === null) {
+          setter(dateStr, null);
+        } else {
+          const tpl = currentTemplates[templateId];
+          if (tpl) setter(dateStr, tpl.name);
+        }
+      });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goToPrevWeek = () => {
     const d = parseLocalDate(weekDates[0]);

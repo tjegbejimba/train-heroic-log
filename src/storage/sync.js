@@ -276,6 +276,17 @@ export async function clearServerData(keys) {
   }
 }
 
+// Flush pending pushes when the page goes to background.
+// iOS freezes JS timers when a PWA is backgrounded, so debounced pushes
+// would never fire — this ensures writes reach the server before suspension.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushPendingPushes();
+    }
+  });
+}
+
 export function setSyncEnabled(enabled) {
   syncEnabled = enabled;
 }

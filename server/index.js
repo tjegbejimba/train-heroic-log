@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import webpush from 'web-push';
 import cron from 'node-cron';
 import { buildIssueTitle, buildGithubIssueBody } from './feedback.js';
+import { VALID_KEYS as _VALID_KEYS, isValidKey, dataFilePath, safeParseJSON, isValidReminderTime, buildCronExpression } from './data-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -117,9 +118,8 @@ async function sendWorkoutReminder() {
 function scheduleReminder(config) {
   if (reminderTask) { reminderTask.stop(); reminderTask = null; }
   if (!config?.time) return;
-  const [hour, minute] = config.time.split(':');
   reminderTask = cron.schedule(
-    `${minute} ${hour} * * *`,
+    buildCronExpression(config.time),
     sendWorkoutReminder,
     { timezone: config.timezone || 'UTC' }
   );
@@ -130,28 +130,17 @@ function scheduleReminder(config) {
 const savedReminderConfig = readReminderConfig();
 if (savedReminderConfig) scheduleReminder(savedReminderConfig);
 
-// Valid storage keys (mirrors localStorage keys)
-const VALID_KEYS = [
-  'th_workouts',
-  'th_schedule',
-  'th_yt_links',
-  'th_logs',
-  'th_active',
-  'th_templates',
-];
+// Valid storage keys — imported from data-utils.js
+const VALID_KEYS = _VALID_KEYS;
 
 function dataFile(key) {
-  return path.join(DATA_DIR, `${key}.json`);
+  return dataFilePath(DATA_DIR, key);
 }
 
 function readData(key) {
   const file = dataFile(key);
   if (!fs.existsSync(file)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch {
-    return null;
-  }
+  return safeParseJSON(fs.readFileSync(file, 'utf-8'));
 }
 
 function writeData(key, value) {
@@ -297,7 +286,7 @@ app.post('/api/push/reminder-config', (req, res) => {
     if (fs.existsSync(REMINDER_FILE)) fs.unlinkSync(REMINDER_FILE);
     return res.json({ ok: true, scheduled: false });
   }
-  if (!/^\d{2}:\d{2}$/.test(time)) {
+  if (!isValidReminderTime(time)) {
     return res.status(400).json({ error: 'Invalid time, expected HH:MM' });
   }
   const config = { time, timezone: timezone || 'UTC' };
