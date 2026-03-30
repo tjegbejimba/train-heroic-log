@@ -15,10 +15,10 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
 
-// Restore failed keys from sessionStorage so they survive page reloads
+// Restore failed keys from localStorage so they survive page reloads and PWA restarts
 let failedKeys = new Set();
 try {
-  const stored = sessionStorage.getItem('sync_failed_keys');
+  const stored = localStorage.getItem('sync_failed_keys');
   if (stored) {
     JSON.parse(stored).forEach((k) => failedKeys.add(k));
   }
@@ -26,8 +26,8 @@ try {
 
 function persistFailedKeys() {
   try {
-    sessionStorage.setItem('sync_failed_keys', JSON.stringify([...failedKeys]));
-  } catch { /* sessionStorage may be unavailable */ }
+    localStorage.setItem('sync_failed_keys', JSON.stringify([...failedKeys]));
+  } catch { /* localStorage may be unavailable */ }
 }
 
 /**
