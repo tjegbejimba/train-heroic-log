@@ -162,6 +162,47 @@ export default function App() {
     setWorkoutDate(dateStr, workoutTitle);
   };
 
+  // Batch-apply a week plan: { [date]: workoutTitle | null }
+  // Uses a single saveSchedule + single saveWorkouts call to avoid stale-closure overwrites.
+  const handleApplyPlan = (dateMap) => {
+    // Build the final schedule in one pass
+    const newSchedule = { ...schedule };
+    Object.entries(dateMap).forEach(([date, title]) => {
+      if (title === null) {
+        delete newSchedule[date];
+      } else {
+        newSchedule[date] = title;
+      }
+    });
+
+    // Build the final workouts map: create missing ones, remove orphans
+    let newWorkouts = { ...workouts };
+    let workoutsChanged = false;
+
+    Object.entries(dateMap).forEach(([date, title]) => {
+      if (title !== null && !newWorkouts[title]) {
+        const tpl = templateList.find((t) => t.name === title);
+        if (tpl) {
+          newWorkouts[title] = { title, blocks: tpl.blocks, notes: tpl.notes || '' };
+          workoutsChanged = true;
+        }
+      }
+      if (title === null) {
+        const evictedTitle = schedule[date];
+        if (evictedTitle && newWorkouts[evictedTitle]) {
+          const stillUsed = Object.values(newSchedule).includes(evictedTitle);
+          if (!stillUsed) {
+            delete newWorkouts[evictedTitle];
+            workoutsChanged = true;
+          }
+        }
+      }
+    });
+
+    if (workoutsChanged) saveWorkouts(newWorkouts);
+    saveSchedule(newSchedule);
+  };
+
   // Wrapped rename handler that also updates schedule and workouts (Bug 2 + Bug 4)
   const handleRenameTemplate = (id, newName) => {
     const tpl = templates[id];
@@ -369,7 +410,7 @@ export default function App() {
       currentView = (
         <WeekPlannerView
           schedule={schedule}
-          setWorkoutDate={handleSetWorkoutDate}
+          onApplyPlan={handleApplyPlan}
           showToast={showToast}
           templateList={templateList}
           templates={templates}

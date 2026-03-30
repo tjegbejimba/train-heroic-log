@@ -34,7 +34,7 @@ function getWeekDates(startDate) {
 
 export default function WeekPlannerView({
   schedule,
-  setWorkoutDate,
+  onApplyPlan,
   templateList,
   templates,
   workouts,
@@ -104,18 +104,20 @@ export default function WeekPlannerView({
 
   const applyPlan = () => {
     let missing = 0;
+    const dateMap = {};
     Object.entries(draft).forEach(([dateStr, templateId]) => {
       if (templateId === null) {
-        setWorkoutDate(dateStr, null);
+        dateMap[dateStr] = null;
       } else {
         const tpl = templates[templateId];
         if (tpl) {
-          setWorkoutDate(dateStr, tpl.name);
+          dateMap[dateStr] = tpl.name;
         } else {
           missing++;
         }
       }
     });
+    onApplyPlan(dateMap);
     setDraft({});
     if (missing > 0) {
       showToast(`${missing} template${missing > 1 ? 's' : ''} no longer exist and were skipped`, 'error');
