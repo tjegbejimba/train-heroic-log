@@ -33,6 +33,8 @@ import TemplateEditorView from './views/TemplateEditorView';
 import ExerciseHistoryView from './views/ExerciseHistoryView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
+import FeedbackModal from './components/FeedbackModal';
+import { MessageSquare } from 'lucide-react';
 
 import './styles/App.css';
 
@@ -78,6 +80,7 @@ export default function App() {
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   // On startup, pull from server and reload if new data arrived
   useEffect(() => {
@@ -550,6 +553,24 @@ export default function App() {
         <NavBar
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}
+        />
+      )}
+
+      {view !== ROUTE_ACTIVE_WORKOUT && (
+        <button
+          className="feedback-fab"
+          onClick={() => setShowFeedback(true)}
+          aria-label="Send feedback"
+        >
+          <MessageSquare size={15} />
+        </button>
+      )}
+
+      {showFeedback && (
+        <FeedbackModal
+          onClose={() => setShowFeedback(false)}
+          showToast={showToast}
+          currentView={view}
         />
       )}
 

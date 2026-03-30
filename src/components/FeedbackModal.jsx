@@ -7,8 +7,9 @@ import {
   LS_TEMPLATES,
 } from '../constants';
 
-function buildMeta() {
+function buildMeta(currentView) {
   return {
+    view: currentView,
     appVersion: 'v0.1.0',
     userAgent: navigator.userAgent,
     platform: navigator.platform,
@@ -29,7 +30,7 @@ function buildSnapshot() {
   return snapshot;
 }
 
-export default function FeedbackModal({ onClose, showToast }) {
+export default function FeedbackModal({ onClose, showToast, currentView }) {
   const [category, setCategory] = useState('Bug');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,7 +52,7 @@ export default function FeedbackModal({ onClose, showToast }) {
       title: title.trim(),
       category,
       description: description.trim(),
-      meta: buildMeta(),
+      meta: buildMeta(currentView),
       snapshot: category === 'Bug' && includeSnapshot ? buildSnapshot() : undefined,
     };
     try {

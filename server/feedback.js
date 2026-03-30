@@ -8,6 +8,7 @@ export function buildIssueTitle(category, title) {
 
 export function buildGithubIssueBody(description, meta, snapshot, timestamp) {
   const metaBlock = [
+    `**View:** ${meta.view || 'unknown'}`,
     `**App version:** ${meta.appVersion || 'unknown'}`,
     `**Platform:** ${meta.platform || 'unknown'}`,
     `**Viewport:** ${meta.viewport || 'unknown'}`,

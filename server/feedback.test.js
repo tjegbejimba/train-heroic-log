@@ -7,6 +7,7 @@ const META = {
   viewport: '390x844',
   standalone: true,
   userAgent: 'Mozilla/5.0 (iPhone)',
+  view: 'training',
 };
 const TIMESTAMP = '2026-03-29T00:00:00.000Z';
 
@@ -52,5 +53,6 @@ describe('buildGithubIssueBody', () => {
     expect(body).toContain('true');
     expect(body).toContain('Mozilla/5.0 (iPhone)');
     expect(body).toContain(TIMESTAMP);
+    expect(body).toContain('training');
   });
 });

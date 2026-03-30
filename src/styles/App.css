@@ -15,3 +15,27 @@
   right: 0;
   z-index: 100;
 }
+
+.feedback-fab {
+  position: fixed;
+  bottom: 76px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--color-border);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 150ms ease;
+  z-index: 99;
+}
+
+.feedback-fab:hover,
+.feedback-fab:active {
+  opacity: 0.75;
+}
