@@ -50,7 +50,8 @@ export default function ActiveWorkoutView({
 
   // Initialize exercise logs
   useEffect(() => {
-    if (!workout || currentLog.exercises && Object.keys(currentLog.exercises).length > 0) return;
+    if (!workout) return;
+    if (currentLog.exercises && Object.keys(currentLog.exercises).length > 0) return;
 
     const newExercises = {};
     workout.blocks.forEach((block) => {
@@ -122,6 +123,8 @@ export default function ActiveWorkoutView({
   }, []);
 
   const handleCompleteWorkout = () => {
+    // Cancel any pending workout-note debounce so it can't overwrite the completed log
+    if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current);
     const completed = {
       ...currentLog,
       completedAt: new Date().toISOString(),
@@ -161,8 +164,9 @@ export default function ActiveWorkoutView({
             if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
             if (!prevBest[exTitle]) prevBest[exTitle] = {};
             const reps = s.actualReps;
-            if (prevBest[exTitle][reps] === undefined || s.actualWeight > prevBest[exTitle][reps]) {
-              prevBest[exTitle][reps] = s.actualWeight;
+            const w = parseFloat(s.actualWeight);
+            if (!isNaN(w) && (prevBest[exTitle][reps] === undefined || w > prevBest[exTitle][reps])) {
+              prevBest[exTitle][reps] = w;
             }
           });
         });
@@ -173,11 +177,13 @@ export default function ActiveWorkoutView({
       Object.entries(log.exercises).forEach(([exTitle, sets]) => {
         sets.forEach((s) => {
           if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
+          const w = parseFloat(s.actualWeight);
+          if (isNaN(w)) return;
           const best = prevBest[exTitle]?.[s.actualReps];
           const key = `${exTitle}:${s.actualReps}:${s.actualWeight}`;
-          if ((best === undefined || s.actualWeight > best) && !prSeen.has(key)) {
+          if ((best === undefined || w > best) && !prSeen.has(key)) {
             prSeen.add(key);
-            prs.push({ exTitle, reps: s.actualReps, weight: s.actualWeight, unit: s.unit || 'lb' });
+            prs.push({ exTitle, reps: s.actualReps, weight: w, unit: s.unit || 'lb' });
           }
         });
       });

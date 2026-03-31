@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Check } from 'lucide-react';
 import { formatSet } from '../csv/exerciseData';
 import { parseLogKey } from '../constants';
@@ -58,6 +58,9 @@ export default function LogSetRow({
     }
   }, [loggedSet?.actualReps, loggedSet?.actualWeight, loggedSet?.completed]);
 
+  const repsInputRef = useRef(null);
+  const weightInputRef = useRef(null);
+
   const isBodyweight = set.unit === 'bw' || set.unit === 'reps';
   const weightLabel = UNIT_LABELS[set.unit] || 'Weight';
   const repsLabel = set.repsUnit && set.repsUnit !== 'reps' ? (UNIT_LABELS[set.repsUnit] || set.repsUnit) : 'Reps';
@@ -70,7 +73,9 @@ export default function LogSetRow({
       .filter((log) => {
         if (!log || !log.date || !log.exercises) return false;
         if (log.date >= today) return false;
-        const parsed = parseLogKey(log.logKey);
+        const logKey = log.key || log.logKey;
+        if (!logKey) return false;
+        const parsed = parseLogKey(logKey);
         return parsed.workoutTitle === workoutTitle && log.exercises[exerciseTitle];
       })
       .sort((a, b) => (b.date > a.date ? 1 : -1));
@@ -147,11 +152,17 @@ export default function LogSetRow({
         <div className="log-set-row__input-group">
           <label className="log-set-row__input-label">{repsLabel}</label>
           <input
+            ref={repsInputRef}
             type="number"
             inputMode="numeric"
+            enterKeyHint="next"
+            autoComplete="off"
             min="0"
             value={localReps}
             onChange={(e) => handleRepsChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); weightInputRef.current?.focus(); }
+            }}
             placeholder={set.reps != null ? String(set.reps) : '—'}
             disabled={isCompleted}
             className="log-set-row__input"
@@ -174,12 +185,19 @@ export default function LogSetRow({
                 </button>
               )}
               <input
+                ref={weightInputRef}
                 type="number"
                 inputMode="decimal"
+                enterKeyHint="done"
+                autoComplete="off"
+                pattern="[0-9.]*"
                 min="0"
                 step="0.5"
                 value={localWeight}
                 onChange={(e) => handleWeightChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); weightInputRef.current?.blur(); }
+                }}
                 placeholder={set.weight != null ? String(set.weight) : '—'}
                 disabled={isCompleted}
                 className="log-set-row__input"
@@ -207,6 +225,7 @@ export default function LogSetRow({
         aria-label={isCompleted ? 'Mark incomplete' : 'Mark complete'}
       >
         <Check size={20} strokeWidth={3} />
+        {isCompleted && <span className="log-set-row__undo-label">undo</span>}
       </button>
     </div>
   );

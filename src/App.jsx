@@ -59,6 +59,29 @@ export default function App() {
   const { syncStatus, lastSynced, pullSync, pushSync, clearServer } = useSync();
   const showToast = useToast();
 
+  // Template delete: clean up schedule + workouts so no orphan entries remain
+  const handleDeleteTemplate = (id) => {
+    const tpl = templates[id];
+    if (!tpl) return;
+    deleteTemplate(id);
+    // Remove schedule entries pointing to this template's workout name
+    const updatedSchedule = { ...schedule };
+    let scheduleChanged = false;
+    Object.entries(updatedSchedule).forEach(([date, title]) => {
+      if (title === tpl.name) { delete updatedSchedule[date]; scheduleChanged = true; }
+    });
+    if (scheduleChanged) saveSchedule(updatedSchedule);
+    // Remove the workout definition only if no log references it
+    if (workouts[tpl.name]) {
+      const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${tpl.name}`));
+      if (!referencedByLog) {
+        const updatedWorkouts = { ...workouts };
+        delete updatedWorkouts[tpl.name];
+        saveWorkouts(updatedWorkouts);
+      }
+    }
+  };
+
   // Navigation state — after a sync-triggered reload, always land on Training
   const [navState, setNavState] = useState(() => {
     const syncReload = sessionStorage.getItem('syncReload');
@@ -164,7 +187,8 @@ export default function App() {
         const stillUsed = Object.entries(schedule).some(
           ([d, t]) => d !== dateStr && t === evictedTitle
         );
-        if (!stillUsed && workouts[evictedTitle]) {
+        const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${evictedTitle}`));
+        if (!stillUsed && !referencedByLog && workouts[evictedTitle]) {
           const updated = { ...workouts };
           delete updated[evictedTitle];
           saveWorkouts(updated);
@@ -203,7 +227,8 @@ export default function App() {
         const evictedTitle = schedule[date];
         if (evictedTitle && newWorkouts[evictedTitle]) {
           const stillUsed = Object.values(newSchedule).includes(evictedTitle);
-          if (!stillUsed) {
+          const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${evictedTitle}`));
+          if (!stillUsed && !referencedByLog) {
             delete newWorkouts[evictedTitle];
             workoutsChanged = true;
           }
@@ -275,11 +300,26 @@ export default function App() {
             Object.values(workoutMap).forEach((workout, i) => {
               const existingId = existingByName[workout.title];
               if (existingId) {
-                // Update existing template with fresh data
+                // Preserve workoutNotes added via the template editor — they aren't in the CSV
+                const existingTpl = updatedTemplates[existingId];
+                const savedWorkoutNotes = {};
+                existingTpl.blocks.forEach((b) =>
+                  b.exercises.forEach((ex) => {
+                    if (ex.workoutNotes) savedWorkoutNotes[ex.title] = ex.workoutNotes;
+                  })
+                );
+                const mergedBlocks = workout.blocks.map((b) => ({
+                  ...b,
+                  exercises: b.exercises.map((ex) =>
+                    savedWorkoutNotes[ex.title]
+                      ? { ...ex, workoutNotes: savedWorkoutNotes[ex.title] }
+                      : ex
+                  ),
+                }));
                 updatedTemplates[existingId] = {
-                  ...updatedTemplates[existingId],
-                  blocks: workout.blocks,
-                  notes: workout.notes || updatedTemplates[existingId].notes || '',
+                  ...existingTpl,
+                  blocks: mergedBlocks,
+                  notes: workout.notes || existingTpl.notes || '',
                 };
               } else {
                 const id = `tpl_${Date.now()}_${i}`;
@@ -442,15 +482,17 @@ export default function App() {
             navigate(ROUTE_IMPORT);
           }}
           templateList={templateList}
-          deleteTemplate={deleteTemplate}
+          deleteTemplate={handleDeleteTemplate}
           renameTemplate={handleRenameTemplate}
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
-              clearLS();
+              // Clear server first — if offline the server keeps old data, which
+              // would win on next pull and restore everything the user just deleted.
               await clearServer();
+              clearLS();
             } else {
               keys.forEach((k) => removeLS(k));
             }
@@ -545,15 +587,17 @@ export default function App() {
         <SettingsView
           onReimport={() => navigate(ROUTE_IMPORT)}
           templateList={templateList}
-          deleteTemplate={deleteTemplate}
+          deleteTemplate={handleDeleteTemplate}
           renameTemplate={handleRenameTemplate}
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
-              clearLS();
+              // Clear server first — if offline the server keeps old data, which
+              // would win on next pull and restore everything the user just deleted.
               await clearServer();
+              clearLS();
             } else {
               keys.forEach((k) => removeLS(k));
             }
@@ -595,7 +639,9 @@ export default function App() {
       break;
 
     default:
-      currentView = <TrainingView />;
+      navigate(ROUTE_TRAINING);
+      currentView = null;
+      break;
   }
 
   return (

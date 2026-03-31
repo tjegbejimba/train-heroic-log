@@ -96,7 +96,6 @@ export default function TrainingView({
               <div className="training-card__header">
                 <h2 className="training-card__title">{workout.title}</h2>
               </div>
-              <ExerciseChips workout={workout} />
               <div className="training-card__actions">
                 <button
                   className="btn btn-primary training-card__start-btn"
@@ -105,6 +104,7 @@ export default function TrainingView({
                   Start Workout
                 </button>
               </div>
+              <ExerciseChips workout={workout} />
             </div>
 
             {/* Exercise list below the card */}

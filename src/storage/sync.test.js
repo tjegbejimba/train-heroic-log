@@ -118,7 +118,7 @@ describe('sync.js', () => {
       const result = await pullFromServer();
 
       expect(result).toEqual({ ok: true, changed: true });
-      expect(writeLS).toHaveBeenCalledWith('th_workouts', { 'Upper A': { title: 'Upper A' } });
+      expect(localStorage.setItem).toHaveBeenCalledWith('th_workouts', JSON.stringify({ 'Upper A': { title: 'Upper A' } }));
     });
 
     it('returns changed=false when server data equals local data', async () => {
@@ -149,11 +149,10 @@ describe('sync.js', () => {
 
       expect(result).toEqual({ ok: true, changed: true });
       // Merged: local-only exercise2 preserved, server exercise1 wins, exercise3 added
-      expect(writeLS).toHaveBeenCalledWith('th_workouts', {
-        exercise1: { reps: 12 },
-        exercise2: { reps: 5 },
-        exercise3: { reps: 8 },
-      });
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'th_workouts',
+        JSON.stringify({ exercise1: { reps: 12 }, exercise2: { reps: 5 }, exercise3: { reps: 8 } })
+      );
     });
 
     it('preserves local-only keys during merge', async () => {
@@ -215,7 +214,7 @@ describe('sync.js', () => {
 
       expect(result).toEqual({ ok: true, changed: true });
       // Arrays are not merged — server overwrites
-      expect(writeLS).toHaveBeenCalledWith('th_workouts', ['item1', 'item2']);
+      expect(localStorage.setItem).toHaveBeenCalledWith('th_workouts', JSON.stringify(['item1', 'item2']));
     });
 
     it('returns ok=false and changed=false on network failure', async () => {

@@ -102,9 +102,12 @@ export async function pullFromServer() {
       } else {
         merged = data;
       }
-      // One stringify (merged) compared against the already-stored raw string
-      if (JSON.stringify(merged) !== localRaw) {
-        writeLS(key, merged);
+      // One stringify (merged) compared against the already-stored raw string.
+      // Write directly to localStorage (bypassing writeLS) so we don't enqueue
+      // a redundant push back to the server for data we just pulled from it.
+      const mergedStr = JSON.stringify(merged);
+      if (mergedStr !== localRaw) {
+        localStorage.setItem(key, mergedStr);
         changed = true;
       }
     }
