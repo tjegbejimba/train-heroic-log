@@ -33,6 +33,7 @@ import TemplateEditorView from './views/TemplateEditorView';
 import ExerciseHistoryView from './views/ExerciseHistoryView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
+import ErrorBoundary from './components/ErrorBoundary';
 import FeedbackModal from './components/FeedbackModal';
 import { MessageSquare } from 'lucide-react';
 
@@ -103,11 +104,22 @@ export default function App() {
   // Check for crash recovery on mount
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
-      const { workoutTitle } = parseLogKey(session.logKey);
-      if (workouts[workoutTitle]) {
-        setShowResumeModal(true);
-      } else {
-        // Workout was deleted — discard the orphaned active session
+      try {
+        const { workoutTitle } = parseLogKey(session.logKey);
+        const w = workouts[workoutTitle];
+        const isValid =
+          w &&
+          Array.isArray(w.blocks) &&
+          w.blocks.length > 0 &&
+          w.blocks.some((b) => Array.isArray(b.exercises) && b.exercises.length > 0);
+        if (isValid) {
+          setShowResumeModal(true);
+        } else {
+          // Workout was deleted or is malformed — discard the orphaned session
+          clearSession();
+        }
+      } catch {
+        // logKey is unparseable — discard
         clearSession();
       }
     }
@@ -588,12 +600,15 @@ export default function App() {
 
   return (
     <div className="app">
-      {currentView}
+      <ErrorBoundary key={view}>
+        {currentView}
+      </ErrorBoundary>
 
       {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && (
         <NavBar
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}
+          syncStatus={syncStatus}
         />
       )}
 

@@ -7,7 +7,7 @@ import {
   ROUTE_PLANNER,
 } from '../constants';
 
-export default function NavBar({ currentTab, onTabChange }) {
+export default function NavBar({ currentTab, onTabChange, syncStatus }) {
   const tabs = [
     { id: TAB_TRAINING, label: 'Training', Icon: Dumbbell },
     { id: ROUTE_PLANNER, label: 'Planner', Icon: CalendarDays },
@@ -27,7 +27,23 @@ export default function NavBar({ currentTab, onTabChange }) {
             }`}
             onClick={() => onTabChange(tab.id)}
           >
-            <div className="navbar__icon"><tab.Icon size={22} /></div>
+            <div className="navbar__icon" style={{ position: 'relative' }}>
+              <tab.Icon size={22} />
+              {tab.id === TAB_SETTINGS && syncStatus === 'offline' && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: -2,
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: 'var(--color-accent-yellow)',
+                    border: '1.5px solid var(--color-bg)',
+                  }}
+                />
+              )}
+            </div>
             <div className="navbar__label">{tab.label}</div>
           </button>
         ))}

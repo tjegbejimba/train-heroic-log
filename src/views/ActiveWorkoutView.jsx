@@ -149,11 +149,11 @@ export default function ActiveWorkoutView({
 
     // PR detection: compare each completed set against previous best (max weight for same reps)
     const prs = [];
-    if (allLogs) {
+    if (Array.isArray(allLogs) && allLogs.length > 0) {
       const today = new Date().toISOString().slice(0, 10);
       // Build previous best: { exerciseTitle: { reps: maxWeight } }
       const prevBest = {};
-      Object.values(allLogs).forEach((prevLog) => {
+      allLogs.forEach((prevLog) => {
         if (!prevLog || !prevLog.date || !prevLog.exercises) return;
         if (prevLog.date >= today) return;
         Object.entries(prevLog.exercises).forEach(([exTitle, sets]) => {

@@ -219,6 +219,14 @@ export default function WeekPlannerView({
         </button>
       </div>
 
+      {templateList.length === 0 && (
+        <div className="empty-state" style={{ marginBottom: 'var(--space-md)' }}>
+          <p className="text-secondary text-sm">
+            No templates yet — save a workout as a template from the Training view to start planning.
+          </p>
+        </div>
+      )}
+
       <div className="planner-view__grid">
         {weekDates.map((dateStr, idx) => {
           const workoutName = getWorkoutForDate(dateStr);
