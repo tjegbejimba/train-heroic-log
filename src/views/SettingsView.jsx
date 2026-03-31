@@ -11,6 +11,7 @@ import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
+import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
 import { writeLS } from '../storage/index';
 import { flushPendingPushes } from '../storage/sync';
@@ -45,6 +46,7 @@ export default function SettingsView({
   const [expandedId, setExpandedId] = useState(null);
   const [reminderDraft, setReminderDraft] = useState(settings.reminderTime || '');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [clearSelections, setClearSelections] = useState({});
   const [templateSearch, setTemplateSearch] = useState('');
   const [notifStatus, setNotifStatus] = useState(() =>
@@ -608,8 +610,13 @@ export default function SettingsView({
 
         {/* App info */}
         <div className="card">
-          <div className="text-secondary text-sm text-center">
+          <div className="text-secondary text-sm text-center" style={{ marginBottom: 'var(--space-md)' }}>
             TrainLog v0.1.0
+          </div>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-md)' }}>
+            <button className="btn btn-secondary w-full" onClick={() => setShowFeedback(true)}>
+              Send Feedback
+            </button>
           </div>
         </div>
       </div>
@@ -676,6 +683,10 @@ export default function SettingsView({
             </div>
           </div>
         </div>
+      )}
+
+      {showFeedback && (
+        <FeedbackModal onClose={() => setShowFeedback(false)} showToast={showToast} />
       )}
     </div>
   );

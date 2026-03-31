@@ -1,4 +1,4 @@
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const CACHE_NAME = `trainlog-v${CACHE_VERSION}`;
 const APP_SHELL = [
   '/',
@@ -41,6 +41,28 @@ self.addEventListener('fetch', (event) => {
 
   // Skip cross-origin requests
   if (request.url.startsWith('http') && !request.url.startsWith(self.location.origin)) return;
+
+  // API requests — pass through to network. Sync pulls (cache: 'reload') update the SW
+  // cache on success so the app shell can load API data on repeat visits, but we never
+  // serve stale cached API data: a failed pull returns { ok: false } and local data is
+  // left untouched, preventing stale-cache from overwriting newer local changes.
+  const url = new URL(request.url);
+  if (url.pathname.startsWith('/api/')) {
+    if (request.cache === 'reload') {
+      // Sync pull — always fetch fresh; cache the result for the app shell, never fall back
+      event.respondWith(
+        fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(request.url, response.clone()));
+          }
+          return response;
+        })
+      );
+    }
+    // All other API calls (health checks, pushes intercepted as GET, etc.) pass through
+    // to the network with no SW involvement — fast-fail when offline is the right behavior.
+    return;
+  }
 
   // Navigation requests and JS/CSS: network-first (so updates are picked up)
   if (request.mode === 'navigate' || request.destination === 'script' || request.destination === 'style') {

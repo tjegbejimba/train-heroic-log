@@ -56,7 +56,7 @@ export async function checkServerHealth() {
 export async function pullFromServer() {
   if (!syncEnabled) return { ok: false, changed: false };
   try {
-    const res = await fetch(`${API_BASE}/data`, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${API_BASE}/data`, { signal: AbortSignal.timeout(5000), cache: 'reload' });
     if (!res.ok) return { ok: false, changed: false };
     const serverData = await res.json();
 
