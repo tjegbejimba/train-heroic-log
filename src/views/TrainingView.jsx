@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CalendarRange, Moon } from 'lucide-react';
+import { ROUTE_PLANNER } from '../constants';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
 import ExerciseRow from '../components/ExerciseRow';
@@ -163,6 +164,13 @@ export default function TrainingView({
             <p className="training-rest-card__message">
               Recovery is part of the plan. Rest up and come back strong.
             </p>
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => navigate(ROUTE_PLANNER)}
+              style={{ marginTop: '16px' }}
+            >
+              Plan this day
+            </button>
           </div>
         )}
       </div>

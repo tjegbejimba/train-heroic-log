@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { CalendarDays, MapPin } from 'lucide-react';
 
 export default function DateStrip({
   currentDate,
@@ -88,7 +89,7 @@ export default function DateStrip({
               }`}
               onClick={() => onViewModeChange(viewMode === 'week' ? 'month' : 'week')}
             >
-              {viewMode === 'week' ? '📅 Month' : '📍 Week'}
+              {viewMode === 'week' ? <><CalendarDays size={16} /> Month</> : <><MapPin size={16} /> Week</>}
             </button>
           )}
           <button className="btn btn-secondary btn-small" onClick={goToToday}>

@@ -170,7 +170,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
 
     setBulkLoading(true);
     setBulkSaved(false);
-    if (!preImportLinks) setPreImportLinks({ ...youtubeLinks });
+    setPreImportLinks({ ...youtubeLinks });
 
     const rows = await Promise.all(
       entries.map(async ({ url, manualName }) => {

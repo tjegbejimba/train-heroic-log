@@ -148,10 +148,25 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    history.replaceState({ view: navState.view, params: navState.params }, '');
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state && e.state.view) {
+        const targetView = e.state.view === ROUTE_ACTIVE_WORKOUT ? ROUTE_TRAINING : e.state.view;
+        setNavState({ view: targetView, params: e.state.params || {} });
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Navigation function
   const navigate = useCallback((view, params = {}) => {
     setNavState({ view, params });
-    // TODO: Update browser history
+    history.pushState({ view, params }, '');
   }, []);
 
   // Handle resume modal

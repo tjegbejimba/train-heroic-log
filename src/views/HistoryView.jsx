@@ -215,9 +215,12 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
 
               {/* Right column: card */}
               <div className="history-card">
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   className="history-card__toggle"
                   onClick={() => setExpandedKey(isExpanded ? null : log.key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedKey(isExpanded ? null : log.key); } }}
                 >
                   <div className="history-card__summary">
                     <div className="history-card__title-row">
@@ -253,7 +256,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
                   >
                     <Trash2 size={16} />
                   </button>
-                </button>
+                </div>
 
                 {isExpanded && (
                   <div className="history-card__details">
@@ -346,6 +349,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
           onCancel={() => setDeleteTarget(null)}
           confirmText="Delete"
           cancelText="Keep"
+          isDestructive
         />
       )}
     </div>

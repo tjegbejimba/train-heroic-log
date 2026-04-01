@@ -9,6 +9,13 @@
   margin-bottom: var(--space-xs);
 }
 
+.planner-draft-badge {
+  font-size: 11px;
+  color: #f6ad55;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .planner-view__nav {
   display: flex;
   justify-content: center;
@@ -235,6 +242,7 @@
 
 .settings-template-item__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 

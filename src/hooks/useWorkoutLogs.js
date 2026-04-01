@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { LS_WORKOUT_LOGS } from '../constants';
 import { readLS, writeLS } from '../storage/index';
 
@@ -17,11 +17,11 @@ export function useWorkoutLogs() {
     setLogs(logsMap);
   }
 
-  function saveLog(logKey, logData) {
+  const saveLog = useCallback((logKey, logData) => {
     const updated = { ...logs };
     updated[logKey] = logData;
     saveLogs(updated);
-  }
+  }, [logs]);
 
   function getLog(logKey) {
     return logs[logKey] || null;

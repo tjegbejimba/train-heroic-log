@@ -4,7 +4,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  min-height: 60px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
   z-index: 100;
@@ -335,8 +336,9 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: max(env(safe-area-inset-top, 20px), 10vh);
   z-index: 200;
 }
 
@@ -366,6 +368,17 @@
 
 .flex-1 {
   flex: 1;
+}
+
+.btn-danger {
+  background-color: #e53e3e;
+  color: #fff;
+  border-color: #e53e3e;
+}
+.btn-danger:hover,
+.btn-danger:active {
+  background-color: #c53030;
+  border-color: #c53030;
 }
 
 /* ========== TrainingView ========== */

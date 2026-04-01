@@ -363,7 +363,7 @@ input[type='checkbox'] {
 /* Toast notifications */
 .toast-container {
   position: fixed;
-  top: var(--space-lg);
+  top: max(var(--space-lg), env(safe-area-inset-top, var(--space-lg)));
   left: 50%;
   transform: translateX(-50%);
   z-index: 300;

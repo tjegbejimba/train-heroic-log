@@ -7,6 +7,7 @@ export default function Modal({
   onCancel,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  isDestructive = false,
   children,
 }) {
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function Modal({
             </button>
           )}
           {onConfirm && (
-            <button className="btn btn-primary flex-1" onClick={onConfirm}>
+            <button className={`btn ${isDestructive ? 'btn-danger' : 'btn-primary'} flex-1`} onClick={onConfirm}>
               {confirmText}
             </button>
           )}

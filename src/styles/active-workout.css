@@ -139,7 +139,7 @@
 }
 
 .active-workout-view__content--timer {
-  padding-bottom: 230px;
+  padding-bottom: 120px;
 }
 
 /* =====================================================
@@ -847,7 +847,7 @@
   }
 
   .active-workout-view__content--timer {
-    padding-bottom: 250px;
+    padding-bottom: 130px;
   }
 
   .aw-exercise-card__header {

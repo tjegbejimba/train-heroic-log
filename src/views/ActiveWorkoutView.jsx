@@ -436,7 +436,7 @@ export default function ActiveWorkoutView({
           <CheckCircle size={20} />
           {allDone
             ? 'Complete Workout'
-            : `Finish  (${completedSets}/${totalSets} sets)`}
+            : `Finish (${completedSets}/${totalSets} sets)`}
         </button>
       </div>
 

@@ -11,6 +11,10 @@ export default function SessionHeader({
 
   useEffect(() => {
     const interval = setInterval(() => {
+      if (!startedAt || isNaN(new Date(startedAt).getTime())) {
+        setElapsed('0:00');
+        return;
+      }
       const now = new Date();
       const start = new Date(startedAt);
       const diff = Math.floor((now - start) / 1000); // seconds

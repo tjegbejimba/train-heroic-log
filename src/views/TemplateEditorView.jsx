@@ -315,16 +315,16 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                     />
                     {isPickerOpen(bIdx, eIdx) && filteredExercises.length > 0 && (
                       <div className="tpl-editor__dropdown">
-                        {filteredExercises.slice(0, 15).map((name) => (
+                        {filteredExercises.slice(0, 15).map((exerciseName) => (
                           <button
-                            key={name}
+                            key={exerciseName}
                             className="tpl-editor__dropdown-item"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              setExerciseTitle(bIdx, eIdx, name);
+                              setExerciseTitle(bIdx, eIdx, exerciseName);
                             }}
                           >
-                            {name}
+                            {exerciseName}
                           </button>
                         ))}
                       </div>

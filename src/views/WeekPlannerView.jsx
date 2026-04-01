@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -204,18 +205,21 @@ export default function WeekPlannerView({
     <div className="view planner-view">
       <div className="planner-view__header">
         <h1>Week Planner</h1>
-        <p className="text-secondary text-sm">{formatWeekRange()}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          <p className="text-secondary text-sm">{formatWeekRange()}</p>
+          {hasDraftChanges && <span className="planner-draft-badge">Unsaved changes</span>}
+        </div>
       </div>
 
       <div className="planner-view__nav">
         <button className="btn btn-secondary btn-small" onClick={goToPrevWeek}>
-          ← Prev
+          <ChevronLeft size={16} />
         </button>
         <button className="btn btn-secondary btn-small" onClick={goToThisWeek}>
           This Week
         </button>
         <button className="btn btn-secondary btn-small" onClick={goToNextWeek}>
-          Next →
+          <ChevronRight size={16} />
         </button>
       </div>
 
@@ -331,7 +335,6 @@ export default function WeekPlannerView({
                   placeholder="Search templates..."
                   value={templateSearch}
                   onChange={(e) => setTemplateSearch(e.target.value)}
-                  autoFocus
                   style={{ marginBottom: 'var(--space-sm)' }}
                 />
                 <div className="template-picker__list">
@@ -377,6 +380,7 @@ export default function WeekPlannerView({
           onCancel={() => setShowClearConfirm(false)}
           confirmText="Clear"
           cancelText="Keep"
+          isDestructive
         />
       )}
     </div>
