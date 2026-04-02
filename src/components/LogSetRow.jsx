@@ -173,17 +173,16 @@ export default function LogSetRow({
           <div className="log-set-row__input-group">
             <label className="log-set-row__input-label">{weightLabel}</label>
             <div className="log-set-row__weight-row">
-              {localWeight !== '' && (
-                <button
-                  className="log-set-row__adjust-btn"
-                  onClick={() => handleWeightChange(String(parseFloat(localWeight) - 2.5))}
-                  disabled={isCompleted}
-                  aria-label="Decrease weight by 2.5"
-                  type="button"
-                >
-                  −2.5
-                </button>
-              )}
+              <button
+                className="log-set-row__adjust-btn"
+                onClick={() => handleWeightChange(String(parseFloat(localWeight) - 2.5))}
+                disabled={isCompleted || localWeight === ''}
+                aria-label="Decrease weight by 2.5"
+                type="button"
+                style={localWeight === '' ? { visibility: 'hidden' } : undefined}
+              >
+                −2.5
+              </button>
               <input
                 ref={weightInputRef}
                 type="number"
@@ -202,17 +201,16 @@ export default function LogSetRow({
                 disabled={isCompleted}
                 className="log-set-row__input"
               />
-              {localWeight !== '' && (
-                <button
-                  className="log-set-row__adjust-btn"
-                  onClick={() => handleWeightChange(String(parseFloat(localWeight) + 2.5))}
-                  disabled={isCompleted}
-                  aria-label="Increase weight by 2.5"
-                  type="button"
-                >
-                  +2.5
-                </button>
-              )}
+              <button
+                className="log-set-row__adjust-btn"
+                onClick={() => handleWeightChange(String(parseFloat(localWeight) + 2.5))}
+                disabled={isCompleted || localWeight === ''}
+                aria-label="Increase weight by 2.5"
+                type="button"
+                style={localWeight === '' ? { visibility: 'hidden' } : undefined}
+              >
+                +2.5
+              </button>
             </div>
           </div>
         )}
