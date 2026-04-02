@@ -346,7 +346,7 @@ export default function ActiveWorkoutView({
                                 height="200"
                                 src={`https://www.youtube.com/embed/${extractVideoId(
                                   getYouTubeLink(exercise.title)
-                                )}`}
+                                )}?mute=1`}
                                 title={exercise.title}
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
