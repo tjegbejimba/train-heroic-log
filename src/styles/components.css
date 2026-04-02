@@ -390,6 +390,117 @@
   margin-top: var(--space-lg);
 }
 
+/* ========== Training Card ========== */
+.training-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.training-card--completed {
+  border-color: rgba(48, 209, 88, 0.35);
+  background: rgba(48, 209, 88, 0.04);
+}
+
+.training-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.training-card__title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.training-card__done-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-accent-green);
+  flex-shrink: 0;
+}
+
+.training-card__actions {
+  margin-bottom: var(--space-md);
+}
+
+.training-card__start-btn {
+  width: 100%;
+}
+
+.training-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.training-card__stat {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.training-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.training-card__chip {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.training-card__chip--overflow {
+  color: var(--color-accent-blue);
+  border-color: rgba(75, 123, 255, 0.3);
+}
+
+/* ========== Training Rest Card ========== */
+.training-rest-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+}
+
+.training-rest-card__icon {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.training-rest-card__heading {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm);
+}
+
+.training-rest-card__message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
 /* ========== Mobile ========== */
 @media (max-width: 768px) {
   /* Date strip: taller tap targets */

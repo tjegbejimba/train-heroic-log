@@ -365,6 +365,7 @@ export default function App() {
           schedule={schedule}
           completedDates={completedDates}
           getWorkoutForDate={getWorkoutForDate}
+          getLog={getLog}
           setWorkoutDate={setWorkoutDate}
           getYouTubeLink={getLink}
           setYouTubeLink={setLink}
