@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { showLocalNotification } from '../storage/push';
+import { showLocalNotification, requestNotificationPermission } from '../storage/push';
 
 function playBeep() {
   try {
@@ -21,6 +21,13 @@ function playBeep() {
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
   const [remaining, setRemaining] = useState(safeInitial);
+
+  // Request notification permission on first rest timer — contextual and non-intrusive
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      requestNotificationPermission();
+    }
+  }, []);
 
   useEffect(() => {
     if (remaining <= 0) {
