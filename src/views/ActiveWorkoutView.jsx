@@ -140,6 +140,14 @@ export default function ActiveWorkoutView({
     const allSetsFlat = Object.values(log.exercises).flat();
     const doneSets = allSetsFlat.filter((s) => s.completed);
     const totalCompleted = doneSets.length;
+    const totalSets = allSetsFlat.length;
+
+    // Duration
+    let durationMin = null;
+    if (log.startedAt && log.completedAt) {
+      const ms = new Date(log.completedAt) - new Date(log.startedAt);
+      if (ms > 0) durationMin = Math.round(ms / 60000);
+    }
 
     // Volume grouped by unit
     const volumeByUnit = {};
@@ -189,7 +197,7 @@ export default function ActiveWorkoutView({
       });
     }
 
-    return { totalCompleted, volumeByUnit, prs };
+    return { totalCompleted, totalSets, durationMin, volumeByUnit, prs };
   };
 
   const handleCancelWorkout = () => {
@@ -477,21 +485,38 @@ export default function ActiveWorkoutView({
           >
             {summary && (
               <div className="aw-summary">
-                <p className="aw-summary__stat">
-                  <strong>{summary.totalCompleted}</strong> sets completed
-                </p>
-                {Object.entries(summary.volumeByUnit).map(([unit, vol]) => (
-                  <p key={unit} className="aw-summary__stat">
-                    Total volume: <strong>{vol.toLocaleString()} {unit}</strong>
-                  </p>
-                ))}
+                <div className="aw-summary__stats-grid">
+                  {summary.durationMin != null && (
+                    <div className="aw-summary__stat-card">
+                      <span className="aw-summary__stat-value">{summary.durationMin}</span>
+                      <span className="aw-summary__stat-label">min</span>
+                    </div>
+                  )}
+                  <div className="aw-summary__stat-card">
+                    <span className="aw-summary__stat-value">{summary.totalCompleted}</span>
+                    <span className="aw-summary__stat-label">
+                      {summary.totalCompleted === summary.totalSets ? 'sets' : `/ ${summary.totalSets} sets`}
+                    </span>
+                  </div>
+                  {Object.entries(summary.volumeByUnit).map(([unit, vol]) => (
+                    <div key={unit} className="aw-summary__stat-card aw-summary__stat-card--wide">
+                      <span className="aw-summary__stat-value">{vol.toLocaleString()}</span>
+                      <span className="aw-summary__stat-label">{unit} volume</span>
+                    </div>
+                  ))}
+                </div>
+
                 {summary.prs.length > 0 && (
                   <div className="aw-summary__prs">
-                    <p className="aw-summary__pr-heading">Personal Records:</p>
+                    <p className="aw-summary__pr-heading">New PRs</p>
                     {summary.prs.map((pr, i) => (
-                      <p key={i} className="aw-summary__pr-item">
-                        🏆 {pr.exTitle}: {pr.reps} reps × {pr.weight} {pr.unit}
-                      </p>
+                      <div key={i} className="aw-summary__pr-item">
+                        <span className="aw-summary__pr-trophy">🏆</span>
+                        <span className="aw-summary__pr-text">
+                          <strong>{pr.exTitle}</strong>
+                          <span className="aw-summary__pr-weight"> {pr.reps} × {pr.weight} {pr.unit}</span>
+                        </span>
+                      </div>
                     ))}
                   </div>
                 )}
