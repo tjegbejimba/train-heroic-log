@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Check, Minus } from 'lucide-react';
 import { formatSet, secondsToMmss, mmssToSeconds } from '../csv/exerciseData';
 import { parseLogKey } from '../constants';
+import { hapticLight } from '../utils/haptics';
 
 const UNIT_LABELS = {
   lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm',
@@ -166,7 +167,7 @@ export default function LogSetRow({
         setLocalWeight(String(set.weight));
         if (isTimeWeight) setLocalTimeWeightStr(secondsToMmss(set.weight));
       }
-      navigator.vibrate?.(50);
+      hapticLight();
     }
 
     onUpdate({ ...latestRef.current });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { showLocalNotification, requestNotificationPermission } from '../storage/push';
+import { hapticHeavy } from '../utils/haptics';
 
 function playBeep() {
   try {
@@ -47,7 +48,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
       if (!hasFiredRef.current && mountedRef.current) {
         hasFiredRef.current = true;
         playBeep();
-        navigator.vibrate?.([100, 50, 100]);
+        hapticHeavy();
         showLocalNotification('Rest complete', {
           body: 'Time for your next set',
           tag: 'rest-timer',

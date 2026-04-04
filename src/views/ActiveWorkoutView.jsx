@@ -7,6 +7,7 @@ import RestTimer from '../components/RestTimer';
 import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 import { extractVideoId } from '../utils/youtube';
+import { hapticSuccess } from '../utils/haptics';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -208,6 +209,7 @@ export default function ActiveWorkoutView({
       completedAt: new Date().toISOString(),
     };
     saveLog(logKey, completed);
+    hapticSuccess();
     setCompletedLog(completed);
     setShowSummaryModal(true);
   };
