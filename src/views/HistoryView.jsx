@@ -1,10 +1,16 @@
 import { useState, useMemo } from 'react';
 import { BarChart2, FileText, CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
+import { calculateStreaks } from '../utils/streaks';
 
-export default function HistoryView({ allLogs, deleteLog, workouts }) {
+export default function HistoryView({ allLogs, deleteLog, workouts, completedDates }) {
   const [expandedKey, setExpandedKey] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const streaks = useMemo(
+    () => calculateStreaks(completedDates || new Set()),
+    [completedDates]
+  );
 
   // Only show completed workouts
   const completedLogs = useMemo(
@@ -184,6 +190,27 @@ export default function HistoryView({ allLogs, deleteLog, workouts }) {
           completed
         </p>
       </div>
+
+      {completedDates && completedDates.size > 0 && (
+        <div className="streak-bar">
+          <div className="streak-bar__stat">
+            <span className={`streak-bar__icon ${streaks.isActiveToday ? 'streak-bar__icon--active' : ''}`}>🔥</span>
+            <span className="streak-bar__value">{streaks.currentStreak}</span>
+            <span className="streak-bar__label">
+              {streaks.currentStreak === 0 ? 'No streak' : streaks.currentStreak === 1 ? 'day' : 'days'}
+            </span>
+          </div>
+          <div className="streak-bar__divider" />
+          <div className="streak-bar__stat">
+            <span className="streak-bar__icon">🏆</span>
+            <span className="streak-bar__value">{streaks.longestStreak}</span>
+            <span className="streak-bar__label">{streaks.longestStreak === 1 ? 'day best' : 'days best'}</span>
+          </div>
+          {streaks.currentStreak > 0 && !streaks.isActiveToday && (
+            <div className="streak-bar__nudge">Workout today to keep your streak!</div>
+          )}
+        </div>
+      )}
 
       <div className="history-view__list">
         {completedLogs.map((log) => {
