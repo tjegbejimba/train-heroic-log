@@ -135,6 +135,26 @@ export default function App() {
     });
   }, []);
 
+  // Show toast when server overwrites local data during sync
+  useEffect(() => {
+    const keyLabels = {
+      th_workouts: 'Workouts',
+      th_schedule: 'Schedule',
+      th_logs: 'Logs',
+      th_templates: 'Templates',
+      th_yt_links: 'YouTube Links',
+      th_active: 'Active Session',
+    };
+    const handler = (e) => {
+      const keys = e.detail?.keys;
+      if (!Array.isArray(keys) || keys.length === 0) return;
+      const labels = keys.map((k) => keyLabels[k] || k);
+      showToast(`Server updated: ${labels.join(', ')}`, 'info');
+    };
+    window.addEventListener('sync-merge-conflict', handler);
+    return () => window.removeEventListener('sync-merge-conflict', handler);
+  }, [showToast]);
+
   // Check for crash recovery on mount
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
@@ -466,6 +486,7 @@ export default function App() {
           allLogs={allLogs}
           deleteLog={deleteLog}
           workouts={workouts}
+          completedDates={completedDates}
         />
       );
       break;
@@ -729,16 +750,91 @@ export default function App() {
         />
       )}
 
-      {showResumeModal && (
-        <Modal
-          title="Resume Workout?"
-          message="You have an active workout session. Would you like to resume?"
-          onConfirm={handleResumeYes}
-          onCancel={handleResumeNo}
-          confirmText="Resume"
-          cancelText="Discard"
-        />
-      )}
+      {showResumeModal && (() => {
+        let workoutName = 'Unknown Workout';
+        let dateLabel = '';
+        let progressLabel = '';
+        let durationLabel = '';
+
+        try {
+          const { date, workoutTitle } = parseLogKey(session.logKey);
+          workoutName = workoutTitle || 'Unknown Workout';
+
+          // Format date nicely (e.g. "Sat, Apr 4")
+          if (date) {
+            const d = new Date(date + 'T00:00:00');
+            if (!isNaN(d.getTime())) {
+              dateLabel = d.toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+              });
+            }
+          }
+
+          // Count completed sets from session.exercises
+          let completedSets = 0;
+          if (session.exercises && typeof session.exercises === 'object') {
+            for (const sets of Object.values(session.exercises)) {
+              if (Array.isArray(sets)) {
+                completedSets += sets.filter((s) => s.completed).length;
+              }
+            }
+          }
+
+          // Count total sets from workout definition
+          const w = workouts[workoutTitle];
+          let totalSets = 0;
+          if (w && Array.isArray(w.blocks)) {
+            for (const block of w.blocks) {
+              if (Array.isArray(block.exercises)) {
+                for (const ex of block.exercises) {
+                  totalSets += Array.isArray(ex.sets) ? ex.sets.length : 0;
+                }
+              }
+            }
+          }
+
+          if (totalSets > 0) {
+            progressLabel = `${completedSets} of ${totalSets} sets completed`;
+          } else if (completedSets > 0) {
+            progressLabel = `${completedSets} sets completed`;
+          } else {
+            progressLabel = 'No sets logged yet';
+          }
+
+          // Duration since session started
+          if (session.startedAt) {
+            const elapsed = Date.now() - new Date(session.startedAt).getTime();
+            if (elapsed > 0) {
+              const mins = Math.floor(elapsed / 60000);
+              if (mins < 60) {
+                durationLabel = `Started ${mins} min ago`;
+              } else {
+                const hrs = Math.floor(mins / 60);
+                durationLabel = hrs === 1 ? 'Started 1 hour ago' : `Started ${hrs} hours ago`;
+              }
+            }
+          }
+        } catch {
+          // logKey unparseable — show defaults
+        }
+
+        return (
+          <Modal
+            title="Resume Workout?"
+            onConfirm={handleResumeYes}
+            onCancel={handleResumeNo}
+            confirmText="Resume"
+            cancelText="Discard"
+          >
+            <div style={{ marginBottom: '1rem', fontSize: '0.95rem', lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{workoutName}</div>
+              {dateLabel && <div style={{ color: '#aaa' }}>{dateLabel}</div>}
+              <div style={{ marginTop: '0.5rem' }}>{progressLabel}</div>
+              {durationLabel && <div style={{ color: '#aaa', marginTop: '0.25rem' }}>{durationLabel}</div>}
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
