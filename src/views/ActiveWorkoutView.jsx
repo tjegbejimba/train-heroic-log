@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Youtube, CheckCircle, ChevronDown, Pencil } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
-import LogSetRow from '../components/LogSetRow';
+import { LogSetRow, EditSetRow } from '../components/log-set';
 import Modal from '../components/Modal';
 import RestTimer from '../components/RestTimer';
 import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
+import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
+import { getSetMeta } from '../utils/setMeta';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -52,6 +54,20 @@ export default function ActiveWorkoutView({
   const wakeLockRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
   const [editBlocks, setEditBlocks] = useState(null);
+
+  // Pre-compute previous sets for all exercises (once per workout, memoized)
+  const prevSetsMap = useMemo(() => {
+    if (!workout?.blocks || !allLogs) return {};
+    const map = {};
+    for (const block of workout.blocks) {
+      for (const ex of block.exercises) {
+        if (!map[ex.title]) {
+          map[ex.title] = findPreviousSets(allLogs, workoutTitle, ex.title, { before: date });
+        }
+      }
+    }
+    return map;
+  }, [allLogs, workoutTitle, workout?.blocks, date]);
 
   const toggleEditMode = () => {
     if (editMode) {
@@ -410,7 +426,22 @@ export default function ActiveWorkoutView({
                   {/* Set rows */}
                   <div className="aw-exercise-card__sets">
                     {exercise.sets.map((set, setIdx) => {
+                      if (editMode) {
+                        return (
+                          <EditSetRow
+                            key={setIdx}
+                            setIndex={setIdx}
+                            set={set}
+                            onTargetChange={(si, field, val) =>
+                              handleTargetChange(blockIdx, exIdx, si, field, val)
+                            }
+                            onRemoveSet={() => handleRemoveSet(blockIdx, exIdx, setIdx)}
+                          />
+                        );
+                      }
                       const firstIncomplete = exerciseLogs.findIndex((s) => !s?.completed);
+                      const prevSets = prevSetsMap[exercise.title];
+                      const meta = getSetMeta(set);
                       return (
                         <LogSetRow
                           key={setIdx}
@@ -421,14 +452,7 @@ export default function ActiveWorkoutView({
                           onUpdate={(newSetData) =>
                             updateExerciseSet(exercise.title, setIdx, newSetData)
                           }
-                          allLogs={allLogs}
-                          workoutTitle={workoutTitle}
-                          exerciseTitle={exercise.title}
-                          editMode={editMode}
-                          onTargetChange={(setIdx2, field, value) =>
-                            handleTargetChange(blockIdx, exIdx, setIdx2, field, value)
-                          }
-                          onRemoveSet={() => handleRemoveSet(blockIdx, exIdx, setIdx)}
+                          lastHint={formatLastHint(prevSets?.[setIdx] ?? null, meta)}
                         />
                       );
                     })}

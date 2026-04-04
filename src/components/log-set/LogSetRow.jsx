@@ -1,35 +1,27 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Minus } from 'lucide-react';
-import { formatSet, secondsToMmss, mmssToSeconds } from '../csv/exerciseData';
-import { parseLogKey } from '../constants';
-import { hapticLight } from '../utils/haptics';
+import { useState, useRef, useEffect } from 'react';
+import { Check } from 'lucide-react';
+import { formatSet, secondsToMmss, mmssToSeconds } from '../../csv/exerciseData';
+import { getSetMeta } from '../../utils/setMeta';
+import { hapticLight } from '../../utils/haptics';
 
-const UNIT_LABELS = {
-  lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm',
-  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'Time', time: 'Time',
-};
-
+/**
+ * Logging-mode set row. 6 props — handles input state, time conversion,
+ * auto-fill, haptics, and latestRef race prevention internally.
+ */
 export default function LogSetRow({
   setIndex,
   set,
   loggedSet,
   onUpdate,
-  isNext,
-  allLogs,
-  workoutTitle,
-  exerciseTitle,
-  editMode = false,
-  onTargetChange = null,
-  onRemoveSet = null,
+  isNext = false,
+  lastHint = null,
 }) {
+  const { isBodyweight, isTimeWeight, isTimeReps, weightLabel, repsLabel } = getSetMeta(set);
+
   const [localReps, setLocalReps] = useState(loggedSet?.actualReps ?? '');
   const [localWeight, setLocalWeight] = useState(loggedSet?.actualWeight ?? '');
   const [isCompleted, setIsCompleted] = useState(loggedSet?.completed ?? false);
 
-  // Track accumulated local values to avoid stale-prop race condition:
-  // if the user types reps then immediately types weight, both onChange handlers
-  // fire before the parent re-renders, so spreading loggedSet would lose the
-  // first change. We spread latestRef instead.
   const latestRef = useRef({
     ...(loggedSet || {}),
     actualReps: loggedSet?.actualReps ?? '',
@@ -37,18 +29,28 @@ export default function LogSetRow({
     completed: loggedSet?.completed ?? false,
   });
 
-  // Sync local state from prop when loggedSet changes externally
-  // (e.g. undo: completed goes from true to false, or crash recovery)
+  const repsInputRef = useRef(null);
+  const weightInputRef = useRef(null);
+
+  const [localTimeWeightStr, setLocalTimeWeightStr] = useState(() =>
+    isTimeWeight && loggedSet?.actualWeight !== '' && loggedSet?.actualWeight != null
+      ? secondsToMmss(Number(loggedSet.actualWeight))
+      : ''
+  );
+  const [localTimeRepsStr, setLocalTimeRepsStr] = useState(() =>
+    isTimeReps && loggedSet?.actualReps !== '' && loggedSet?.actualReps != null
+      ? secondsToMmss(Number(loggedSet.actualReps))
+      : ''
+  );
+
+  // Sync local state from prop on undo or crash recovery
   useEffect(() => {
     const propReps = loggedSet?.actualReps ?? '';
     const propWeight = loggedSet?.actualWeight ?? '';
     const propCompleted = loggedSet?.completed ?? false;
 
-    // Sync on undo (completed transitions from true to false)
     const wasCompleted = latestRef.current.completed;
     const isUndo = wasCompleted && !propCompleted;
-
-    // Sync when both local values are still empty (initial load / crash recovery)
     const localEmpty = localReps === '' && localWeight === '';
 
     if (isUndo || localEmpty) {
@@ -66,7 +68,6 @@ export default function LogSetRow({
         completed: propCompleted,
       };
     } else {
-      // Sync any non-tracked fields from parent without overwriting user edits
       latestRef.current = {
         ...latestRef.current,
         ...(loggedSet || {}),
@@ -76,59 +77,6 @@ export default function LogSetRow({
       };
     }
   }, [loggedSet?.actualReps, loggedSet?.actualWeight, loggedSet?.completed]);
-
-  const repsInputRef = useRef(null);
-  const weightInputRef = useRef(null);
-
-  const isBodyweight = set.unit === 'bw' || set.unit === 'reps';
-  const isTimeWeight = set.unit === 'sec' || set.unit === 'time';
-  const isTimeReps = set.repsUnit === 'sec' || set.repsUnit === 'time';
-  const weightLabel = isTimeWeight ? 'Time' : (UNIT_LABELS[set.unit] || 'Weight');
-  const repsLabel = isTimeReps ? 'Time' : (set.repsUnit && set.repsUnit !== 'reps' ? (UNIT_LABELS[set.repsUnit] || set.repsUnit) : 'Reps');
-
-  const [localTimeWeightStr, setLocalTimeWeightStr] = useState(() =>
-    isTimeWeight && loggedSet?.actualWeight !== '' && loggedSet?.actualWeight != null
-      ? secondsToMmss(Number(loggedSet.actualWeight))
-      : ''
-  );
-  const [localTimeRepsStr, setLocalTimeRepsStr] = useState(() =>
-    isTimeReps && loggedSet?.actualReps !== '' && loggedSet?.actualReps != null
-      ? secondsToMmss(Number(loggedSet.actualReps))
-      : ''
-  );
-
-  // Compute "last time" hint: find most recent log (before today) with this exercise
-  const lastHint = (() => {
-    if (!allLogs || !workoutTitle || !exerciseTitle) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    const matchingLogs = Object.values(allLogs)
-      .filter((log) => {
-        if (!log || !log.date || !log.exercises) return false;
-        if (log.date >= today) return false;
-        const logKey = log.key || log.logKey;
-        if (!logKey) return false;
-        const parsed = parseLogKey(logKey);
-        return parsed.workoutTitle === workoutTitle && log.exercises[exerciseTitle];
-      })
-      .sort((a, b) => (b.date > a.date ? 1 : -1));
-    if (matchingLogs.length === 0) return null;
-    const prevSets = matchingLogs[0].exercises[exerciseTitle];
-    if (!prevSets || !prevSets[setIndex]) return null;
-    const prev = prevSets[setIndex];
-    if (prev.actualReps === '' && prev.actualWeight === '') return null;
-    if (prev.actualReps !== '' && prev.actualWeight !== '' && !isBodyweight) {
-      const wDisplay = (prev.unit === 'sec' || prev.unit === 'time')
-        ? secondsToMmss(Number(prev.actualWeight))
-        : `${prev.actualWeight} ${UNIT_LABELS[prev.unit] || prev.unit || ''}`;
-      return `Last: ${prev.actualReps} × ${wDisplay}`.trim();
-    }
-    if (prev.actualReps !== '' && isBodyweight) {
-      return isTimeReps
-        ? `Last: ${secondsToMmss(Number(prev.actualReps))}`
-        : `Last: ${prev.actualReps} reps`;
-    }
-    return null;
-  })();
 
   const handleRepsChange = (value, { updateTimeStr = true } = {}) => {
     const numVal = value === '' ? '' : parseInt(value, 10);
@@ -155,7 +103,6 @@ export default function LogSetRow({
     setIsCompleted(newCompleted);
     latestRef.current.completed = newCompleted;
 
-    // Auto-fill from target when marking complete with empty fields
     if (newCompleted) {
       if (latestRef.current.actualReps === '' && set.reps !== null) {
         latestRef.current.actualReps = set.reps;
@@ -173,54 +120,6 @@ export default function LogSetRow({
     onUpdate({ ...latestRef.current });
   };
 
-  // Edit mode: show editable target reps/weight instead of logging UI
-  if (editMode) {
-    return (
-      <div className="log-set-row log-set-row--edit">
-        <div className="log-set-row__meta">
-          <span className="log-set-row__set-num">{setIndex + 1}</span>
-        </div>
-        <div className="log-set-row__inputs">
-          <div className="log-set-row__input-group">
-            <label className="log-set-row__input-label">{repsLabel}</label>
-            <input
-              type="number"
-              inputMode="numeric"
-              autoComplete="off"
-              min="0"
-              className="log-set-row__input"
-              value={set.reps ?? ''}
-              onChange={(e) => onTargetChange?.(setIndex, 'reps', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-            />
-          </div>
-          {!isBodyweight && (
-            <div className="log-set-row__input-group">
-              <label className="log-set-row__input-label">{weightLabel}</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                autoComplete="off"
-                min="0"
-                step="0.5"
-                className="log-set-row__input"
-                value={set.weight ?? ''}
-                onChange={(e) => onTargetChange?.(setIndex, 'weight', e.target.value === '' ? null : parseFloat(e.target.value))}
-              />
-            </div>
-          )}
-        </div>
-        <button
-          type="button"
-          className="log-set-row__remove-btn"
-          onClick={onRemoveSet}
-          aria-label="Remove set"
-        >
-          <Minus size={18} />
-        </button>
-      </div>
-    );
-  }
-
   const classNames = [
     'log-set-row',
     isCompleted ? 'log-set-row--completed' : '',
@@ -229,7 +128,6 @@ export default function LogSetRow({
 
   return (
     <div className={classNames}>
-      {/* Set number + target */}
       <div className="log-set-row__meta">
         <span className="log-set-row__set-num">{setIndex + 1}</span>
         <div className="log-set-row__target-wrap">
@@ -240,7 +138,6 @@ export default function LogSetRow({
         </div>
       </div>
 
-      {/* Input fields */}
       <div className="log-set-row__inputs">
         <div className="log-set-row__input-group">
           <label className="log-set-row__input-label">{repsLabel}</label>
@@ -359,7 +256,6 @@ export default function LogSetRow({
         )}
       </div>
 
-      {/* Complete toggle */}
       <button
         className={`log-set-row__complete${isCompleted ? ' log-set-row__complete--active' : ''}`}
         onClick={(e) => { e.currentTarget.blur(); handleToggleComplete(); }}

@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Practices
+
+**Always use TDD (test-driven development) when implementing code.** Use the `/tdd` skill for the red-green-refactor loop: write a failing test first, implement just enough to make it pass, then refactor. This applies to new features, bug fixes, and refactors alike.
+
 ## Commands
 
 ```bash
