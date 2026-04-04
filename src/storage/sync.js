@@ -61,6 +61,7 @@ export async function pullFromServer() {
     const serverData = await res.json();
 
     let changed = false;
+    const changedKeys = [];
     for (const [key, { data, updatedAt }] of Object.entries(serverData)) {
       // Read the raw stored string once — used for efficient change detection
       // below (avoids re-serializing local and sidesteps key-order false positives)
@@ -86,6 +87,7 @@ export async function pullFromServer() {
           if (local !== null) {
             removeLS(key);
             changed = true;
+            changedKeys.push(key);
           }
         }
         continue;
@@ -109,7 +111,11 @@ export async function pullFromServer() {
       if (mergedStr !== localRaw) {
         localStorage.setItem(key, mergedStr);
         changed = true;
+        changedKeys.push(key);
       }
+    }
+    if (changed) {
+      window.dispatchEvent(new CustomEvent('sync-merge-conflict', { detail: { keys: changedKeys } }));
     }
     return { ok: true, changed };
   } catch {
@@ -287,6 +293,35 @@ if (typeof document !== 'undefined') {
     if (document.visibilityState === 'hidden') {
       flushPendingPushes();
     }
+  });
+}
+
+// Flush pending pushes before page unload to prevent data loss during the
+// 500ms debounce window.  navigator.sendBeacon is used as a synchronous
+// fallback since async fetch is not guaranteed to complete during beforeunload.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (pendingPushes.size === 0) return;
+    const keys = [...pendingPushes.keys()];
+    for (const key of keys) {
+      clearTimeout(pendingPushes.get(key));
+      pendingPushes.delete(key);
+    }
+    for (const key of keys) {
+      try {
+        const data = readLS(key, null);
+        const payload = JSON.stringify({ data });
+        const url = `${API_BASE}/data/${key}`;
+        // sendBeacon is synchronous and survives page teardown
+        const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+        if (!sent) {
+          failedKeys.add(key);
+        }
+      } catch {
+        failedKeys.add(key);
+      }
+    }
+    persistFailedKeys();
   });
 }
 

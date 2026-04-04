@@ -18,10 +18,12 @@ export function useWorkoutLogs() {
   }
 
   const saveLog = useCallback((logKey, logData) => {
-    const updated = { ...logs };
-    updated[logKey] = logData;
-    saveLogs(updated);
-  }, [logs]);
+    setLogs(prevLogs => {
+      const updated = { ...prevLogs, [logKey]: logData };
+      writeLS(LS_WORKOUT_LOGS, updated);
+      return updated;
+    });
+  }, []);
 
   function getLog(logKey) {
     return logs[logKey] || null;

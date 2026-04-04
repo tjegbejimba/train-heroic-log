@@ -39,6 +39,19 @@ import { MessageSquare } from 'lucide-react';
 
 import './styles/App.css';
 
+// Module-level guard: once set, prevents new state writes from being
+// enqueued between flushPendingPushes() completing and the reload firing.
+let syncReloadInProgress = false;
+
+async function safeFlushAndReload(sessionStorageEntries = {}) {
+  if (syncReloadInProgress) return;
+  syncReloadInProgress = true;
+  window.stop(); // abort pending async operations to prevent new writes
+  Object.entries(sessionStorageEntries).forEach(([k, v]) => sessionStorage.setItem(k, v));
+  await flushPendingPushes();
+  setTimeout(() => window.location.reload(), 0);
+}
+
 export default function App() {
   // Data hooks
   const { workouts, saveWorkouts, updateExerciseNotes } = useWorkouts();
@@ -115,9 +128,7 @@ export default function App() {
     }
     pullSync().then(async ({ ok, changed }) => {
       if (changed) {
-        await flushPendingPushes(); // don't lose in-flight writes
-        sessionStorage.setItem('syncReload', '1');
-        window.location.reload();
+        await safeFlushAndReload({ syncReload: '1' });
       } else if (ok) {
         retryFailedPushes(); // push any previously-failed keys
       }
@@ -128,7 +139,23 @@ export default function App() {
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
       try {
-        const { workoutTitle } = parseLogKey(session.logKey);
+        const { date, workoutTitle } = parseLogKey(session.logKey);
+
+        // Discard sessions older than 7 days
+        const sessionDate = new Date(date + 'T00:00:00');
+        const diffDays = (Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (isNaN(diffDays) || diffDays > 7) {
+          clearSession();
+          return;
+        }
+
+        // Don't offer resume if the log is already completed
+        const existingLog = getLog(session.logKey);
+        if (existingLog && existingLog.completedAt) {
+          clearSession();
+          return;
+        }
+
         const w = workouts[workoutTitle];
         const isValid =
           w &&
@@ -403,7 +430,8 @@ export default function App() {
       );
       break;
 
-    case ROUTE_ACTIVE_WORKOUT:
+    case ROUTE_ACTIVE_WORKOUT: {
+      const { workoutTitle: activeWorkoutTitle } = parseLogKey(params.logKey);
       currentView = (
         <ActiveWorkoutView
           logKey={params.logKey}
@@ -421,9 +449,16 @@ export default function App() {
             clearSession();
             navigate(ROUTE_TRAINING);
           }}
+          onUpdateWorkout={(updatedBlocks) => {
+            const updatedWorkout = { ...workouts[activeWorkoutTitle], blocks: updatedBlocks };
+            saveWorkouts({ ...workouts, [activeWorkoutTitle]: updatedWorkout });
+            const tpl = templateList.find((t) => t.name === activeWorkoutTitle);
+            if (tpl) saveTemplate(tpl.id, { ...tpl, blocks: updatedBlocks });
+          }}
         />
       );
       break;
+    }
 
     case ROUTE_HISTORY:
       currentView = (
@@ -503,6 +538,9 @@ export default function App() {
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
+            if (syncReloadInProgress) return;
+            syncReloadInProgress = true;
+            window.stop();
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
               // Clear server first — if offline the server keeps old data, which
@@ -513,7 +551,7 @@ export default function App() {
               keys.forEach((k) => removeLS(k));
             }
             sessionStorage.setItem('skipSync', '1');
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 0);
           }}
           syncStatus={syncStatus}
           lastSynced={lastSynced}
@@ -522,9 +560,7 @@ export default function App() {
             if (ok) {
               showToast(changed ? 'Synced from server!' : 'Already up to date');
               if (changed) {
-                await flushPendingPushes();
-                sessionStorage.setItem('syncReload', '1');
-                window.location.reload();
+                await safeFlushAndReload({ syncReload: '1' });
               }
             } else {
               showToast('Server unreachable', 'error');
@@ -608,6 +644,9 @@ export default function App() {
           duplicateTemplate={duplicateTemplate}
           navigate={navigate}
           onClearAllData={async (keys) => {
+            if (syncReloadInProgress) return;
+            syncReloadInProgress = true;
+            window.stop();
             await flushPendingPushes(); // flush any in-flight writes before clearing
             if (!keys) {
               // Clear server first — if offline the server keeps old data, which
@@ -618,7 +657,7 @@ export default function App() {
               keys.forEach((k) => removeLS(k));
             }
             sessionStorage.setItem('skipSync', '1');
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 0);
           }}
           syncStatus={syncStatus}
           lastSynced={lastSynced}
@@ -627,9 +666,7 @@ export default function App() {
             if (ok) {
               showToast(changed ? 'Synced from server!' : 'Already up to date');
               if (changed) {
-                await flushPendingPushes();
-                sessionStorage.setItem('syncReload', '1');
-                window.location.reload();
+                await safeFlushAndReload({ syncReload: '1' });
               }
             } else {
               showToast('Server unreachable', 'error');

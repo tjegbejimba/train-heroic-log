@@ -177,33 +177,71 @@ function parseTime(str) {
 
 const UNIT_LABELS = {
   lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm', bw: 'BW',
-  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'sec', time: 'sec', reps: 'reps',
+  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'Time', time: 'Time', reps: 'reps',
 };
+
+/** Convert total seconds to "MM:SS" string */
+export function secondsToMmss(secs) {
+  const n = Math.max(0, Math.round(Number(secs)));
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+/** Parse "MM:SS" (or plain seconds integer) to total seconds, or null if unparseable */
+export function mmssToSeconds(str) {
+  if (str === '' || str == null) return null;
+  const parts = String(str).split(':');
+  if (parts.length === 2) {
+    const m = parseInt(parts[0], 10);
+    const s = parseInt(parts[1], 10);
+    if (!isNaN(m) && !isNaN(s)) return m * 60 + s;
+  }
+  const n = parseInt(str, 10);
+  return isNaN(n) ? null : n;
+}
 
 /**
  * Format a Set for display.
  * When count > 1, shows grouped format: "3 × 8 @ 135 lb"
  * When count = 1, shows single format: "8 × 135 lb"
- * @param {Object} set - {reps, weight, unit, ...}
- * @param {number} count - number of identical sets (default 1)
- * @returns {string}
+ * Time units (sec/time) display as MM:SS instead of raw seconds.
  */
 export function formatSet(set, count = 1) {
   if (!set) return '';
 
-  const repsUnitLabel = set.repsUnit && set.repsUnit !== 'reps' ? ` ${UNIT_LABELS[set.repsUnit] || set.repsUnit}` : '';
-  const repsStr = set.reps === null ? 'AMRAP' : `${set.reps}${repsUnitLabel}`;
+  const isTimeWeight = set.unit === 'sec' || set.unit === 'time';
+  const isTimeReps = set.repsUnit === 'sec' || set.repsUnit === 'time';
+
+  let repsStr;
+  if (set.reps === null) {
+    repsStr = 'AMRAP';
+  } else if (isTimeReps) {
+    repsStr = secondsToMmss(set.reps);
+  } else {
+    const repsUnitLabel = set.repsUnit && set.repsUnit !== 'reps' ? ` ${UNIT_LABELS[set.repsUnit] || set.repsUnit}` : '';
+    repsStr = `${set.reps}${repsUnitLabel}`;
+  }
+
   const unitLabel = UNIT_LABELS[set.unit] || set.unit;
   const noWeight = set.unit === 'reps';
   const isBodyweight = set.weight === null || set.unit === 'bw';
 
   if (count > 1) {
     if (noWeight || isBodyweight) return `${count} × ${repsStr}`;
-    return `${count} × ${repsStr} @ ${set.weight} ${unitLabel}`;
+    const wStr = isTimeWeight ? secondsToMmss(set.weight) : `${set.weight} ${unitLabel}`;
+    return `${count} × ${repsStr} @ ${wStr}`;
   }
 
   if (noWeight) return repsStr;
-  const weightStr = isBodyweight ? 'BW' : `${set.weight} ${unitLabel}`;
+  let weightStr;
+  if (isBodyweight) {
+    weightStr = 'BW';
+  } else if (isTimeWeight) {
+    weightStr = secondsToMmss(set.weight);
+  } else {
+    weightStr = `${set.weight} ${unitLabel}`;
+  }
   return `${repsStr} × ${weightStr}`;
 }
 

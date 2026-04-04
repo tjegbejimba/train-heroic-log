@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Timer } from 'lucide-react';
+import { X, Timer, Pencil } from 'lucide-react';
 
 export default function SessionHeader({
   workoutTitle,
   startedAt,
   onCancel,
   onTimerOpen,
+  isEditMode = false,
+  onToggleEdit = null,
 }) {
   const [elapsed, setElapsed] = useState('0:00');
 
@@ -51,9 +53,21 @@ export default function SessionHeader({
         </div>
       </div>
 
-      <button className="session-header__timer-btn" onClick={onTimerOpen} aria-label="Open rest timer">
-        <Timer size={20} />
-      </button>
+      <div className="session-header__right-actions">
+        {onToggleEdit && (
+          <button
+            className={`session-header__edit-btn${isEditMode ? ' session-header__edit-btn--active' : ''}`}
+            onClick={onToggleEdit}
+            aria-label={isEditMode ? 'Save edits' : 'Edit workout'}
+            type="button"
+          >
+            <Pencil size={16} />
+          </button>
+        )}
+        <button className="session-header__timer-btn" onClick={onTimerOpen} aria-label="Open rest timer">
+          <Timer size={20} />
+        </button>
+      </div>
     </div>
   );
 }

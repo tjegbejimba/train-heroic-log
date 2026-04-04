@@ -17,6 +17,7 @@ export default function ActiveWorkoutView({
   getYouTubeLink,
   onComplete,
   onCancel,
+  onUpdateWorkout,
 }) {
   const { date, workoutTitle } = parseLogKey(logKey);
   const workout = workouts[workoutTitle];
@@ -47,11 +48,88 @@ export default function ActiveWorkoutView({
   const [editingNote, setEditingNote] = useState(null);
   const { settings } = useSettings();
   const workoutNoteTimerRef = useRef(null);
+  const wakeLockRef = useRef(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editBlocks, setEditBlocks] = useState(null);
+
+  const toggleEditMode = () => {
+    if (editMode) {
+      if (editBlocks && onUpdateWorkout) onUpdateWorkout(editBlocks);
+      setEditMode(false);
+      setEditBlocks(null);
+    } else {
+      setEditBlocks(JSON.parse(JSON.stringify(workout.blocks)));
+      setEditMode(true);
+    }
+  };
+
+  const handleTargetChange = (blockIdx, exIdx, setIdx, field, value) => {
+    setEditBlocks((prev) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      next[blockIdx].exercises[exIdx].sets[setIdx][field] = value;
+      return next;
+    });
+  };
+
+  const handleRemoveSet = (blockIdx, exIdx, setIdx) => {
+    setEditBlocks((prev) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      next[blockIdx].exercises[exIdx].sets.splice(setIdx, 1);
+      return next;
+    });
+  };
+
+  const handleAddSet = (blockIdx, exIdx) => {
+    setEditBlocks((prev) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const sets = next[blockIdx].exercises[exIdx].sets;
+      const base = sets[sets.length - 1] || { reps: null, weight: null, unit: 'lb' };
+      sets.push({ ...base });
+      return next;
+    });
+  };
+
+  // Keep screen awake during active workout
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return;
+    let released = false;
+    navigator.wakeLock.request('screen').then((lock) => {
+      if (released) { lock.release(); return; }
+      wakeLockRef.current = lock;
+    }).catch(() => {});
+    // Re-acquire if page visibility changes (iOS releases lock on hide)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !wakeLockRef.current) {
+        navigator.wakeLock.request('screen').then((lock) => {
+          wakeLockRef.current = lock;
+        }).catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      released = true;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; }
+    };
+  }, []);
+
+  // Clean up rest timer on unmount to prevent stale callbacks
+  useEffect(() => {
+    return () => { setRestTimerActive(false); };
+  }, []);
 
   // Initialize exercise logs
   useEffect(() => {
     if (!workout) return;
-    if (currentLog.exercises && Object.keys(currentLog.exercises).length > 0) return;
+    // Skip if exercises already have actual logged data (crash recovery)
+    if (currentLog.exercises && Object.keys(currentLog.exercises).length > 0) {
+      const hasLoggedData = Object.values(currentLog.exercises).some((sets) =>
+        Array.isArray(sets) && sets.some((s) =>
+          s.completed || (s.actualReps !== undefined && s.actualReps !== '') || (s.actualWeight !== undefined && s.actualWeight !== '')
+        )
+      );
+      if (hasLoggedData) return;
+    }
 
     const newExercises = {};
     workout.blocks.forEach((block) => {
@@ -233,6 +311,8 @@ export default function ActiveWorkoutView({
         startedAt={currentLog.startedAt}
         onCancel={() => setShowCancelModal(true)}
         onTimerOpen={() => setRestTimerActive(true)}
+        isEditMode={editMode}
+        onToggleEdit={onUpdateWorkout ? toggleEditMode : null}
       />
 
       {/* Sticky progress bar directly under header */}
@@ -246,10 +326,19 @@ export default function ActiveWorkoutView({
       </div>
 
       <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
+        {/* Edit mode banner */}
+        {editMode && (
+          <div className="aw-edit-banner">
+            <Pencil size={13} />
+            <span>Editing targets — tap the pencil again to save</span>
+          </div>
+        )}
+
         {/* Exercise blocks */}
         {(() => {
+          const activeBlocks = editMode ? editBlocks : workout.blocks;
           let globalIdx = 0;
-          return workout.blocks.map((block, blockIdx) => {
+          return activeBlocks.map((block, blockIdx) => {
             const isSuperset = block.exercises.length > 1;
 
             const exerciseCards = block.exercises.map((exercise, exIdx) => {
@@ -267,7 +356,7 @@ export default function ActiveWorkoutView({
               return (
                 <div
                   key={exIdx}
-                  className={`aw-exercise-card${allExDone ? ' aw-exercise-card--done' : ''}`}
+                  className={`aw-exercise-card${allExDone && !editMode ? ' aw-exercise-card--done' : ''}`}
                 >
                   {/* Card header */}
                   <div className="aw-exercise-card__header">
@@ -279,12 +368,12 @@ export default function ActiveWorkoutView({
                       )}
                     </div>
                     <div className="aw-exercise-card__header-actions">
-                      {allExDone && (
+                      {allExDone && !editMode && (
                         <span className="aw-exercise-card__done-badge">
                           <CheckCircle size={16} />
                         </span>
                       )}
-                      {getYouTubeLink(exercise.title) && (
+                      {getYouTubeLink(exercise.title) && !editMode && (
                         <a
                           href={getYouTubeLink(exercise.title)}
                           target="_blank"
@@ -301,9 +390,19 @@ export default function ActiveWorkoutView({
                   {/* Column labels */}
                   <div className="aw-sets-header">
                     <span className="aw-sets-header__set">SET</span>
-                    <span className="aw-sets-header__target">TARGET</span>
-                    <span className="aw-sets-header__inputs">ACTUAL</span>
-                    <span className="aw-sets-header__done" aria-hidden="true" />
+                    {editMode ? (
+                      <>
+                        <span className="aw-sets-header__target">REPS</span>
+                        <span className="aw-sets-header__inputs">WEIGHT</span>
+                        <span className="aw-sets-header__done" aria-hidden="true" />
+                      </>
+                    ) : (
+                      <>
+                        <span className="aw-sets-header__target">TARGET</span>
+                        <span className="aw-sets-header__inputs">ACTUAL</span>
+                        <span className="aw-sets-header__done" aria-hidden="true" />
+                      </>
+                    )}
                   </div>
 
                   {/* Set rows */}
@@ -323,9 +422,23 @@ export default function ActiveWorkoutView({
                           allLogs={allLogs}
                           workoutTitle={workoutTitle}
                           exerciseTitle={exercise.title}
+                          editMode={editMode}
+                          onTargetChange={(setIdx2, field, value) =>
+                            handleTargetChange(blockIdx, exIdx, setIdx2, field, value)
+                          }
+                          onRemoveSet={() => handleRemoveSet(blockIdx, exIdx, setIdx)}
                         />
                       );
                     })}
+                    {editMode && (
+                      <button
+                        type="button"
+                        className="aw-edit-add-set"
+                        onClick={() => handleAddSet(blockIdx, exIdx)}
+                      >
+                        + Add Set
+                      </button>
+                    )}
                   </div>
 
                   {/* Form notes collapsible */}

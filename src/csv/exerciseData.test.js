@@ -224,6 +224,6 @@ describe('formatSet', () => {
   });
 
   it('formats time/sec set', () => {
-    expect(formatSet({ reps: 20, weight: 6, unit: 'time' })).toBe('20 × 6 sec');
+    expect(formatSet({ reps: 20, weight: 6, unit: 'time' })).toBe('20 × 00:06');
   });
 });

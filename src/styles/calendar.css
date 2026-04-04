@@ -28,7 +28,8 @@
 
 .date-strip__days {
   display: flex;
-  gap: var(--space-md);
+  min-width: 100%;
+  justify-content: space-evenly;
   padding-bottom: var(--space-sm);
 }
 

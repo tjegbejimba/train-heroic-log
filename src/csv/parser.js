@@ -39,7 +39,10 @@ export function parseCSV(csvText) {
     const parseErrors = [];
 
     // Group rows by workout title, then by date
-    const rowObjects = dataRows.map((row) => {
+    const rowObjects = dataRows.map((row, rowIndex) => {
+      if (row.length !== headers.length) {
+        parseErrors.push(`Row ${rowIndex + 2} has ${row.length} columns (expected ${headers.length})`);
+      }
       const rowObj = {};
       headers.forEach((header, i) => {
         rowObj[header] = (row[i] || '').trim();
@@ -240,10 +243,13 @@ export function normalizeDate(dateStr) {
     return dateStr;
   }
 
-  // Try parsing as Date object
+  // Try parsing as Date object (use local methods to avoid UTC timezone shift)
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
-    return d.toISOString().split('T')[0];
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   return 'invalid-date';

@@ -385,6 +385,12 @@
   cursor: not-allowed;
 }
 
+/* Time (MM:SS) input variant */
+.log-set-row__input--time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
 /* Complete button */
 .log-set-row__complete {
   display: flex;
@@ -889,6 +895,97 @@
     padding-left: var(--space-md);
     padding-right: var(--space-md);
   }
+}
+
+/* =====================================================
+   EDIT MODE
+   ===================================================== */
+.aw-edit-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-lg);
+  background-color: rgba(75, 123, 255, 0.08);
+  border-bottom: 1px solid rgba(75, 123, 255, 0.2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-accent-blue);
+  letter-spacing: 0.2px;
+}
+
+.log-set-row--edit {
+  background: none;
+}
+
+.log-set-row__remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: rgba(255, 69, 58, 0.6);
+  cursor: pointer;
+  justify-self: center;
+  transition: color var(--transition), background-color var(--transition);
+}
+
+.log-set-row__remove-btn:hover {
+  color: #ff453a;
+  background-color: rgba(255, 69, 58, 0.1);
+}
+
+.aw-edit-add-set {
+  display: block;
+  width: 100%;
+  padding: 12px var(--space-lg);
+  background: none;
+  border: none;
+  border-top: 1px dashed rgba(75, 123, 255, 0.25);
+  color: var(--color-accent-blue);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color var(--transition);
+}
+
+.aw-edit-add-set:hover {
+  background-color: rgba(75, 123, 255, 0.06);
+}
+
+/* Session header edit button — subtle by default */
+.session-header__edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: rgba(235, 235, 245, 0.3);
+  cursor: pointer;
+  transition: color var(--transition), background-color var(--transition);
+}
+
+.session-header__edit-btn:hover {
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+}
+
+.session-header__edit-btn--active {
+  color: var(--color-accent-blue);
+  background-color: rgba(75, 123, 255, 0.12);
+}
+
+.session-header__right-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 /* =====================================================

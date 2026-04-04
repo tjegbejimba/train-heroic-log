@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { showLocalNotification, requestNotificationPermission } from '../storage/push';
 
@@ -21,6 +21,19 @@ function playBeep() {
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
   const [remaining, setRemaining] = useState(safeInitial);
+  const hasFiredRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  // Track mounted state for safe callback execution
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Reset hasFired when timer is restarted with new duration
+  useEffect(() => {
+    hasFiredRef.current = false;
+  }, [initialSeconds]);
 
   // Request notification permission on first rest timer — contextual and non-intrusive
   useEffect(() => {
@@ -31,15 +44,18 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
 
   useEffect(() => {
     if (remaining <= 0) {
-      playBeep();
-      navigator.vibrate?.([100, 50, 100]);
-      showLocalNotification('Rest complete', {
-        body: 'Time for your next set',
-        tag: 'rest-timer',
-        renotify: true,
-        silent: false,
-      });
-      onDone();
+      if (!hasFiredRef.current && mountedRef.current) {
+        hasFiredRef.current = true;
+        playBeep();
+        navigator.vibrate?.([100, 50, 100]);
+        showLocalNotification('Rest complete', {
+          body: 'Time for your next set',
+          tag: 'rest-timer',
+          renotify: true,
+          silent: false,
+        });
+        onDone();
+      }
       return;
     }
     const id = setTimeout(() => setRemaining((r) => r - 1), 1000);
