@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { ROUTE_LIBRARY } from '../constants';
 import ProgressChart from '../components/ProgressChart';
+import { estimated1RM, epley, brzycki } from '../utils/oneRepMax';
 
 export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }) {
   const sessions = useMemo(() => {
@@ -14,6 +15,23 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
         exerciseNote: (log.exerciseNotes || {})[exerciseTitle] || null,
       }));
   }, [allLogs, exerciseTitle]);
+
+  const best1RM = useMemo(() => {
+    let best = null;
+    for (const session of sessions) {
+      for (const set of session.sets || []) {
+        if (!set.completed) continue;
+        const w = Number(set.actualWeight);
+        const r = Number(set.actualReps);
+        if (!w || !r || w <= 0 || r <= 0) continue;
+        const est = estimated1RM(w, r);
+        if (est > 0 && (!best || est > best.est)) {
+          best = { est, weight: w, reps: r, unit: set.unit || 'lb', epley: epley(w, r), brzycki: brzycki(w, r) };
+        }
+      }
+    }
+    return best;
+  }, [sessions]);
 
   const chartSessions = useMemo(() => {
     const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -57,6 +75,25 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
           {sessions.length} session{sessions.length !== 1 ? 's' : ''} logged
         </p>
       </div>
+
+      {best1RM && (
+        <div style={{
+          background: '#1a1a1a',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+            Est. 1RM: <span style={{ color: '#4B7BFF' }}>{Math.round(best1RM.est)} {best1RM.unit}</span>
+          </div>
+          <div style={{ fontSize: '13px', color: '#aaa', marginTop: '4px' }}>
+            Based on {best1RM.weight} {best1RM.unit} × {best1RM.reps} rep{best1RM.reps !== 1 ? 's' : ''}
+          </div>
+          <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+            Epley: {Math.round(best1RM.epley)} | Brzycki: {Math.round(best1RM.brzycki)}
+          </div>
+        </div>
+      )}
 
       {chartSessions.length >= 2 && (
         <div className="exercise-history-view__chart-wrapper">
