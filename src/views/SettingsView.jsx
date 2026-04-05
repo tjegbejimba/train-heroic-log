@@ -9,6 +9,7 @@ import {
 import { downloadICS } from '../utils/ics';
 import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
+import { getQuotaUsage, getQuotaWarning } from '../storage/quota';
 import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
@@ -144,23 +145,12 @@ export default function SettingsView({
     showToast('Template duplicated');
   };
 
-  // Storage usage
+  // Storage usage via quota module
   const storageUsage = useMemo(() => {
-    let total = 0;
-    const keys = [
-      LS_WORKOUTS,
-      LS_SCHEDULE,
-      LS_YOUTUBE_LINKS,
-      LS_WORKOUT_LOGS,
-      LS_ACTIVE_SESSION,
-      LS_TEMPLATES,
-    ];
-    keys.forEach((key) => {
-      const val = localStorage.getItem(key);
-      if (val) total += val.length * 2; // UTF-16 = 2 bytes per char
-    });
-    return total;
-  }, [templateList]); // re-calc when templates change
+    const { used, estimate } = getQuotaUsage();
+    const warning = getQuotaWarning(used, estimate);
+    return { used, estimate, ...warning };
+  }, [templateList]);
 
   const formatBytes = (bytes) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -447,19 +437,31 @@ export default function SettingsView({
           <div className="settings-view__storage mt-lg">
             <div className="flex-between">
               <span className="text-secondary text-sm">Storage used</span>
-              <span className="text-sm">{formatBytes(storageUsage)}</span>
+              <span className="text-sm">{formatBytes(storageUsage.used)} ({storageUsage.percent}%)</span>
             </div>
             <div className="settings-view__storage-bar mt-sm">
               <div
-                className="settings-view__storage-fill"
+                className={`settings-view__storage-fill${storageUsage.level === 'critical' ? ' storage-critical' : storageUsage.level === 'warning' ? ' storage-warning' : ''}`}
                 style={{
-                  width: `${Math.min((storageUsage / (5 * 1024 * 1024)) * 100, 100)}%`,
+                  width: `${Math.min(storageUsage.percent, 100)}%`,
                 }}
               />
             </div>
-            <p className="text-secondary text-sm mt-sm" style={{ fontSize: '11px' }}>
-              ~5 MB localStorage limit
-            </p>
+            {storageUsage.level === 'critical' && (
+              <p className="text-red text-sm mt-sm" style={{ fontSize: '11px' }}>
+                ⚠️ Storage nearly full — consider clearing old workout logs
+              </p>
+            )}
+            {storageUsage.level === 'warning' && (
+              <p className="text-yellow text-sm mt-sm" style={{ fontSize: '11px' }}>
+                Storage usage is getting high
+              </p>
+            )}
+            {storageUsage.level === 'ok' && (
+              <p className="text-secondary text-sm mt-sm" style={{ fontSize: '11px' }}>
+                ~5 MB localStorage limit
+              </p>
+            )}
           </div>
         </div>
 

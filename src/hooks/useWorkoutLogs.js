@@ -1,41 +1,29 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { LS_WORKOUT_LOGS } from '../constants';
-import { readLS, writeLS } from '../storage/index';
+import { createEntityHook } from './createEntityHook';
+
+const useLogsBase = createEntityHook(LS_WORKOUT_LOGS, {});
 
 /**
  * Hook for managing completed/in-progress workout logs
  * LogKey format: "YYYY-MM-DD::WorkoutTitle"
- * @returns {{ logs: Object, saveLog: Function, getLog: Function, completedDates: Set, allLogs: Array }}
  */
 export function useWorkoutLogs() {
-  const [logs, setLogs] = useState(() => {
-    return readLS(LS_WORKOUT_LOGS, {});
-  });
+  const { data: logs, save: saveLogs } = useLogsBase();
 
-  function saveLogs(logsMap) {
-    writeLS(LS_WORKOUT_LOGS, logsMap);
-    setLogs(logsMap);
-  }
-
+  // Functional update to avoid stale closures in rapid-fire saves
   const saveLog = useCallback((logKey, logData) => {
-    setLogs(prevLogs => {
-      const updated = { ...prevLogs, [logKey]: logData };
-      writeLS(LS_WORKOUT_LOGS, updated);
-      return updated;
-    });
-  }, []);
+    saveLogs((prev) => ({ ...prev, [logKey]: logData }));
+  }, [saveLogs]);
 
-  function getLog(logKey) {
-    return logs[logKey] || null;
-  }
+  const getLog = useCallback((logKey) => logs[logKey] || null, [logs]);
 
-  function deleteLog(logKey) {
+  const deleteLog = useCallback((logKey) => {
     const updated = { ...logs };
     delete updated[logKey];
     saveLogs(updated);
-  }
+  }, [logs, saveLogs]);
 
-  // Compute completed dates
   const completedDates = useMemo(() => {
     const dates = new Set();
     Object.keys(logs).forEach((logKey) => {
@@ -48,13 +36,9 @@ export function useWorkoutLogs() {
     return dates;
   }, [logs]);
 
-  // All logs as array sorted by date desc
   const allLogs = useMemo(() => {
     return Object.entries(logs)
-      .map(([key, log]) => ({
-        key,
-        ...log,
-      }))
+      .map(([key, log]) => ({ key, ...log }))
       .sort((a, b) => {
         const dateA = a.key.split('::')[0];
         const dateB = b.key.split('::')[0];

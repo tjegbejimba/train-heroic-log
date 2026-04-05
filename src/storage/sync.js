@@ -8,25 +8,34 @@
  */
 
 import { readLS, writeLS, removeLS } from './index';
+import { deepMerge } from './merge';
+import { createRetryState, recordFailure, dropKey, getFailedEntries, shouldRetry, getBackoffMs } from './retry';
 
 // API base URL — in production, same origin; in dev, point to backend port
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
+let retryTimers = new Map(); // key -> timeout ID (backoff retry)
 
-// Restore failed keys from localStorage so they survive page reloads and PWA restarts
-let failedKeys = new Set();
+// Restore retry state from localStorage so it survives page reloads and PWA restarts
+let retryState = createRetryState();
 try {
   const stored = localStorage.getItem('sync_failed_keys');
   if (stored) {
-    JSON.parse(stored).forEach((k) => failedKeys.add(k));
+    const parsed = JSON.parse(stored);
+    // Migrate from old Set format (array of strings) to new state format
+    if (Array.isArray(parsed)) {
+      parsed.forEach((k) => { retryState = recordFailure(retryState, k, readLS(k, null), null); });
+    } else {
+      retryState = createRetryState(parsed);
+    }
   }
 } catch { /* ignore parse errors */ }
 
-function persistFailedKeys() {
+function persistRetryState() {
   try {
-    localStorage.setItem('sync_failed_keys', JSON.stringify([...failedKeys]));
+    localStorage.setItem('sync_failed_keys', JSON.stringify(retryState));
   } catch { /* localStorage may be unavailable */ }
 }
 
@@ -99,8 +108,8 @@ export async function pullFromServer() {
         typeof local === 'object' && !Array.isArray(local) &&
         typeof data === 'object' && !Array.isArray(data)
       ) {
-        // Merge maps: preserve local-only entries, server wins on conflicts
-        merged = { ...local, ...data };
+        // Merge maps: deep merge preserves local-only nested fields, server wins at leaf
+        merged = deepMerge(local, data);
       } else {
         merged = data;
       }
@@ -146,23 +155,58 @@ export function pushToServer(key, data) {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        failedKeys.delete(key);
-        persistFailedKeys();
+        retryState = dropKey(retryState, key);
+        persistRetryState();
+        if (retryTimers.has(key)) { clearTimeout(retryTimers.get(key)); retryTimers.delete(key); }
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       } else {
-        failedKeys.add(key);
-        persistFailedKeys();
-        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
+        handlePushFailure(key, data, res.status);
       }
     } catch {
-      failedKeys.add(key);
-      persistFailedKeys();
-      console.warn(`Sync push failed for ${key}`);
-      window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key } }));
+      handlePushFailure(key, data, null);
     }
   }, 500);
 
   pendingPushes.set(key, timeoutId);
+}
+
+function handlePushFailure(key, data, statusCode) {
+  retryState = recordFailure(retryState, key, data, statusCode);
+  persistRetryState();
+  const entry = retryState[key];
+  if (!entry.exhausted) scheduleRetry(key);
+  window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: false, key, attempts: entry.attempts } }));
+}
+
+function scheduleRetry(key) {
+  if (retryTimers.has(key)) { clearTimeout(retryTimers.get(key)); retryTimers.delete(key); }
+  const entry = retryState[key];
+  if (!entry || entry.exhausted) return;
+  const delay = getBackoffMs(entry.attempts - 1);
+  const timerId = setTimeout(async () => {
+    retryTimers.delete(key);
+    const currentEntry = retryState[key];
+    if (!currentEntry || currentEntry.exhausted) return;
+    const payload = currentEntry.payload;
+    try {
+      const res = await fetch(`${API_BASE}/data/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: payload }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        retryState = dropKey(retryState, key);
+        persistRetryState();
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+      } else {
+        handlePushFailure(key, payload, res.status);
+      }
+    } catch {
+      handlePushFailure(key, payload, null);
+    }
+  }, delay);
+  retryTimers.set(key, timerId);
 }
 
 /**
@@ -186,16 +230,17 @@ export async function flushPendingPushes() {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        failedKeys.delete(key);
-        persistFailedKeys();
+        retryState = dropKey(retryState, key);
+        persistRetryState();
         window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
       } else {
-        failedKeys.add(key);
-        persistFailedKeys();
+        retryState = recordFailure(retryState, key, data, res.status);
+        persistRetryState();
       }
     } catch {
-      failedKeys.add(key);
-      persistFailedKeys();
+      const data = readLS(key, null);
+      retryState = recordFailure(retryState, key, data, null);
+      persistRetryState();
     }
   }));
 }
@@ -209,32 +254,30 @@ export function hasPendingPushes() {
 
 /**
  * Retry pushing keys that previously failed.
- * Called after a successful pull to ensure local changes reach the server.
+ * Uses stored payload (not localStorage) so failed deletes aren't lost.
+ * Skips exhausted entries (too many attempts or 4xx errors).
  */
 export async function retryFailedPushes() {
-  if (failedKeys.size === 0) return;
-  const keys = [...failedKeys];
-  await Promise.all(keys.map(async (key) => {
+  const entries = getFailedEntries(retryState);
+  const retryable = entries.filter((e) => !e.exhausted);
+  if (retryable.length === 0) return;
+  await Promise.all(retryable.map(async (entry) => {
     try {
-      const data = readLS(key, null);
-      if (data === null) {
-        failedKeys.delete(key);
-        persistFailedKeys();
-        return;
-      }
-      const res = await fetch(`${API_BASE}/data/${key}`, {
+      const res = await fetch(`${API_BASE}/data/${entry.key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
+        body: JSON.stringify({ data: entry.payload }),
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        failedKeys.delete(key);
-        persistFailedKeys();
-        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key } }));
+        retryState = dropKey(retryState, entry.key);
+        persistRetryState();
+        window.dispatchEvent(new CustomEvent('sync-push', { detail: { ok: true, key: entry.key } }));
+      } else {
+        handlePushFailure(entry.key, entry.payload, res.status);
       }
     } catch {
-      // Still failed — will retry on next opportunity
+      handlePushFailure(entry.key, entry.payload, null);
     }
   }));
 }
@@ -312,16 +355,21 @@ if (typeof window !== 'undefined') {
         const data = readLS(key, null);
         const payload = JSON.stringify({ data });
         const url = `${API_BASE}/data/${key}`;
-        // sendBeacon is synchronous and survives page teardown
         const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
         if (!sent) {
-          failedKeys.add(key);
+          retryState = recordFailure(retryState, key, data, null);
         }
       } catch {
-        failedKeys.add(key);
+        const data = readLS(key, null);
+        retryState = recordFailure(retryState, key, data, null);
       }
     }
-    persistFailedKeys();
+    persistRetryState();
+  });
+
+  // Retry failed pushes when network comes back online
+  window.addEventListener('online', () => {
+    retryFailedPushes();
   });
 }
 

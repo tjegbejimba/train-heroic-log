@@ -1,39 +1,32 @@
-import { useState } from 'react';
+import { useMemo, useCallback } from 'react';
 import { LS_TEMPLATES } from '../constants';
-import { readLS, writeLS } from '../storage/index';
+import { createEntityHook } from './createEntityHook';
+
+const useTemplatesBase = createEntityHook(LS_TEMPLATES, {});
 
 /**
  * Hook for managing workout templates
  * Templates are stored as { [id]: { id, name, createdDate, blocks, notes } }
  */
 export function useTemplates() {
-  const [templates, setTemplates] = useState(() => {
-    return readLS(LS_TEMPLATES, {});
-  });
+  const { data: templates, save: saveTemplates } = useTemplatesBase();
 
-  function saveTemplates(templateMap) {
-    writeLS(LS_TEMPLATES, templateMap);
-    setTemplates(templateMap);
-  }
+  const saveTemplate = useCallback((id, templateData) => {
+    saveTemplates({ ...templates, [id]: templateData });
+  }, [templates, saveTemplates]);
 
-  function saveTemplate(id, templateData) {
-    const updated = { ...templates, [id]: templateData };
-    saveTemplates(updated);
-  }
-
-  function deleteTemplate(id) {
+  const deleteTemplate = useCallback((id) => {
     const updated = { ...templates };
     delete updated[id];
     saveTemplates(updated);
-  }
+  }, [templates, saveTemplates]);
 
-  function renameTemplate(id, newName) {
+  const renameTemplate = useCallback((id, newName) => {
     if (!templates[id]) return;
-    const updated = { ...templates, [id]: { ...templates[id], name: newName } };
-    saveTemplates(updated);
-  }
+    saveTemplates({ ...templates, [id]: { ...templates[id], name: newName } });
+  }, [templates, saveTemplates]);
 
-  function duplicateTemplate(id) {
+  const duplicateTemplate = useCallback((id) => {
     if (!templates[id]) return;
     const original = templates[id];
     const newId = `tpl_${Date.now()}`;
@@ -45,9 +38,9 @@ export function useTemplates() {
     };
     saveTemplate(newId, copy);
     return newId;
-  }
+  }, [templates, saveTemplate]);
 
-  function createTemplateFromWorkout(workout) {
+  const createTemplateFromWorkout = useCallback((workout) => {
     const id = `tpl_${Date.now()}`;
     const template = {
       id,
@@ -58,10 +51,11 @@ export function useTemplates() {
     };
     saveTemplate(id, template);
     return id;
-  }
+  }, [saveTemplate]);
 
-  const templateList = Object.values(templates).sort((a, b) =>
-    a.name.localeCompare(b.name)
+  const templateList = useMemo(
+    () => Object.values(templates).sort((a, b) => a.name.localeCompare(b.name)),
+    [templates]
   );
 
   return {

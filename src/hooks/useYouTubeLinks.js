@@ -1,23 +1,16 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { LS_YOUTUBE_LINKS } from '../constants';
-import { readLS, writeLS } from '../storage/index';
+import { createEntityHook } from './createEntityHook';
+
+const useLinksBase = createEntityHook(LS_YOUTUBE_LINKS, {});
 
 /**
  * Hook for managing YouTube links per exercise
- * ExerciseKey format: exercise title (plain string, globally unique per exercise)
- * @returns {{ links: Object, setLink: Function, removeLink: Function, getLink: Function }}
  */
 export function useYouTubeLinks() {
-  const [links, setLinks] = useState(() => {
-    return readLS(LS_YOUTUBE_LINKS, {});
-  });
+  const { data: links, save: saveLinks } = useLinksBase();
 
-  function saveLinks(linksMap) {
-    writeLS(LS_YOUTUBE_LINKS, linksMap);
-    setLinks(linksMap);
-  }
-
-  function setLink(exerciseKey, url) {
+  const setLink = useCallback((exerciseKey, url) => {
     const updated = { ...links };
     if (url && url.trim()) {
       updated[exerciseKey] = url.trim();
@@ -25,10 +18,9 @@ export function useYouTubeLinks() {
       delete updated[exerciseKey];
     }
     saveLinks(updated);
-  }
+  }, [links, saveLinks]);
 
-  // Save multiple links at once — avoids stale-closure overwrites when calling setLink in a loop
-  function setManyLinks(entries) {
+  const setManyLinks = useCallback((entries) => {
     const updated = { ...links };
     entries.forEach(({ key, url }) => {
       if (url && url.trim()) {
@@ -38,17 +30,15 @@ export function useYouTubeLinks() {
       }
     });
     saveLinks(updated);
-  }
+  }, [links, saveLinks]);
 
-  function removeLink(exerciseKey) {
+  const removeLink = useCallback((exerciseKey) => {
     const updated = { ...links };
     delete updated[exerciseKey];
     saveLinks(updated);
-  }
+  }, [links, saveLinks]);
 
-  function getLink(exerciseKey) {
-    return links[exerciseKey] || null;
-  }
+  const getLink = useCallback((exerciseKey) => links[exerciseKey] || null, [links]);
 
   return { links, setLink, setManyLinks, removeLink, getLink };
 }
