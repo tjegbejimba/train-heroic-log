@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import RestDurationPicker from '../components/RestDurationPicker';
+import BarWeightPicker from '../components/BarWeightPicker';
 
 const UNIT_OPTIONS = ['lb', 'kg', 'bw', 'reps', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
 
@@ -9,7 +10,7 @@ function makeEmptySet(unit = 'lb', repsUnit = 'reps') {
 }
 
 function makeEmptyExercise() {
-  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsUnit: 'reps', showValue: true, unit: 'lb', restDuration: null };
+  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsUnit: 'reps', showValue: true, unit: 'lb', restDuration: null, barWeight: null };
 }
 
 function makeEmptyBlock() {
@@ -115,6 +116,20 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
       ...next[bIdx],
       exercises: next[bIdx].exercises.map((ex, i) =>
         i === eIdx ? { ...ex, restDuration } : ex
+      ),
+    };
+    setBlocks(next);
+  }
+
+  // --- Bar weight picker state ---
+  const [openBarWeightPicker, setOpenBarWeightPicker] = useState(null); // "bIdx-eIdx" or null
+
+  function setExerciseBarWeight(bIdx, eIdx, barWeight) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) =>
+        i === eIdx ? { ...ex, barWeight } : ex
       ),
     };
     setBlocks(next);
@@ -353,6 +368,17 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       setOpenRestPicker(openRestPicker === `${bIdx}-${eIdx}` ? null : `${bIdx}-${eIdx}`)
                     }
                   />
+                  {(ex.unit === 'lb' || ex.unit === 'kg') && (
+                    <BarWeightPicker
+                      value={ex.barWeight ?? null}
+                      onChange={(val) => setExerciseBarWeight(bIdx, eIdx, val)}
+                      isOpen={openBarWeightPicker === `${bIdx}-${eIdx}`}
+                      onToggle={() =>
+                        setOpenBarWeightPicker(openBarWeightPicker === `${bIdx}-${eIdx}` ? null : `${bIdx}-${eIdx}`)
+                      }
+                      unit={ex.unit}
+                    />
+                  )}
                   <button
                     className="btn-icon btn-icon--danger"
                     onClick={() => removeExercise(bIdx, eIdx)}

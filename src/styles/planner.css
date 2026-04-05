@@ -664,6 +664,90 @@
   color: var(--color-text-secondary);
 }
 
+/* ========== Bar Weight Picker ========== */
+.bar-weight-picker__trigger {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.bar-weight-picker__trigger:hover {
+  color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
+
+.bar-weight-picker__badge {
+  font-weight: 600;
+  color: var(--color-accent-blue);
+  font-size: 11px;
+}
+
+.bar-weight-picker {
+  margin-bottom: var(--space-sm);
+}
+
+.bar-weight-picker__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.bar-weight-picker__pill {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 4px 10px;
+  transition: all var(--transition);
+}
+
+.bar-weight-picker__pill:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.bar-weight-picker__pill--active {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: #fff;
+}
+
+.bar-weight-picker__pill--active:hover {
+  background-color: var(--color-accent-blue);
+  color: #fff;
+}
+
+.bar-weight-picker__custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.bar-weight-picker__custom-input {
+  width: 80px;
+  padding: 4px 8px !important;
+  font-size: var(--font-size-sm) !important;
+  text-align: center;
+}
+
+.bar-weight-picker__custom-unit {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
 @media (max-width: 768px) {
   .tpl-editor__header {
     padding: var(--space-md);
