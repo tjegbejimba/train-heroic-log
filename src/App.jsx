@@ -539,10 +539,11 @@ export default function App() {
             }
           }
 
-          // Count completed sets from session.exercises
+          // Count completed sets from saved log (session only stores crash recovery metadata)
           let completedSets = 0;
-          if (session.exercises && typeof session.exercises === 'object') {
-            for (const sets of Object.values(session.exercises)) {
+          const existingLog = getLog(session.logKey);
+          if (existingLog?.exercises && typeof existingLog.exercises === 'object') {
+            for (const sets of Object.values(existingLog.exercises)) {
               if (Array.isArray(sets)) {
                 completedSets += sets.filter((s) => s.completed).length;
               }

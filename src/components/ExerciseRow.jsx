@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import YouTubeLinkInput from './YouTubeLinkInput';
-import { formatSet, groupSets } from '../csv/exerciseData';
+import { formatSet, groupSets } from '../utils/formatters';
 import { extractVideoId } from '../utils/youtube';
 
 export default function ExerciseRow({

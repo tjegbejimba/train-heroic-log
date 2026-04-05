@@ -1,7 +1,4 @@
-const UNIT_LABELS = {
-  lb: 'lb', kg: 'kg', '%': '%', yd: 'yd', m: 'm',
-  RPE: 'RPE', in: 'in', ft: 'ft', sec: 'Time', time: 'Time',
-};
+import { UNIT_LABELS } from './unitLabels';
 
 export function getSetMeta(set) {
   const isBodyweight = set.unit === 'bw' || set.unit === 'reps';

@@ -10,6 +10,7 @@ import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
 import { getSetMeta } from '../utils/setMeta';
+import { buildSummary, findPRs } from '../utils/workoutSummary';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -231,69 +232,12 @@ export default function ActiveWorkoutView({
   };
 
   // Build summary data for the completion modal
-  const buildSummary = (log) => {
+  const computeSummary = (log) => {
     if (!log) return null;
-    const allSetsFlat = Object.values(log.exercises).flat();
-    const doneSets = allSetsFlat.filter((s) => s.completed);
-    const totalCompleted = doneSets.length;
-    const totalSets = allSetsFlat.length;
-
-    // Duration
-    let durationMin = null;
-    if (log.startedAt && log.completedAt) {
-      const ms = new Date(log.completedAt) - new Date(log.startedAt);
-      if (ms > 0) durationMin = Math.round(ms / 60000);
-    }
-
-    // Volume grouped by unit
-    const volumeByUnit = {};
-    doneSets.forEach((s) => {
-      if (s.actualReps && s.actualWeight) {
-        const unit = s.unit || 'lb';
-        volumeByUnit[unit] = (volumeByUnit[unit] || 0) + (s.actualReps * s.actualWeight);
-      }
-    });
-
-    // PR detection: compare each completed set against previous best (max weight for same reps)
-    const prs = [];
-    if (Array.isArray(allLogs) && allLogs.length > 0) {
-      const today = new Date().toISOString().slice(0, 10);
-      // Build previous best: { exerciseTitle: { reps: maxWeight } }
-      const prevBest = {};
-      allLogs.forEach((prevLog) => {
-        if (!prevLog || !prevLog.date || !prevLog.exercises) return;
-        if (prevLog.date >= today) return;
-        Object.entries(prevLog.exercises).forEach(([exTitle, sets]) => {
-          sets.forEach((s) => {
-            if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
-            if (!prevBest[exTitle]) prevBest[exTitle] = {};
-            const reps = s.actualReps;
-            const w = parseFloat(s.actualWeight);
-            if (!isNaN(w) && (prevBest[exTitle][reps] === undefined || w > prevBest[exTitle][reps])) {
-              prevBest[exTitle][reps] = w;
-            }
-          });
-        });
-      });
-
-      // Check current session sets against previous bests
-      const prSeen = new Set();
-      Object.entries(log.exercises).forEach(([exTitle, sets]) => {
-        sets.forEach((s) => {
-          if (!s.completed || s.actualReps === '' || s.actualWeight === '') return;
-          const w = parseFloat(s.actualWeight);
-          if (isNaN(w)) return;
-          const best = prevBest[exTitle]?.[s.actualReps];
-          const key = `${exTitle}:${s.actualReps}:${s.actualWeight}`;
-          if ((best === undefined || w > best) && !prSeen.has(key)) {
-            prSeen.add(key);
-            prs.push({ exTitle, reps: s.actualReps, weight: w, unit: s.unit || 'lb' });
-          }
-        });
-      });
-    }
-
-    return { totalCompleted, totalSets, durationMin, volumeByUnit, prs };
+    const today = new Date().toISOString().slice(0, 10);
+    const summary = buildSummary(log);
+    const prs = findPRs(log, allLogs, today);
+    return { ...summary, prs };
   };
 
   const handleCancelWorkout = () => {
@@ -613,7 +557,7 @@ export default function ActiveWorkoutView({
 
       {/* Workout completion summary modal */}
       {showSummaryModal && (() => {
-        const summary = buildSummary(completedLog);
+        const summary = computeSummary(completedLog);
         return (
           <Modal
             title="Workout complete! 🎉"

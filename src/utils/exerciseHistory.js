@@ -1,5 +1,5 @@
 import { parseLogKey } from '../constants';
-import { secondsToMmss } from '../csv/exerciseData';
+import { secondsToMmss } from './formatters';
 import { getUnitLabel } from './setMeta';
 
 /**

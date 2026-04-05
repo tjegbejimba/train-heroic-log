@@ -17,7 +17,7 @@ describe('getSetMeta', () => {
     const meta = getSetMeta({ reps: 10, weight: null, unit: 'bw', repsUnit: 'reps' });
     expect(meta.isBodyweight).toBe(true);
     expect(meta.isTimeWeight).toBe(false);
-    expect(meta.weightLabel).toBe('Weight');
+    expect(meta.weightLabel).toBe('BW');
   });
 
   it('detects bodyweight set (unit=reps)', () => {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
-import { formatSet, secondsToMmss, mmssToSeconds } from '../../csv/exerciseData';
+import { formatSet, secondsToMmss, mmssToSeconds } from '../../utils/formatters';
 import { getSetMeta } from '../../utils/setMeta';
 import { hapticLight } from '../../utils/haptics';
 
