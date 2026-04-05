@@ -1,0 +1,275 @@
+/* ========== SettingsView — iOS-style grouped sections ========== */
+.settings-view__header {
+  padding: var(--space-lg);
+  padding-bottom: var(--space-sm);
+}
+
+.settings-view__header h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.settings-view__content {
+  padding: 0 var(--space-lg) var(--space-lg);
+  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Section headers — iOS style uppercase labels */
+.settings-view__content h3 {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-xl) 0 var(--space-md);
+}
+
+.settings-view__content h3:first-child {
+  margin-top: var(--space-md);
+}
+
+/* Section cards — grouped rounded containers */
+.settings-view__content > .card {
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* Items within section cards */
+.settings-view__content > .card > *:not(h3) {
+  padding: var(--space-lg);
+}
+
+.settings-view__content > .card > * + *:not(h3) {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* Sync status */
+.settings-view__sync-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sync-dot--online {
+  background-color: var(--color-accent-green);
+}
+
+.sync-dot--offline {
+  background-color: var(--color-text-secondary);
+}
+
+.sync-dot--checking {
+  background-color: var(--color-accent-yellow);
+  animation: settings-pulse 1s ease-in-out infinite;
+}
+
+@keyframes settings-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Rest duration options */
+.settings-view__rest-options {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.settings-view__rest-options .btn {
+  min-height: 40px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.settings-view__rest-options .btn-primary {
+  background: var(--color-accent-blue);
+  color: white;
+}
+
+.settings-view__rest-options .btn-secondary {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+/* Reminder section */
+.settings-view__reminder-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Data actions — full-width secondary buttons */
+.settings-view__data-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.settings-view__data-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Storage indicator */
+.settings-view__storage-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-surface-elevated);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.settings-view__storage-fill {
+  height: 100%;
+  background-color: var(--color-accent-blue);
+  border-radius: var(--radius-full);
+  transition: width 300ms ease;
+  min-width: 2px;
+}
+
+/* Storage warning states */
+.storage-warning .settings-view__storage-fill {
+  background-color: var(--color-accent-yellow);
+}
+
+.storage-critical .settings-view__storage-fill {
+  background-color: var(--color-accent-red);
+}
+
+/* ========== Templates Section ========== */
+.settings-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.settings-template-item {
+  background: var(--color-surface);
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.settings-template-item + .settings-template-item {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.settings-template-item__header {
+  padding: var(--space-lg);
+}
+
+.settings-template-item__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  transition: opacity var(--transition);
+  min-height: 28px;
+}
+
+.settings-template-item__toggle:hover {
+  opacity: 0.8;
+}
+
+.settings-template-item__toggle:active {
+  opacity: 0.6;
+}
+
+.settings-template-item__name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 0;
+}
+
+.settings-template-item__rename {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.settings-template-item__rename input {
+  flex: 1;
+}
+
+.settings-template-item__details {
+  padding: 0 var(--space-lg) var(--space-lg);
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-md);
+}
+
+.settings-template-item__exercises {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.settings-template-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.settings-template-item__actions .btn-icon,
+.settings-template-item__actions .btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.settings-template-item__delete-btn {
+  color: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+}
+
+/* Clear All Data — red-tinted */
+.settings-view__content .btn-danger,
+.settings-view__content [class*="clear"] .btn {
+  color: var(--color-accent-red);
+}
+
+/* Version text at bottom */
+.settings-view__version {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-xl) 0 var(--space-lg);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .settings-view__header {
+    padding: var(--space-md);
+    padding-bottom: var(--space-sm);
+  }
+
+  .settings-view__content {
+    padding: 0 var(--space-md) var(--space-md);
+    padding-bottom: 100px;
+  }
+
+  .settings-template-item__header {
+    padding: var(--space-md) var(--space-lg);
+  }
+}

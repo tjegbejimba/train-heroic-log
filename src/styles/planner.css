@@ -6,14 +6,18 @@
 
 .planner-view__header h1 {
   font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   margin-bottom: var(--space-xs);
 }
 
 .planner-draft-badge {
-  font-size: 11px;
-  color: #f6ad55;
-  font-weight: 600;
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-yellow);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
+  background: rgba(251, 191, 36, 0.12);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
 }
 
 .planner-view__nav {
@@ -26,7 +30,7 @@
 .planner-view__grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 0;
   padding: 0 var(--space-lg);
 }
 
@@ -34,11 +38,19 @@
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
+  min-height: 52px;
+  transition: background-color var(--transition);
+}
+
+.planner-day:last-child {
+  border-bottom: none;
 }
 
 .planner-day--today {
   border-left: 3px solid var(--color-accent-blue);
+  background: var(--color-accent-subtle);
 }
 
 .planner-day--draft {
@@ -54,15 +66,15 @@
 
 .planner-day__name {
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .planner-day__date {
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .planner-day__workout {
@@ -79,24 +91,31 @@
   padding: 0;
   cursor: pointer;
   text-align: left;
-  font-weight: 500;
-  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-base);
   color: var(--color-accent-blue);
-  text-decoration: underline;
-  transition: opacity var(--transition);
+  text-decoration: none;
+  transition: color var(--transition);
 }
 
 .planner-day__workout-name:hover {
-  opacity: 0.75;
+  color: var(--color-accent-hover);
 }
 
 .planner-day__clear {
   background: none;
   border: none;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-sm);
-  padding: var(--space-xs);
+  padding: var(--space-sm);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
 }
 
 .planner-day__clear:hover {
@@ -105,6 +124,9 @@
 
 .planner-day__empty {
   flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .planner-day__assign {
@@ -112,11 +134,23 @@
 }
 
 .planner-view__actions {
+  position: sticky;
+  bottom: 60px;
   padding: var(--space-lg);
-  padding-bottom: 80px;
+  padding-bottom: var(--space-xl);
+  background: linear-gradient(to top, var(--color-bg) 70%, transparent);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  z-index: 5;
+}
+
+.planner-view__actions .btn-primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-lg);
 }
 
 .planner-view__secondary-actions {
@@ -142,209 +176,28 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-lg);
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--color-text-primary);
   transition: all var(--transition);
   text-align: left;
+  min-height: 48px;
 }
 
 .template-picker__item:hover {
   border-color: var(--color-accent-blue);
-  background-color: rgba(75, 123, 255, 0.05);
+  background-color: var(--color-accent-subtle);
+}
+
+.template-picker__item:active {
+  transform: scale(0.98);
 }
 
 .template-picker__name {
-  font-weight: 500;
-}
-
-/* ========== Settings Templates ========== */
-.settings-view__header {
-  padding: var(--space-lg);
-  padding-bottom: var(--space-md);
-}
-
-.settings-view__header h1 {
-  font-size: var(--font-size-2xl);
-}
-
-.settings-view__content {
-  padding: 0 var(--space-lg) var(--space-lg);
-  padding-bottom: 80px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.settings-templates {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.settings-template-item {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.settings-template-item__header {
-  padding: var(--space-md);
-}
-
-.settings-template-item__toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  text-align: left;
-  transition: opacity var(--transition);
-}
-
-.settings-template-item__toggle:hover {
-  opacity: 0.8;
-}
-
-.settings-template-item__name {
-  font-weight: 600;
-  margin-bottom: var(--space-xs);
-}
-
-.settings-template-item__rename {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-}
-
-.settings-template-item__rename input {
-  flex: 1;
-}
-
-.settings-template-item__details {
-  padding: 0 var(--space-md) var(--space-md);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-md);
-}
-
-.settings-template-item__exercises {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.settings-template-item__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.settings-template-item__delete-btn {
-  color: var(--color-accent-red);
-  border-color: var(--color-accent-red);
-}
-
-.settings-view__data-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.settings-view__reminder-actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.settings-view__rest-options {
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.settings-view__storage-bar {
-  width: 100%;
-  height: 6px;
-  background-color: var(--color-border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .planner-view__header {
-    padding: var(--space-md);
-    padding-bottom: var(--space-sm);
-  }
-
-  .planner-view__nav {
-    padding: 0 var(--space-md) var(--space-sm);
-  }
-
-  .planner-view__grid {
-    padding: 0 var(--space-md);
-  }
-
-  .planner-day {
-    padding: var(--space-md) var(--space-md);
-    min-height: 56px;
-  }
-
-  /* Planner clear button: bigger tap target */
-  .planner-day__clear {
-    padding: var(--space-sm) var(--space-md);
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* Icon buttons: 44×44px tap target */
-  .btn-icon {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  /* Template editor: prevent iOS zoom on small number inputs */
-  .tpl-editor__set-input,
-  .tpl-editor__set-unit {
-    font-size: 16px !important;
-  }
-
-  /* Template picker dropdown items: larger tap targets */
-  .tpl-editor__dropdown-item {
-    padding: var(--space-md) var(--space-lg);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-  }
-
-  .planner-view__actions {
-    padding: var(--space-md);
-    padding-bottom: 80px;
-  }
-
-  .settings-view__header {
-    padding: var(--space-md);
-    padding-bottom: var(--space-sm);
-  }
-
-  .settings-view__content {
-    padding: 0 var(--space-md) var(--space-md);
-    padding-bottom: 80px;
-  }
-}
-
-.settings-view__storage-fill {
-  height: 100%;
-  background-color: var(--color-accent-blue);
-  border-radius: 3px;
-  transition: width 300ms ease;
-  min-width: 2px;
+  font-weight: var(--font-weight-medium);
 }
 
 /* ========== Template Editor ========== */
@@ -359,7 +212,7 @@
   top: 0;
   background: var(--color-bg);
   z-index: 10;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .tpl-editor__header-top {
@@ -367,12 +220,29 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-sm);
+  gap: var(--space-sm);
+}
+
+.tpl-editor__header-top .btn-secondary {
+  font-size: var(--font-size-sm);
 }
 
 .tpl-editor__name-input {
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-radius: 0;
+  padding: var(--space-sm) 0;
+  transition: border-color var(--transition);
+}
+
+.tpl-editor__name-input:focus {
+  border-color: var(--color-accent-blue);
+  box-shadow: none;
+  outline: none;
 }
 
 .tpl-editor__blocks {
@@ -383,7 +253,9 @@
 }
 
 .tpl-editor__block {
-  padding: var(--space-md) !important;
+  padding: var(--space-lg) !important;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .tpl-editor__block-header {
@@ -394,8 +266,11 @@
 }
 
 .tpl-editor__block-label {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .tpl-editor__block-actions {
@@ -407,19 +282,22 @@
 .btn-icon {
   background: none;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px 6px;
+  padding: var(--space-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition);
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .btn-icon:hover:not(:disabled) {
   color: var(--color-text-primary);
   border-color: var(--color-text-secondary);
+  background: var(--color-accent-subtle);
 }
 
 .btn-icon:disabled {
@@ -430,15 +308,18 @@
 .btn-icon--danger:hover:not(:disabled) {
   color: var(--color-accent-red);
   border-color: var(--color-accent-red);
+  background: rgba(248, 113, 113, 0.08);
 }
 
 .btn-icon--small {
-  padding: 2px 4px;
+  padding: var(--space-xs);
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .tpl-editor__exercise {
-  padding: var(--space-sm) 0;
-  border-top: 1px solid var(--color-border);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .tpl-editor__exercise:first-child {
@@ -465,30 +346,32 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--color-surface);
+  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   max-height: 200px;
   overflow-y: auto;
   z-index: 20;
   margin-top: 2px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .tpl-editor__dropdown-item {
   display: block;
   width: 100%;
   text-align: left;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   background: none;
   border: none;
   color: var(--color-text-primary);
   cursor: pointer;
   font-size: var(--font-size-sm);
+  transition: background-color var(--transition);
+  min-height: 44px;
 }
 
 .tpl-editor__dropdown-item:hover {
-  background: rgba(75, 123, 255, 0.1);
+  background: var(--color-accent-subtle);
 }
 
 .tpl-editor__sets {
@@ -501,6 +384,8 @@
   gap: var(--space-xs);
   padding: 0 0 var(--space-xs);
   align-items: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .tpl-editor__sets--no-value .tpl-editor__sets-header,
@@ -539,18 +424,19 @@
 .tpl-editor__set-num {
   text-align: center;
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-weight: 600;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
 }
 
 .tpl-editor__set-input {
-  padding: 6px 8px !important;
+  padding: var(--space-sm) var(--space-sm) !important;
   font-size: var(--font-size-sm) !important;
   text-align: center;
+  border-radius: var(--radius-sm);
 }
 
 .tpl-editor__set-unit {
-  padding: 6px 4px !important;
+  padding: var(--space-sm) var(--space-xs) !important;
   font-size: var(--font-size-xs) !important;
 }
 
@@ -569,7 +455,7 @@
 }
 
 .tpl-editor__footer {
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-lg);
   display: flex;
   justify-content: center;
 }
@@ -577,17 +463,17 @@
 .tpl-editor__footer .btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 /* ========== Rest Duration Picker ========== */
 .rest-picker__trigger {
-  background: none;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
-  padding: 4px 6px;
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -602,9 +488,9 @@
 }
 
 .rest-picker__badge {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-accent-blue);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .rest-picker {
@@ -620,12 +506,15 @@
 .rest-picker__pill {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  font-weight: 500;
-  padding: 4px 10px;
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
   transition: all var(--transition);
 }
 
@@ -637,12 +526,13 @@
 .rest-picker__pill--active {
   background-color: var(--color-accent-blue);
   border-color: var(--color-accent-blue);
-  color: #fff;
+  color: white;
 }
 
 .rest-picker__pill--active:hover {
-  background-color: var(--color-accent-blue);
-  color: #fff;
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: white;
 }
 
 .rest-picker__custom-input-wrap {
@@ -654,24 +544,24 @@
 
 .rest-picker__custom-input {
   width: 80px;
-  padding: 4px 8px !important;
+  padding: var(--space-sm) !important;
   font-size: var(--font-size-sm) !important;
   text-align: center;
 }
 
 .rest-picker__custom-unit {
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 /* ========== Bar Weight Picker ========== */
 .bar-weight-picker__trigger {
-  background: none;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
-  padding: 4px 6px;
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -686,9 +576,9 @@
 }
 
 .bar-weight-picker__badge {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-accent-blue);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .bar-weight-picker {
@@ -704,12 +594,15 @@
 .bar-weight-picker__pill {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  font-weight: 500;
-  padding: 4px 10px;
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
   transition: all var(--transition);
 }
 
@@ -721,12 +614,13 @@
 .bar-weight-picker__pill--active {
   background-color: var(--color-accent-blue);
   border-color: var(--color-accent-blue);
-  color: #fff;
+  color: white;
 }
 
 .bar-weight-picker__pill--active:hover {
-  background-color: var(--color-accent-blue);
-  color: #fff;
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: white;
 }
 
 .bar-weight-picker__custom-input-wrap {
@@ -738,17 +632,67 @@
 
 .bar-weight-picker__custom-input {
   width: 80px;
-  padding: 4px 8px !important;
+  padding: var(--space-sm) !important;
   font-size: var(--font-size-sm) !important;
   text-align: center;
 }
 
 .bar-weight-picker__custom-unit {
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
+/* ========== Mobile Responsiveness ========== */
 @media (max-width: 768px) {
+  .planner-view__header {
+    padding: var(--space-md);
+    padding-bottom: var(--space-sm);
+  }
+
+  .planner-view__nav {
+    padding: 0 var(--space-md) var(--space-sm);
+  }
+
+  .planner-view__grid {
+    padding: 0 var(--space-md);
+  }
+
+  .planner-day {
+    padding: var(--space-md) var(--space-lg);
+    min-height: 56px;
+  }
+
+  /* Planner clear button: bigger tap target */
+  .planner-day__clear {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Icon buttons: 44×44px tap target */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Template editor: prevent iOS zoom on small number inputs */
+  .tpl-editor__set-input,
+  .tpl-editor__set-unit {
+    font-size: 16px !important;
+  }
+
+  /* Template picker dropdown items: larger tap targets */
+  .tpl-editor__dropdown-item {
+    padding: var(--space-md) var(--space-lg);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .planner-view__actions {
+    padding: var(--space-md);
+    padding-bottom: var(--space-xl);
+  }
+
   .tpl-editor__header {
     padding: var(--space-md);
     padding-bottom: var(--space-sm);

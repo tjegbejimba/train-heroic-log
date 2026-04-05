@@ -105,7 +105,7 @@ export default function TrainingView({
               className="btn btn-secondary btn-small"
               onClick={() => setViewMode('week')}
             >
-              <CalendarRange size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+              <CalendarRange size={14} style={{ marginRight: 5, verticalAlign: 'middle' }} />
               Week View
             </button>
           </div>
@@ -146,7 +146,7 @@ export default function TrainingView({
                 </div>
                 <div className="training-card__actions">
                   <button
-                    className="btn btn-primary training-card__start-btn"
+                    className="training-card__start-btn"
                     onClick={handleStartWorkout}
                   >
                     Start Workout
@@ -213,9 +213,8 @@ export default function TrainingView({
               Recovery is part of the plan. Rest up and come back strong.
             </p>
             <button
-              className="btn btn-secondary btn-small"
+              className="btn btn-secondary btn-small training-rest-card__plan-btn"
               onClick={() => navigate(ROUTE_PLANNER)}
-              style={{ marginTop: '16px' }}
             >
               Plan this day
             </button>

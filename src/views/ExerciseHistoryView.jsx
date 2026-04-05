@@ -77,19 +77,14 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
       </div>
 
       {best1RM && (
-        <div style={{
-          background: '#1a1a1a',
-          borderRadius: '10px',
-          padding: '12px 16px',
-          marginBottom: '16px',
-        }}>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-            Est. 1RM: <span style={{ color: '#4B7BFF' }}>{Math.round(best1RM.est)} {best1RM.unit}</span>
+        <div className="exercise-history-view__1rm-card">
+          <div className="exercise-history-view__1rm-value">
+            Est. 1RM: <span>{Math.round(best1RM.est)} {best1RM.unit}</span>
           </div>
-          <div style={{ fontSize: '13px', color: '#aaa', marginTop: '4px' }}>
+          <div className="exercise-history-view__1rm-basis">
             Based on {best1RM.weight} {best1RM.unit} × {best1RM.reps} rep{best1RM.reps !== 1 ? 's' : ''}
           </div>
-          <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+          <div className="exercise-history-view__1rm-formulas">
             Epley: {Math.round(best1RM.epley)} | Brzycki: {Math.round(best1RM.brzycki)}
           </div>
         </div>

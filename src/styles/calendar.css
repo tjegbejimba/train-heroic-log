@@ -11,7 +11,7 @@
 
 .date-strip__month-year {
   font-size: var(--font-size-lg);
-  font-style: italic;
+  font-weight: var(--font-weight-semibold);
 }
 
 .date-strip__controls {
@@ -45,7 +45,10 @@
   cursor: pointer;
   color: var(--color-text-secondary);
   transition: all var(--transition);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
+  min-width: 52px;
+  min-height: 56px;
+  position: relative;
 }
 
 .date-strip__day-number {
@@ -73,13 +76,29 @@
 }
 
 .date-strip__day--today {
-  border: 2px solid var(--color-accent-blue);
+  position: relative;
+}
+
+.date-strip__day--today::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--color-accent-blue);
 }
 
 .date-strip__day--selected {
-  color: var(--color-accent-blue);
-  background-color: rgba(75, 123, 255, 0.1);
-  border-bottom: 2px solid var(--color-accent-blue);
+  color: white;
+  background-color: var(--color-accent-blue);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+}
+
+.date-strip__day--selected.date-strip__day--today::after {
+  background-color: white;
 }
 
 /* ========== MonthCalendar ========== */

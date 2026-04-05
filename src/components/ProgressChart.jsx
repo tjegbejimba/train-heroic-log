@@ -72,7 +72,7 @@ export default function ProgressChart({ sessions }) {
                 y1={y}
                 x2={CHART_WIDTH - PADDING.right}
                 y2={y}
-                stroke="rgba(255,255,255,0.06)"
+                stroke="rgba(51, 65, 85, 0.6)"
                 strokeWidth="1"
               />
               <text
@@ -80,7 +80,7 @@ export default function ProgressChart({ sessions }) {
                 y={y + 4}
                 textAnchor="end"
                 fontSize="10"
-                fill="rgba(255,255,255,0.4)"
+                fill="#64748b"
               >
                 {tick}
               </text>
@@ -93,7 +93,7 @@ export default function ProgressChart({ sessions }) {
           x={6}
           y={PADDING.top}
           fontSize="9"
-          fill="rgba(255,255,255,0.35)"
+          fill="#64748b"
           textAnchor="start"
         >
           {sessions[0].unit}
@@ -118,7 +118,7 @@ export default function ProgressChart({ sessions }) {
                 y={CHART_HEIGHT - 2}
                 textAnchor="middle"
                 fontSize="9"
-                fill="rgba(255,255,255,0.35)"
+                fill="#64748b"
               >
                 {d}
               </text>
@@ -129,7 +129,7 @@ export default function ProgressChart({ sessions }) {
         <polyline
           points={linePoints}
           fill="none"
-          stroke="var(--color-accent-blue, #4b7bff)"
+          stroke="var(--color-accent-blue, #6366f1)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -141,7 +141,7 @@ export default function ProgressChart({ sessions }) {
           const cy = yOf(s.bestWeight);
           const isPR = s.isPR;
           const r = isPR ? 10 : 8;
-          const fill = isPR ? 'var(--color-accent-yellow, #ffd60a)' : 'var(--color-accent-blue, #4b7bff)';
+          const fill = isPR ? 'var(--color-accent-yellow, #fbbf24)' : 'var(--color-accent-blue, #6366f1)';
           const isActive = activeDot === i;
           return (
             <g key={i}>
@@ -167,8 +167,8 @@ export default function ProgressChart({ sessions }) {
                     width="120"
                     height="22"
                     rx="5"
-                    fill="#2c2c2e"
-                    stroke="rgba(255,255,255,0.12)"
+                    fill="var(--color-surface-elevated, #334155)"
+                    stroke="rgba(99, 102, 241, 0.3)"
                     strokeWidth="1"
                   />
                   <text
@@ -198,7 +198,7 @@ export default function ProgressChart({ sessions }) {
               y={by}
               width={barWidth}
               height={bh}
-              fill="rgba(75,123,255,0.4)"
+              fill="rgba(99, 102, 241, 0.3)"
               rx="2"
             />
           );
@@ -210,7 +210,7 @@ export default function ProgressChart({ sessions }) {
           y={sparkTop + sparkPlotH / 2 + 4}
           textAnchor="end"
           fontSize="8"
-          fill="rgba(255,255,255,0.3)"
+          fill="#64748b"
         >
           vol
         </text>

@@ -1,0 +1,161 @@
+/* ========== TrainingView — Home Screen ========== */
+
+.training-view__content {
+  padding: var(--space-lg);
+  padding-bottom: 90px;
+}
+
+.training-view__exercises {
+  margin-top: var(--space-lg);
+}
+
+/* ========== Workout Card ========== */
+.training-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 0;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: transform var(--transition);
+}
+
+.training-card:active {
+  transform: scale(0.98);
+}
+
+.training-card--completed {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.training-card--completed .training-card__header {
+  background: linear-gradient(135deg, #059669, var(--color-accent-green));
+}
+
+.training-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-hover));
+}
+
+.training-card__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: white;
+  margin: 0;
+}
+
+.training-card__done-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Stats row (completed card) */
+.training-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-lg) 0;
+}
+
+.training-card__stat {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+}
+
+/* Exercise chips */
+.training-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+}
+
+.training-card__chip {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-blue);
+  background: var(--color-accent-subtle);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+  transition: background var(--transition);
+}
+
+.training-card__chip--overflow {
+  color: var(--color-accent-hover);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Start Workout button */
+.training-card__actions {
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+.training-card__start-btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-hover));
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.training-card__start-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.3);
+}
+
+/* ========== Rest Day Card ========== */
+.training-rest-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: var(--shadow-card);
+}
+
+.training-rest-card__icon {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+  opacity: 0.7;
+}
+
+.training-rest-card__heading {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+
+.training-rest-card__message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.training-rest-card__plan-btn {
+  margin-top: var(--space-xl);
+}
