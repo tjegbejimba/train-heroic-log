@@ -3,6 +3,7 @@ import { CalendarRange, Moon, CheckCircle2, Flame } from 'lucide-react';
 import { ROUTE_PLANNER } from '../constants';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
+import TemplatePreviewSheet from '../components/TemplatePreviewSheet';
 import { calculateStreaks } from '../utils/streaks';
 
 function getGreeting() {
@@ -40,11 +41,14 @@ export default function TrainingView({
   getWorkoutForDate,
   getLog,
   onStartWorkout,
+  onScheduleTemplate,
+  templateList,
   navigate,
 }) {
   const workoutTitle = getWorkoutForDate(currentDate);
   const workout = workoutTitle ? workouts[workoutTitle] : null;
   const [viewMode, setViewMode] = useState('week');
+  const [previewTemplate, setPreviewTemplate] = useState(null);
 
   const logKey = workoutTitle ? `${currentDate}::${workoutTitle}` : null;
   const existingLog = logKey ? getLog(logKey) : null;
@@ -185,32 +189,70 @@ export default function TrainingView({
             )}
           </>
         ) : (
-          <div className="training-rest-card">
-            <div className="training-rest-card__icon">
-              <Moon size={36} strokeWidth={1.5} />
+          <>
+            <div className="training-rest-card">
+              <div className="training-rest-card__icon">
+                <Moon size={36} strokeWidth={1.5} />
+              </div>
+              <h3 className="training-rest-card__heading">Rest Day</h3>
+              <p className="training-rest-card__message">
+                Recovery is part of the plan. Rest up and come back strong.
+              </p>
+              <button
+                className="btn btn-secondary btn-small training-rest-card__plan-btn"
+                onClick={() => navigate(ROUTE_PLANNER)}
+              >
+                Plan today
+              </button>
+              {nextWorkout && (
+                <div className="training-rest-card__next">
+                  <span className="training-rest-card__next-label">Up next</span>
+                  <span className="training-rest-card__next-title">
+                    {nextWorkout.title}
+                  </span>
+                  <span className="training-rest-card__next-day">
+                    {formatDayLabel(nextWorkout.daysAway)}
+                  </span>
+                </div>
+              )}
             </div>
-            <h3 className="training-rest-card__heading">Rest Day</h3>
-            <p className="training-rest-card__message">
-              Recovery is part of the plan. Rest up and come back strong.
-            </p>
-            <button
-              className="btn btn-secondary btn-small training-rest-card__plan-btn"
-              onClick={() => navigate(ROUTE_PLANNER)}
-            >
-              Plan today
-            </button>
-            {nextWorkout && (
-              <div className="training-rest-card__next">
-                <span className="training-rest-card__next-label">Up next</span>
-                <span className="training-rest-card__next-title">
-                  {nextWorkout.title}
-                </span>
-                <span className="training-rest-card__next-day">
-                  {formatDayLabel(nextWorkout.daysAway)}
-                </span>
+
+            {/* Template cards on rest days */}
+            {templateList && templateList.length > 0 && (
+              <div className="training-templates">
+                <div className="training-templates__label">Quick Start</div>
+                <div className="training-templates__scroll">
+                  {templateList.map((tpl) => {
+                    const exercises = tpl.blocks.flatMap((b) => b.exercises);
+                    return (
+                      <button
+                        key={tpl.id}
+                        className="training-templates__card"
+                        onClick={() => setPreviewTemplate(tpl)}
+                      >
+                        <span className="training-templates__card-name">{tpl.name}</span>
+                        <span className="training-templates__card-meta">
+                          {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
+                        </span>
+                        <div className="training-templates__card-exercises">
+                          {exercises.slice(0, 3).map((ex, i) => (
+                            <span key={i} className="training-templates__card-exercise">
+                              {ex.title}
+                            </span>
+                          ))}
+                          {exercises.length > 3 && (
+                            <span className="training-templates__card-exercise">
+                              +{exercises.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -224,6 +266,24 @@ export default function TrainingView({
             Start Workout
           </button>
         </div>
+      )}
+
+      {/* Template preview sheet */}
+      {previewTemplate && (
+        <TemplatePreviewSheet
+          template={previewTemplate}
+          onStartNow={() => {
+            if (onScheduleTemplate) {
+              onScheduleTemplate(currentDate, previewTemplate.name);
+            }
+            setPreviewTemplate(null);
+          }}
+          onSchedule={() => {
+            setPreviewTemplate(null);
+            navigate(ROUTE_PLANNER);
+          }}
+          onClose={() => setPreviewTemplate(null)}
+        />
       )}
     </div>
   );

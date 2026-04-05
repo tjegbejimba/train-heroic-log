@@ -13,6 +13,7 @@ import './styles/planner.css'
 import './styles/settings.css'
 import './styles/training.css'
 import './styles/stats-view.css'
+import './styles/templates.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

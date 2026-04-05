@@ -23,7 +23,7 @@ import {
   LS_WORKOUT_LOGS,
   LS_ACTIVE_SESSION,
   LS_TEMPLATES,
-  ROUTE_EDIT_TEMPLATE,
+  ROUTE_TEMPLATES,
 } from '../constants';
 
 export default function SettingsView({
@@ -486,59 +486,20 @@ export default function SettingsView({
           </button>
         </div>
 
-        {/* Templates section */}
+        {/* Templates — single entry point */}
         <div className="card">
-          <h3 className="mb-md">
-            Templates ({templateList ? templateList.length : 0})
-          </h3>
-
-          {!templateList || templateList.length === 0 ? (
-            <p className="text-secondary text-sm">
-              No templates yet. Save a workout as a template from the Training
-              view.
-            </p>
-          ) : (
-            <div className="settings-templates">
-              {templateList.length > 5 && (
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Search templates..."
-                  value={templateSearch}
-                  onChange={(e) => setTemplateSearch(e.target.value)}
-                  style={{ margin: '0 var(--space-lg)', marginBottom: 'var(--space-sm)' }}
-                />
-              )}
-              {templateList
-                .filter((tpl) =>
-                  tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
-                )
-                .map((tpl) => {
-                const exerciseCount = tpl.blocks.reduce(
-                  (sum, b) => sum + b.exercises.length,
-                  0
-                );
-
-                return (
-                  <button
-                    key={tpl.id}
-                    className="settings-template-item__nav"
-                    onClick={() => navigate(ROUTE_EDIT_TEMPLATE, { templateId: tpl.id })}
-                  >
-                    <div className="settings-template-item__info">
-                      <div className="settings-template-item__name">
-                        {tpl.name}
-                      </div>
-                      <div className="text-secondary text-sm">
-                        {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="settings-template-item__chevron" />
-                  </button>
-                );
-              })}
+          <button
+            className="settings-template-item__nav"
+            onClick={() => navigate(ROUTE_TEMPLATES)}
+          >
+            <div className="settings-template-item__info">
+              <div className="settings-template-item__name">Templates</div>
+              <div className="text-secondary text-sm">
+                {templateList ? templateList.length : 0} template{(!templateList || templateList.length !== 1) ? 's' : ''}
+              </div>
             </div>
-          )}
+            <ChevronRight size={18} className="settings-template-item__chevron" />
+          </button>
         </div>
 
         {/* App info */}
