@@ -11,13 +11,29 @@ function getISOWeekStart(dateStr) {
   return monday.toISOString().slice(0, 10);
 }
 
-function setVolume(set) {
+function setVolume(set, onlyUnit) {
   if (!set.completed) return 0;
   const reps = parseFloat(set.actualReps);
   const weight = parseFloat(set.actualWeight);
   const unit = set.unit || 'lb';
   if (!VOLUME_UNITS.has(unit) || isNaN(reps) || isNaN(weight) || reps <= 0 || weight <= 0) return 0;
+  if (onlyUnit && unit !== onlyUnit) return 0;
   return reps * weight;
+}
+
+export function dominantUnit(logs, dateRange) {
+  const filtered = filterLogsByRange(logs, dateRange);
+  const counts = { lb: 0, kg: 0 };
+  for (const log of Object.values(filtered)) {
+    for (const sets of Object.values(log.exercises || {})) {
+      for (const set of sets) {
+        if (!set.completed) continue;
+        const u = set.unit || 'lb';
+        if (VOLUME_UNITS.has(u)) counts[u]++;
+      }
+    }
+  }
+  return counts.kg > counts.lb ? 'kg' : 'lb';
 }
 
 export function filterLogsByRange(logs, dateRange) {
@@ -33,8 +49,9 @@ export function filterLogsByRange(logs, dateRange) {
   return result;
 }
 
-export function volumeByWeek(logs, dateRange) {
+export function volumeByWeek(logs, dateRange, unit) {
   const filtered = filterLogsByRange(logs, dateRange);
+  const resolvedUnit = unit || dominantUnit(logs, dateRange);
   const weekMap = {};
 
   for (const [, log] of Object.entries(filtered)) {
@@ -42,7 +59,7 @@ export function volumeByWeek(logs, dateRange) {
     let logVolume = 0;
     for (const sets of Object.values(exercises)) {
       for (const set of sets) {
-        logVolume += setVolume(set);
+        logVolume += setVolume(set, resolvedUnit);
       }
     }
     if (logVolume === 0) continue;
@@ -56,7 +73,7 @@ export function volumeByWeek(logs, dateRange) {
   }
 
   return Object.entries(weekMap)
-    .map(([weekStart, volume]) => ({ weekStart, volume, unit: 'lb' }))
+    .map(([weekStart, volume]) => ({ weekStart, volume, unit: resolvedUnit }))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
@@ -75,7 +92,9 @@ export function sessionsByWeek(logs, dateRange) {
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
-export function prCountInRange(logs, dateRange) {
+export function prCountInRange(logs, dateRange, unit) {
+  const resolvedUnit = unit || dominantUnit(logs, dateRange);
+
   // Sort all log keys chronologically
   const allKeys = Object.keys(logs).sort((a, b) => {
     const da = parseLogKey(a).date;
@@ -97,6 +116,8 @@ export function prCountInRange(logs, dateRange) {
     for (const [exName, sets] of Object.entries(log.exercises || {})) {
       for (const set of sets) {
         if (!set.completed) continue;
+        const setUnit = set.unit || 'lb';
+        if (setUnit !== resolvedUnit) continue;
         const w = parseFloat(set.actualWeight);
         const reps = parseInt(set.actualReps, 10);
         if (isNaN(w) || w <= 0 || isNaN(reps) || reps <= 0) continue;
@@ -115,14 +136,14 @@ export function prCountInRange(logs, dateRange) {
   return prCount;
 }
 
-function buildVolumeMap(logs, dateRange) {
+function buildVolumeMap(logs, dateRange, onlyUnit) {
   const filtered = filterLogsByRange(logs, dateRange);
   const volMap = {};
 
   for (const log of Object.values(filtered)) {
     for (const [exName, sets] of Object.entries(log.exercises || {})) {
       for (const set of sets) {
-        const v = setVolume(set);
+        const v = setVolume(set, onlyUnit);
         if (v > 0) {
           volMap[exName] = (volMap[exName] || 0) + v;
         }
@@ -132,18 +153,20 @@ function buildVolumeMap(logs, dateRange) {
   return volMap;
 }
 
-export function topExercisesByVolume(logs, dateRange, n = 3) {
-  const volMap = buildVolumeMap(logs, dateRange);
+export function topExercisesByVolume(logs, dateRange, n = 3, unit) {
+  const resolvedUnit = unit || dominantUnit(logs, dateRange);
+  const volMap = buildVolumeMap(logs, dateRange, resolvedUnit);
   return Object.entries(volMap)
-    .map(([exercise, volume]) => ({ exercise, volume, unit: 'lb' }))
+    .map(([exercise, volume]) => ({ exercise, volume, unit: resolvedUnit }))
     .sort((a, b) => b.volume - a.volume)
     .slice(0, n);
 }
 
-export function volumeByExercise(logs, dateRange) {
-  const volMap = buildVolumeMap(logs, dateRange);
+export function volumeByExercise(logs, dateRange, unit) {
+  const resolvedUnit = unit || dominantUnit(logs, dateRange);
+  const volMap = buildVolumeMap(logs, dateRange, resolvedUnit);
   return Object.entries(volMap)
-    .map(([exercise, volume]) => ({ exercise, volume, unit: 'lb' }))
+    .map(([exercise, volume]) => ({ exercise, volume, unit: resolvedUnit }))
     .sort((a, b) => b.volume - a.volume);
 }
 

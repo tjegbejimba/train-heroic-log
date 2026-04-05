@@ -8,6 +8,7 @@ import {
   volumeByExercise,
   workoutDates,
   dateRangeFromPreset,
+  dominantUnit,
 } from './statsHelpers.js';
 
 // --- Fixtures ---
@@ -342,5 +343,124 @@ describe('dateRangeFromPreset', () => {
   it("'ALL' returns null", () => {
     const range = dateRangeFromPreset('ALL');
     expect(range).toBeNull();
+  });
+});
+
+// ---------- dominantUnit ----------
+describe('dominantUnit', () => {
+  it('returns lb when all sets are lb', () => {
+    expect(dominantUnit(mockLogs, null)).toBe('lb');
+  });
+
+  it('returns kg when majority of sets are kg', () => {
+    const kgLogs = {
+      '2024-01-08::Test': {
+        date: '2024-01-08',
+        exercises: {
+          'Squat': [
+            { actualReps: 5, actualWeight: 100, unit: 'kg', completed: true },
+            { actualReps: 5, actualWeight: 100, unit: 'kg', completed: true },
+            { actualReps: 5, actualWeight: 100, unit: 'kg', completed: true },
+          ],
+          'Bench': [
+            { actualReps: 8, actualWeight: 135, unit: 'lb', completed: true },
+          ],
+        },
+      },
+    };
+    expect(dominantUnit(kgLogs, null)).toBe('kg');
+  });
+
+  it('defaults to lb on tie', () => {
+    const tieLogs = {
+      '2024-01-08::Test': {
+        date: '2024-01-08',
+        exercises: {
+          'Squat': [
+            { actualReps: 5, actualWeight: 100, unit: 'kg', completed: true },
+          ],
+          'Bench': [
+            { actualReps: 8, actualWeight: 135, unit: 'lb', completed: true },
+          ],
+        },
+      },
+    };
+    expect(dominantUnit(tieLogs, null)).toBe('lb');
+  });
+
+  it('treats missing unit as lb', () => {
+    const noUnitLogs = {
+      '2024-01-08::Test': {
+        date: '2024-01-08',
+        exercises: {
+          'Bench': [
+            { actualReps: 8, actualWeight: 135, completed: true },
+          ],
+        },
+      },
+    };
+    expect(dominantUnit(noUnitLogs, null)).toBe('lb');
+  });
+});
+
+// ---------- mixed unit handling ----------
+describe('mixed unit handling', () => {
+  const mixedLogs = {
+    '2024-01-08::Upper': {
+      date: '2024-01-08',
+      exercises: {
+        'Bench Press': [
+          { actualReps: 8, actualWeight: 60, unit: 'kg', completed: true },
+          { actualReps: 8, actualWeight: 60, unit: 'kg', completed: true },
+        ],
+        'OHP': [
+          { actualReps: 10, actualWeight: 30, unit: 'kg', completed: true },
+        ],
+      },
+    },
+    '2024-01-10::Lower': {
+      date: '2024-01-10',
+      exercises: {
+        'Squat': [
+          { actualReps: 5, actualWeight: 185, unit: 'lb', completed: true },
+        ],
+      },
+    },
+  };
+
+  it('volumeByWeek only sums dominant unit (kg in this case)', () => {
+    // kg has 3 sets, lb has 1 → dominant is kg
+    const result = volumeByWeek(mixedLogs, null);
+    // Only kg sets: Bench (8*60)+(8*60) = 960, OHP 10*30 = 300 → 1260
+    // lb squat should be excluded
+    const week = result.find(w => w.weekStart === '2024-01-08');
+    expect(week).toBeDefined();
+    expect(week.volume).toBe(1260);
+    expect(week.unit).toBe('kg');
+    // lb-only week should not appear (squat excluded)
+    const week2 = result.find(w => w.weekStart !== '2024-01-08');
+    expect(week2).toBeUndefined();
+  });
+
+  it('topExercisesByVolume excludes non-dominant unit exercises', () => {
+    const result = topExercisesByVolume(mixedLogs, null, 5);
+    const squat = result.find(e => e.exercise === 'Squat');
+    expect(squat).toBeUndefined();
+    expect(result[0].unit).toBe('kg');
+  });
+
+  it('prCountInRange only counts PRs for dominant unit', () => {
+    // Dominant unit is kg. lb squat should not count as a PR.
+    const count = prCountInRange(mixedLogs, null);
+    // kg PRs: Bench 8x60 (first=PR), OHP 10x30 (first=PR) = 2
+    expect(count).toBe(2);
+  });
+
+  it('allows explicit unit override', () => {
+    // Force lb — only squat should count
+    const result = volumeByWeek(mixedLogs, null, 'lb');
+    expect(result).toHaveLength(1);
+    expect(result[0].volume).toBe(925); // 5*185
+    expect(result[0].unit).toBe('lb');
   });
 });

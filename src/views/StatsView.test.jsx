@@ -101,8 +101,44 @@ describe('StatsView', () => {
     expect(screen.getAllByText('Squat').length).toBeGreaterThan(0);
   });
 
+  it('filters out incomplete logs — shows empty state when only incomplete logs exist', () => {
+    const incompleteLogs = {
+      '2024-01-08::Upper A': {
+        date: '2024-01-08',
+        completedAt: null,
+        exercises: {
+          'Bench Press': [
+            { setIndex: 0, targetReps: 8, targetWeight: 135, unit: 'lb', actualReps: 8, actualWeight: 135, completed: true },
+          ],
+        },
+      },
+    };
+    render(<StatsView logs={incompleteLogs} completedDates={new Set()} />);
+    expect(screen.getByText('No stats yet')).toBeTruthy();
+  });
+
+  it('excludes incomplete logs from stats while showing completed ones', () => {
+    const mixedLogs = {
+      ...mockLogs,
+      '2024-01-12::Abandoned': {
+        date: '2024-01-12',
+        completedAt: null,
+        exercises: {
+          'Deadlift': [
+            { setIndex: 0, targetReps: 5, targetWeight: 300, unit: 'lb', actualReps: 5, actualWeight: 300, completed: true },
+          ],
+        },
+      },
+    };
+    render(<StatsView logs={mixedLogs} completedDates={mockCompletedDates} />);
+    // Deadlift from the abandoned session should NOT appear
+    const deadliftElements = screen.queryAllByText('Deadlift');
+    expect(deadliftElements).toHaveLength(0);
+  });
+
   it('handles empty completedDates set for empty state', () => {
-    render(<StatsView logs={mockLogs} completedDates={new Set()} />);
+    // No logs at all — both logs and completedDates are empty
+    render(<StatsView logs={{}} completedDates={new Set()} />);
     expect(screen.getByText('No stats yet')).toBeTruthy();
   });
 });
