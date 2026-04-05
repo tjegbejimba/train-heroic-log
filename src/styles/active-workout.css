@@ -836,6 +836,26 @@
   transform: scale(0.94);
 }
 
+/* Paused state */
+.rest-timer--paused .rest-timer__ring-fill {
+  opacity: 0.4;
+  transition: opacity 200ms ease;
+}
+
+.rest-timer--paused .rest-timer__countdown {
+  opacity: 0.5;
+}
+
+.rest-timer--paused .rest-timer__label {
+  color: var(--color-accent-blue);
+  letter-spacing: 0.08em;
+}
+
+.rest-timer__progress-ring-wrap[role="button"] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* =====================================================
    UTILITY
    ===================================================== */

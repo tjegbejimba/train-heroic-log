@@ -22,6 +22,7 @@ function playBeep() {
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
   const [remaining, setRemaining] = useState(safeInitial);
+  const [isPaused, setIsPaused] = useState(false);
   const hasFiredRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -44,6 +45,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   }, []);
 
   useEffect(() => {
+    if (isPaused) return;
     if (remaining <= 0) {
       if (!hasFiredRef.current && mountedRef.current) {
         hasFiredRef.current = true;
@@ -61,7 +63,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
     }
     const id = setTimeout(() => setRemaining((r) => r - 1), 1000);
     return () => clearTimeout(id);
-  }, [remaining]);
+  }, [remaining, isPaused]);
 
   const adjust = (delta) => setRemaining((r) => Math.max(5, r + delta));
 
@@ -72,8 +74,13 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const isUrgent = remaining <= 10;
 
   return (
-    <div className={`rest-timer${isUrgent ? ' rest-timer--urgent' : ''}`}>
-      <div className="rest-timer__progress-ring-wrap">
+    <div className={`rest-timer${isUrgent ? ' rest-timer--urgent' : ''}${isPaused ? ' rest-timer--paused' : ''}`}>
+      <div
+        className="rest-timer__progress-ring-wrap"
+        onClick={() => setIsPaused(p => !p)}
+        role="button"
+        aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
+      >
         <svg className="rest-timer__ring" viewBox="0 0 100 100" aria-hidden="true">
           <circle
             className="rest-timer__ring-track"
@@ -93,7 +100,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           />
         </svg>
         <div className="rest-timer__inner">
-          <span className="rest-timer__label">REST</span>
+          <span className="rest-timer__label">{isPaused ? 'PAUSED' : 'REST'}</span>
           <span className="rest-timer__countdown">
             {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
           </span>
