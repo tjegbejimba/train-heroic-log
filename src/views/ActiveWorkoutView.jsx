@@ -8,7 +8,8 @@ import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
-import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
+import { findPreviousSets } from '../utils/exerciseHistory';
+import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
 import { getSetMeta } from '../utils/setMeta';
 import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
@@ -453,7 +454,25 @@ export default function ActiveWorkoutView({
                             onUpdate={(newSetData) =>
                               updateExerciseSet(exercise.title, setIdx, newSetData)
                             }
-                            lastHint={formatLastHint(prevSets?.[setIdx] ?? null, meta)}
+                            lastHint={(() => {
+                              const prevSet = prevSets?.[setIdx] ?? null;
+                              if (!prevSet) return null;
+                              const exUnit = prevSet.unit || exercise.unit || 'lb';
+                              const exRepsUnit = exercise.repsUnit || 'reps';
+                              const suggestion = computeSuggestion(
+                                { actualReps: Number(prevSet.actualReps), actualWeight: Number(prevSet.actualWeight), unit: exUnit },
+                                set.reps != null ? Number(set.reps) : null,
+                                exUnit,
+                                exRepsUnit
+                              );
+                              return formatOverloadHint(
+                                { actualReps: Number(prevSet.actualReps), actualWeight: Number(prevSet.actualWeight), unit: exUnit },
+                                suggestion,
+                                exUnit,
+                                exRepsUnit
+                              );
+                            })()}
+                            barWeight={exercise.barWeight ?? null}
                           />
                         </div>
                       );

@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { formatSet, secondsToMmss, mmssToSeconds } from '../../utils/formatters';
 import { getSetMeta } from '../../utils/setMeta';
 import { hapticLight } from '../../utils/haptics';
+import PlateDisplay from '../PlateDisplay';
 
 /**
  * Logging-mode set row. 6 props — handles input state, time conversion,
@@ -15,6 +16,7 @@ export default function LogSetRow({
   onUpdate,
   isNext = false,
   lastHint = null,
+  barWeight = null,
 }) {
   const { isBodyweight, isTimeWeight, isTimeReps, weightLabel, repsLabel } = getSetMeta(set);
 
@@ -249,6 +251,7 @@ export default function LogSetRow({
                   >
                     +2.5
                   </button>
+                  <PlateDisplay weight={localWeight} barWeight={barWeight} unit={set.unit} />
                 </>
               )}
             </div>

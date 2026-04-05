@@ -1019,11 +1019,14 @@
 }
 
 .log-set-row__last-hint {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  color: #888;
   opacity: 0.8;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* =====================================================
@@ -1144,4 +1147,16 @@
 .aw-summary__pr-weight {
   color: var(--color-accent-green);
   font-weight: 600;
+}
+
+/* Plate calculator popover */
+.plate-display { display: inline-flex; align-items: center; position: relative; }
+.plate-display__trigger { background: none; border: none; color: #888; font-size: 0.8rem; padding: 2px 4px; cursor: pointer; }
+.plate-display__trigger:hover { color: #4B7BFF; }
+.plate-display__popover {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #222; color: #fff; padding: 6px 10px; border-radius: 6px;
+  font-size: 0.75rem; white-space: nowrap; z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  margin-bottom: 4px;
 }
