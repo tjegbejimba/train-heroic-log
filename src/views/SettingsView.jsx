@@ -324,7 +324,7 @@ export default function SettingsView({
                 </p>
               )}
               <button
-                className="btn btn-secondary w-full mt-md"
+                className="btn btn-outline-danger w-full mt-md"
                 onClick={handleDisableNotifications}
                 disabled={notifLoading}
               >

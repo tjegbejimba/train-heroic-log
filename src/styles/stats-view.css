@@ -2,8 +2,6 @@
 .stats-view {
   padding: var(--space-lg);
   padding-bottom: 100px;
-  max-width: 480px;
-  margin: 0 auto;
 }
 
 /* Empty state */

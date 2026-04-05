@@ -115,15 +115,17 @@
   gap: var(--space-sm);
 }
 
-/* Data actions — full-width secondary buttons */
+/* Data actions — side-by-side buttons */
 .settings-view__data-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .settings-view__data-actions .btn {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   justify-content: center;
 }
 
