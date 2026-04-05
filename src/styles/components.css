@@ -11,9 +11,6 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 100;
-  /* Lock to bottom — prevent iOS PWA bounce */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 
 .navbar__tabs {
@@ -38,11 +35,6 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   position: relative;
-}
-
-.navbar__tab:hover {
-  color: var(--color-text-primary);
-  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .navbar__tab--active {

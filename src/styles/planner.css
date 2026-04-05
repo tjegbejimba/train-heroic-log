@@ -32,7 +32,6 @@
   flex-direction: column;
   gap: 0;
   padding: 0 var(--space-lg);
-  padding-bottom: 120px;
 }
 
 .planner-day {
@@ -135,16 +134,11 @@
 }
 
 .planner-view__actions {
-  position: sticky;
-  bottom: 0;
   padding: var(--space-lg);
   padding-bottom: var(--space-xl);
-  background: linear-gradient(to top, var(--color-bg) 80%, transparent);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  z-index: 5;
-  margin-top: auto;
 }
 
 .planner-view__actions .btn-primary {
