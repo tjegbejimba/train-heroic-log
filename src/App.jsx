@@ -9,6 +9,7 @@ import { useSync } from './hooks/useSync';
 import { flushPendingPushes, retryFailedPushes } from './storage/sync';
 import { removeLS, clearLS } from './storage/index';
 import { useToast } from './components/Toast';
+import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
 import {
   ROUTE_IMPORT,
   ROUTE_TRAINING,
@@ -54,8 +55,8 @@ async function safeFlushAndReload(sessionStorageEntries = {}) {
 
 export default function App() {
   // Data hooks
-  const { workouts, saveWorkouts, updateExerciseNotes } = useWorkouts();
-  const { schedule, saveSchedule, getWorkoutForDate, setWorkoutDate } = useSchedule();
+  const { workouts, saveWorkouts } = useWorkouts();
+  const { schedule, saveSchedule, getWorkoutForDate } = useSchedule();
   const { links, setLink, setManyLinks, getLink } = useYouTubeLinks();
   const { logs, saveLog, getLog, deleteLog, completedDates, allLogs } = useWorkoutLogs();
   const { session, createSession, updateSession, clearSession } = useActiveWorkout();
@@ -63,37 +64,23 @@ export default function App() {
     templates,
     templateList,
     saveTemplates,
-    saveTemplate,
-    deleteTemplate,
-    renameTemplate,
     duplicateTemplate,
-    createTemplateFromWorkout,
   } = useTemplates();
   const { syncStatus, lastSynced, pullSync, pushSync, clearServer } = useSync();
   const showToast = useToast();
 
-  // Template delete: clean up schedule + workouts so no orphan entries remain
-  const handleDeleteTemplate = (id) => {
-    const tpl = templates[id];
-    if (!tpl) return;
-    deleteTemplate(id);
-    // Remove schedule entries pointing to this template's workout name
-    const updatedSchedule = { ...schedule };
-    let scheduleChanged = false;
-    Object.entries(updatedSchedule).forEach(([date, title]) => {
-      if (title === tpl.name) { delete updatedSchedule[date]; scheduleChanged = true; }
-    });
-    if (scheduleChanged) saveSchedule(updatedSchedule);
-    // Remove the workout definition only if no log references it
-    if (workouts[tpl.name]) {
-      const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${tpl.name}`));
-      if (!referencedByLog) {
-        const updatedWorkouts = { ...workouts };
-        delete updatedWorkouts[tpl.name];
-        saveWorkouts(updatedWorkouts);
-      }
-    }
+  // Orchestration: snapshot builder + write dispatcher
+  const snap = () => ({ templates, workouts, schedule, logs });
+  const applyWrites = (result) => {
+    if (result.error) { showToast(result.error, 'error'); return false; }
+    if (result.templates !== undefined) saveTemplates(result.templates);
+    if (result.workouts !== undefined) saveWorkouts(result.workouts);
+    if (result.schedule !== undefined) saveSchedule(result.schedule);
+    return true;
   };
+
+  const handleDeleteTemplate = (id) =>
+    applyWrites(applyTemplateChange(snap(), { type: 'delete', templateId: id }));
 
   // Navigation state — after a sync-triggered reload, always land on Training
   const [navState, setNavState] = useState(() => {
@@ -230,115 +217,17 @@ export default function App() {
   };
 
   // When applying a template to the schedule, ensure the workout exists
-  const handleSetWorkoutDate = (dateStr, workoutTitle) => {
-    if (workoutTitle) {
-      // Create workout from template if it doesn't exist yet
-      if (!workouts[workoutTitle]) {
-        const tpl = templateList.find((t) => t.name === workoutTitle);
-        if (tpl) {
-          saveWorkouts({
-            ...workouts,
-            [workoutTitle]: { title: workoutTitle, blocks: tpl.blocks, notes: tpl.notes || '' },
-          });
-        }
-      }
-    } else {
-      // Clearing a date — remove orphaned workout if no other date still uses it
-      const evictedTitle = schedule[dateStr];
-      if (evictedTitle) {
-        const stillUsed = Object.entries(schedule).some(
-          ([d, t]) => d !== dateStr && t === evictedTitle
-        );
-        const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${evictedTitle}`));
-        if (!stillUsed && !referencedByLog && workouts[evictedTitle]) {
-          const updated = { ...workouts };
-          delete updated[evictedTitle];
-          saveWorkouts(updated);
-        }
-      }
-    }
-    setWorkoutDate(dateStr, workoutTitle);
-  };
+  const handleSetWorkoutDate = (dateStr, workoutTitle) =>
+    applyWrites(applyScheduleChange(snap(), { [dateStr]: workoutTitle ?? null }));
 
-  // Batch-apply a week plan: { [date]: workoutTitle | null }
-  // Uses a single saveSchedule + single saveWorkouts call to avoid stale-closure overwrites.
-  const handleApplyPlan = (dateMap) => {
-    // Build the final schedule in one pass
-    const newSchedule = { ...schedule };
-    Object.entries(dateMap).forEach(([date, title]) => {
-      if (title === null) {
-        delete newSchedule[date];
-      } else {
-        newSchedule[date] = title;
-      }
-    });
-
-    // Build the final workouts map: create missing ones, remove orphans
-    let newWorkouts = { ...workouts };
-    let workoutsChanged = false;
-
-    Object.entries(dateMap).forEach(([date, title]) => {
-      if (title !== null && !newWorkouts[title]) {
-        const tpl = templateList.find((t) => t.name === title);
-        if (tpl) {
-          newWorkouts[title] = { title, blocks: tpl.blocks, notes: tpl.notes || '' };
-          workoutsChanged = true;
-        }
-      }
-      if (title === null) {
-        const evictedTitle = schedule[date];
-        if (evictedTitle && newWorkouts[evictedTitle]) {
-          const stillUsed = Object.values(newSchedule).includes(evictedTitle);
-          const referencedByLog = Object.keys(logs).some((k) => k.endsWith(`::${evictedTitle}`));
-          if (!stillUsed && !referencedByLog) {
-            delete newWorkouts[evictedTitle];
-            workoutsChanged = true;
-          }
-        }
-      }
-    });
-
-    if (workoutsChanged) saveWorkouts(newWorkouts);
-    saveSchedule(newSchedule);
-  };
+  const handleApplyPlan = (dateMap) =>
+    applyWrites(applyScheduleChange(snap(), dateMap));
 
   // Wrapped rename handler that also updates schedule and workouts (Bug 2 + Bug 4)
   const handleRenameTemplate = (id, newName) => {
     const tpl = templates[id];
     if (!tpl) return;
-    const oldName = tpl.name;
-    // Bug 4: Check for duplicate name (allow if same template)
-    if (oldName !== newName) {
-      const nameCollision = templateList.find(
-        (t) => t.id !== id && t.name.toLowerCase() === newName.toLowerCase()
-      );
-      if (nameCollision) {
-        showToast('A template with this name already exists', 'error');
-        return;
-      }
-    }
-    renameTemplate(id, newName);
-    // Update schedule entries pointing to old name
-    if (oldName !== newName) {
-      const updatedSchedule = { ...schedule };
-      let scheduleChanged = false;
-      Object.entries(updatedSchedule).forEach(([date, title]) => {
-        if (title === oldName) {
-          updatedSchedule[date] = newName;
-          scheduleChanged = true;
-        }
-      });
-      if (scheduleChanged) {
-        saveSchedule(updatedSchedule);
-      }
-      // Update workouts map if the old name exists
-      if (workouts[oldName]) {
-        const updatedWorkouts = { ...workouts };
-        delete updatedWorkouts[oldName];
-        updatedWorkouts[newName] = { ...workouts[oldName], title: newName };
-        saveWorkouts(updatedWorkouts);
-      }
-    }
+    applyWrites(applyTemplateChange(snap(), { type: 'save', template: { ...tpl, name: newName }, previousName: tpl.name }));
   };
 
   // Render current view
@@ -350,51 +239,7 @@ export default function App() {
       currentView = (
         <ImportView
           onImport={(workoutMap, scheduleMap) => {
-            saveWorkouts(workoutMap);
-            saveSchedule(scheduleMap);
-            // Auto-create a template for each workout title (skip duplicates by name)
-            const existingByName = {};
-            Object.entries(templates).forEach(([id, tpl]) => {
-              existingByName[tpl.name] = id;
-            });
-
-            const updatedTemplates = { ...templates };
-            Object.values(workoutMap).forEach((workout, i) => {
-              const existingId = existingByName[workout.title];
-              if (existingId) {
-                // Preserve workoutNotes added via the template editor — they aren't in the CSV
-                const existingTpl = updatedTemplates[existingId];
-                const savedWorkoutNotes = {};
-                existingTpl.blocks.forEach((b) =>
-                  b.exercises.forEach((ex) => {
-                    if (ex.workoutNotes) savedWorkoutNotes[ex.title] = ex.workoutNotes;
-                  })
-                );
-                const mergedBlocks = workout.blocks.map((b) => ({
-                  ...b,
-                  exercises: b.exercises.map((ex) =>
-                    savedWorkoutNotes[ex.title]
-                      ? { ...ex, workoutNotes: savedWorkoutNotes[ex.title] }
-                      : ex
-                  ),
-                }));
-                updatedTemplates[existingId] = {
-                  ...existingTpl,
-                  blocks: mergedBlocks,
-                  notes: workout.notes || existingTpl.notes || '',
-                };
-              } else {
-                const id = `tpl_${Date.now()}_${i}`;
-                updatedTemplates[id] = {
-                  id,
-                  name: workout.title,
-                  createdDate: new Date().toISOString(),
-                  blocks: workout.blocks,
-                  notes: workout.notes || '',
-                };
-              }
-            });
-            saveTemplates(updatedTemplates);
+            applyWrites(applyImport(snap(), workoutMap, scheduleMap));
             navigate(ROUTE_TRAINING);
             const count = Object.keys(workoutMap).length;
             showToast(`Imported ${count} workout${count !== 1 ? 's' : ''} as templates!`);
@@ -413,36 +258,20 @@ export default function App() {
           completedDates={completedDates}
           getWorkoutForDate={getWorkoutForDate}
           getLog={getLog}
-          setWorkoutDate={setWorkoutDate}
+          setWorkoutDate={handleSetWorkoutDate}
           getYouTubeLink={getLink}
           setYouTubeLink={setLink}
-          onUpdateExerciseNotes={(workoutTitle, exerciseTitle, notes) => {
-            updateExerciseNotes(workoutTitle, exerciseTitle, notes);
-            // Keep matching template in sync
-            const tpl = templateList.find((t) => t.name === workoutTitle);
-            if (tpl) {
-              const updatedBlocks = tpl.blocks.map((block) => ({
-                ...block,
-                exercises: block.exercises.map((ex) =>
-                  ex.title === exerciseTitle ? { ...ex, notes } : ex
-                ),
-              }));
-              saveTemplate(tpl.id, { ...tpl, blocks: updatedBlocks });
-            }
-          }}
+          onUpdateExerciseNotes={(workoutTitle, exerciseTitle, notes) =>
+            applyWrites(applyNoteChange(snap(), exerciseTitle, notes, { workoutTitle }))
+          }
           onStartWorkout={(logKey) => {
             createSession(logKey, new Date().toISOString());
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
           }}
           onSaveAsTemplate={(workout) => {
-            const exists = templateList.some(
-              (t) => t.name.toLowerCase() === workout.title.toLowerCase()
-            );
-            if (exists) {
-              showToast('A template with this name already exists', 'error');
-              return false;
-            }
-            createTemplateFromWorkout(workout);
+            const result = applyTemplateChange(snap(), { type: 'create', workout });
+            if (result.error) { showToast(result.error, 'error'); return false; }
+            applyWrites(result);
             showToast('Template saved!');
           }}
           navigate={navigate}
@@ -469,12 +298,9 @@ export default function App() {
             clearSession();
             navigate(ROUTE_TRAINING);
           }}
-          onUpdateWorkout={(updatedBlocks) => {
-            const updatedWorkout = { ...workouts[activeWorkoutTitle], blocks: updatedBlocks };
-            saveWorkouts({ ...workouts, [activeWorkoutTitle]: updatedWorkout });
-            const tpl = templateList.find((t) => t.name === activeWorkoutTitle);
-            if (tpl) saveTemplate(tpl.id, { ...tpl, blocks: updatedBlocks });
-          }}
+          onUpdateWorkout={(updatedBlocks) =>
+            applyWrites(applyTemplateChange(snap(), { type: 'syncBlocks', workoutTitle: activeWorkoutTitle, blocks: updatedBlocks }))
+          }
         />
       );
       break;
@@ -499,33 +325,9 @@ export default function App() {
           setYouTubeLink={setLink}
           setManyYouTubeLinks={setManyLinks}
           onExerciseTap={(exerciseTitle) => navigate(ROUTE_EXERCISE_HISTORY, { exerciseTitle })}
-          onUpdateExerciseNotes={(exerciseTitle, notes) => {
-            // Update across all workouts that use this exercise
-            const updatedWorkouts = {};
-            Object.entries(workouts).forEach(([title, workout]) => {
-              const updatedBlocks = workout.blocks.map((block) => ({
-                ...block,
-                exercises: block.exercises.map((ex) =>
-                  ex.title === exerciseTitle ? { ...ex, notes } : ex
-                ),
-              }));
-              updatedWorkouts[title] = { ...workout, blocks: updatedBlocks };
-            });
-            saveWorkouts(updatedWorkouts);
-
-            // Update across all templates that use this exercise
-            const updatedTemplates = {};
-            Object.entries(templates).forEach(([id, tpl]) => {
-              const updatedBlocks = tpl.blocks.map((block) => ({
-                ...block,
-                exercises: block.exercises.map((ex) =>
-                  ex.title === exerciseTitle ? { ...ex, notes } : ex
-                ),
-              }));
-              updatedTemplates[id] = { ...tpl, blocks: updatedBlocks };
-            });
-            saveTemplates(updatedTemplates);
-          }}
+          onUpdateExerciseNotes={(exerciseTitle, notes) =>
+            applyWrites(applyNoteChange(snap(), exerciseTitle, notes))
+          }
         />
       );
       break;
@@ -611,48 +413,15 @@ export default function App() {
           template={tpl}
           exerciseNames={exerciseNames}
           onSave={(updated) => {
-            // Bug 4: Check for duplicate template names (allow if same template)
-            if (tpl.name !== updated.name) {
-              const nameCollision = templateList.find(
-                (t) => t.id !== updated.id && t.name.toLowerCase() === updated.name.toLowerCase()
-              );
-              if (nameCollision) {
-                showToast('A template with this name already exists', 'error');
-                return;
-              }
+            const ok = applyWrites(applyTemplateChange(snap(), {
+              type: 'save',
+              template: updated,
+              previousName: tpl.name,
+            }));
+            if (ok) {
+              navigate(ROUTE_SETTINGS);
+              showToast('Template saved!');
             }
-
-            saveTemplate(updated.id, updated);
-            // Also update matching workout if it exists
-            if (workouts[tpl.name]) {
-              const updatedWorkouts = { ...workouts };
-              // If name changed, remove old key and add new
-              if (tpl.name !== updated.name) {
-                delete updatedWorkouts[tpl.name];
-              }
-              updatedWorkouts[updated.name] = {
-                title: updated.name,
-                blocks: updated.blocks,
-                notes: updated.notes || '',
-              };
-              saveWorkouts(updatedWorkouts);
-            }
-            // Bug 2: If renamed, update schedule entries pointing to old name
-            if (tpl.name !== updated.name) {
-              const updatedSchedule = { ...schedule };
-              let scheduleChanged = false;
-              Object.entries(updatedSchedule).forEach(([date, title]) => {
-                if (title === tpl.name) {
-                  updatedSchedule[date] = updated.name;
-                  scheduleChanged = true;
-                }
-              });
-              if (scheduleChanged) {
-                saveSchedule(updatedSchedule);
-              }
-            }
-            navigate(ROUTE_SETTINGS);
-            showToast('Template saved!');
           }}
           onCancel={() => navigate(ROUTE_SETTINGS)}
         />
