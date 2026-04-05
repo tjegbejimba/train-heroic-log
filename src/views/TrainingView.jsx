@@ -193,6 +193,12 @@ export default function TrainingView({
             <p className="training-rest-card__message">
               Recovery is part of the plan. Rest up and come back strong.
             </p>
+            <button
+              className="btn btn-secondary btn-small training-rest-card__plan-btn"
+              onClick={() => navigate(ROUTE_PLANNER)}
+            >
+              Plan today
+            </button>
             {nextWorkout && (
               <div className="training-rest-card__next">
                 <span className="training-rest-card__next-label">Up next</span>
@@ -204,12 +210,6 @@ export default function TrainingView({
                 </span>
               </div>
             )}
-            <button
-              className="btn btn-secondary btn-small training-rest-card__plan-btn"
-              onClick={() => navigate(ROUTE_PLANNER)}
-            >
-              Plan this day
-            </button>
           </div>
         )}
       </div>

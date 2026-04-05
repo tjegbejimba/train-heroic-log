@@ -18,17 +18,20 @@
 }
 
 /* Section headers — iOS style uppercase labels */
-.settings-view__content h3 {
+.settings-view__content > h3,
+.settings-view__content > .card > h3 {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: var(--font-weight-semibold);
-  margin: var(--space-xl) 0 var(--space-md);
+  padding: var(--space-xl) var(--space-lg) var(--space-sm);
+  margin: 0;
 }
 
-.settings-view__content h3:first-child {
-  margin-top: var(--space-md);
+.settings-view__content > h3:first-child,
+.settings-view__content > .card:first-child > h3 {
+  padding-top: var(--space-lg);
 }
 
 /* Section cards — grouped rounded containers */
@@ -162,94 +165,48 @@
   gap: 0;
 }
 
-.settings-template-item {
-  background: var(--color-surface);
-  border: none;
-  border-radius: 0;
-  overflow: hidden;
-}
-
-.settings-template-item + .settings-template-item {
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.settings-template-item__header {
-  padding: var(--space-lg);
-}
-
-.settings-template-item__toggle {
-  width: 100%;
+.settings-template-item__nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  padding: var(--space-lg);
   background: none;
   border: none;
+  border-top: 1px solid var(--color-border-subtle);
   cursor: pointer;
   color: inherit;
   text-align: left;
-  transition: opacity var(--transition);
-  min-height: 28px;
+  transition: background var(--transition);
+  min-height: 56px;
 }
 
-.settings-template-item__toggle:hover {
-  opacity: 0.8;
+.settings-template-item__nav:first-child,
+.settings-templates > input + .settings-template-item__nav {
+  border-top: none;
 }
 
-.settings-template-item__toggle:active {
-  opacity: 0.6;
+.settings-template-item__nav:active {
+  background: var(--color-accent-subtle);
+}
+
+.settings-template-item__info {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-template-item__name {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
-  margin-bottom: 0;
+  margin-bottom: 2px;
 }
 
-.settings-template-item__rename {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
+.settings-template-item__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
-.settings-template-item__rename input {
-  flex: 1;
-}
 
-.settings-template-item__details {
-  padding: 0 var(--space-lg) var(--space-lg);
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: var(--space-md);
-}
-
-.settings-template-item__exercises {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.settings-template-item__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.settings-template-item__actions .btn-icon,
-.settings-template-item__actions .btn {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-.settings-template-item__delete-btn {
-  color: var(--color-accent-red);
-  border-color: var(--color-accent-red);
-}
-
-/* Clear All Data — red-tinted */
-.settings-view__content .btn-danger,
-.settings-view__content [class*="clear"] .btn {
-  color: var(--color-accent-red);
-}
 
 /* Version text at bottom */
 .settings-view__version {

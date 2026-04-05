@@ -79,7 +79,7 @@ export default function DateStrip({
     <div className="date-strip">
       <div className="date-strip__header flex-between">
         <h2 className="date-strip__month-year">
-          {formatMonthYear(currentDate)} ▾
+          {formatMonthYear(currentDate)}
         </h2>
         <div className="date-strip__controls flex gap-sm">
           {onViewModeChange && (

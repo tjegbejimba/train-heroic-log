@@ -10,7 +10,7 @@ import { downloadICS } from '../utils/ics';
 import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
 import { getQuotaUsage, getQuotaWarning } from '../storage/quota';
-import { FolderOpen, Download, Upload, ChevronDown, ChevronRight } from 'lucide-react';
+import { FolderOpen, Download, Upload, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
@@ -499,111 +499,42 @@ export default function SettingsView({
             </p>
           ) : (
             <div className="settings-templates">
-              <input
-                type="text"
-                className="input"
-                placeholder="Search templates..."
-                value={templateSearch}
-                onChange={(e) => setTemplateSearch(e.target.value)}
-                style={{ marginBottom: 'var(--space-md)' }}
-              />
+              {templateList.length > 5 && (
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Search templates..."
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                  style={{ margin: '0 var(--space-lg)', marginBottom: 'var(--space-sm)' }}
+                />
+              )}
               {templateList
                 .filter((tpl) =>
                   tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
                 )
                 .map((tpl) => {
-                const isExpanded = expandedId === tpl.id;
                 const exerciseCount = tpl.blocks.reduce(
                   (sum, b) => sum + b.exercises.length,
                   0
                 );
 
                 return (
-                  <div key={tpl.id} className="settings-template-item">
-                    <div className="settings-template-item__header">
-                      {renamingId === tpl.id ? (
-                        <div className="settings-template-item__rename">
-                          <input
-                            type="text"
-                            className="input"
-                            value={renameDraft}
-                            onChange={(e) => setRenameDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveRename();
-                              if (e.key === 'Escape') setRenamingId(null);
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            className="btn btn-primary btn-small"
-                            onClick={handleSaveRename}
-                          >
-                            Save
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="settings-template-item__toggle"
-                          onClick={() =>
-                            setExpandedId(isExpanded ? null : tpl.id)
-                          }
-                        >
-                          <div>
-                            <div className="settings-template-item__name">
-                              {tpl.name}
-                            </div>
-                            <div className="text-secondary text-sm">
-                              {exerciseCount} exercises
-                            </div>
-                          </div>
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </button>
-                      )}
-                    </div>
-
-                    {isExpanded && (
-                      <div className="settings-template-item__details">
-                        <div className="settings-template-item__exercises">
-                          {tpl.blocks.map((block, bIdx) =>
-                            block.exercises.map((ex, eIdx) => (
-                              <div
-                                key={`${bIdx}-${eIdx}`}
-                                className="text-sm text-secondary"
-                              >
-                                {ex.title} — {ex.sets.length} sets
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        <div className="settings-template-item__actions">
-                          <button
-                            className="btn btn-primary btn-small"
-                            onClick={() => navigate(ROUTE_EDIT_TEMPLATE, { templateId: tpl.id })}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-small"
-                            onClick={() => handleStartRename(tpl)}
-                          >
-                            Rename
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-small"
-                            onClick={() => handleDuplicate(tpl.id)}
-                          >
-                            Duplicate
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-small settings-template-item__delete-btn"
-                            onClick={() => setDeleteTarget(tpl.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                  <button
+                    key={tpl.id}
+                    className="settings-template-item__nav"
+                    onClick={() => navigate(ROUTE_EDIT_TEMPLATE, { templateId: tpl.id })}
+                  >
+                    <div className="settings-template-item__info">
+                      <div className="settings-template-item__name">
+                        {tpl.name}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-secondary text-sm">
+                        {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="settings-template-item__chevron" />
+                  </button>
                 );
               })}
             </div>
