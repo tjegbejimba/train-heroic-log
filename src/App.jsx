@@ -20,6 +20,7 @@ import {
   ROUTE_SETTINGS,
   ROUTE_EDIT_TEMPLATE,
   ROUTE_EXERCISE_HISTORY,
+  ROUTE_STATS,
   parseLogKey,
 } from './constants';
 
@@ -32,6 +33,7 @@ import WeekPlannerView from './views/WeekPlannerView';
 import SettingsView from './views/SettingsView';
 import TemplateEditorView from './views/TemplateEditorView';
 import ExerciseHistoryView from './views/ExerciseHistoryView';
+import StatsView from './views/StatsView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -312,6 +314,15 @@ export default function App() {
           allLogs={allLogs}
           deleteLog={deleteLog}
           workouts={workouts}
+          completedDates={completedDates}
+        />
+      );
+      break;
+
+    case ROUTE_STATS:
+      currentView = (
+        <StatsView
+          logs={logs}
           completedDates={completedDates}
         />
       );

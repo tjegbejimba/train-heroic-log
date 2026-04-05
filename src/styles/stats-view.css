@@ -1,0 +1,190 @@
+/* ── Stats View ──────────────────────────────────── */
+.stats-view {
+  padding: var(--space-lg);
+  padding-bottom: 100px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Empty state */
+.stats-view__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  color: var(--color-text-secondary);
+  min-height: 60vh;
+}
+
+.stats-view__empty h3 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  color: var(--color-text-primary);
+  font-size: 18px;
+}
+
+.stats-view__empty p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Range pills */
+.stats-view__range-pills {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+}
+
+.stats-view__pill {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  padding: 6px 14px;
+  transition: all var(--transition, 0.15s ease);
+}
+
+.stats-view__pill:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.stats-view__pill--active {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: #fff;
+}
+
+.stats-view__pill--active:hover {
+  background-color: var(--color-accent-blue);
+  color: #fff;
+}
+
+/* Sections */
+.stats-view__section {
+  margin-bottom: var(--space-xl);
+}
+
+.stats-view__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md);
+}
+
+.stats-view__sub-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: var(--space-md) 0 var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Badges */
+.stats-view__badges {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.stats-badge {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-md) var(--space-sm);
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.stats-badge__value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.stats-badge__value--accent {
+  color: var(--color-accent-yellow);
+}
+
+.stats-badge__value--green {
+  color: var(--color-accent-green);
+}
+
+.stats-badge__label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* Charts */
+.stats-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.stats-chart--volume {
+  max-height: 200px;
+}
+
+.stats-chart--sessions {
+  max-height: 170px;
+}
+
+.stats-chart--heatmap {
+  max-height: 130px;
+  overflow-x: auto;
+}
+
+.stats-chart--exercise-volume {
+  max-height: 340px;
+}
+
+/* Top exercises list */
+.stats-view__top-exercises {
+  margin-top: var(--space-sm);
+}
+
+.stats-view__top-exercise {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stats-view__top-exercise:last-child {
+  border-bottom: none;
+}
+
+.stats-view__top-rank {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  min-width: 20px;
+}
+
+.stats-view__top-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.stats-view__top-vol {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}

@@ -1,10 +1,11 @@
-import { Dumbbell, CalendarDays, BarChart2, BookOpen, Settings } from 'lucide-react';
+import { Dumbbell, CalendarDays, BarChart2, BookOpen, Settings, TrendingUp } from 'lucide-react';
 import {
   TAB_TRAINING,
   TAB_HISTORY,
   TAB_LIBRARY,
   TAB_SETTINGS,
   ROUTE_PLANNER,
+  ROUTE_STATS,
 } from '../constants';
 
 export default function NavBar({ currentTab, onTabChange, syncStatus }) {
@@ -12,6 +13,7 @@ export default function NavBar({ currentTab, onTabChange, syncStatus }) {
     { id: TAB_TRAINING, label: 'Training', Icon: Dumbbell },
     { id: ROUTE_PLANNER, label: 'Planner', Icon: CalendarDays },
     { id: TAB_HISTORY, label: 'History', Icon: BarChart2 },
+    { id: ROUTE_STATS, label: 'Stats', Icon: TrendingUp },
     { id: TAB_LIBRARY, label: 'Library', Icon: BookOpen },
     { id: TAB_SETTINGS, label: 'Settings', Icon: Settings },
   ];

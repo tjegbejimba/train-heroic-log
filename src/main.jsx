@@ -10,6 +10,7 @@ import './styles/import-view.css'
 import './styles/active-workout.css'
 import './styles/history-library.css'
 import './styles/planner.css'
+import './styles/stats-view.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

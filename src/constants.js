@@ -16,6 +16,7 @@ export const ROUTE_PLANNER = 'planner';
 export const ROUTE_SETTINGS = 'settings';
 export const ROUTE_EDIT_TEMPLATE = 'editTemplate';
 export const ROUTE_EXERCISE_HISTORY = 'exerciseHistory';
+export const ROUTE_STATS = 'stats';
 
 // Tab IDs for bottom nav
 export const TAB_TRAINING = 'training';
