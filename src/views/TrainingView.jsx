@@ -1,35 +1,34 @@
 import { useState } from 'react';
-import { CalendarRange, Moon, CheckCircle2 } from 'lucide-react';
+import { CalendarRange, Moon, CheckCircle2, Flame } from 'lucide-react';
 import { ROUTE_PLANNER } from '../constants';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
-import ExerciseRow from '../components/ExerciseRow';
+import { calculateStreaks } from '../utils/streaks';
 
-const MAX_CHIPS = 6;
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
-function ExerciseChips({ workout }) {
-  const exercises = [];
-  workout.blocks.forEach((block) => {
-    block.exercises.forEach((ex) => exercises.push(ex.title));
-  });
+function findNextWorkout(schedule, fromDate) {
+  const start = new Date(fromDate + 'T00:00:00');
+  for (let i = 1; i <= 14; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const key = d.toLocaleDateString('en-CA');
+    if (schedule[key]) {
+      return { date: key, title: schedule[key], daysAway: i };
+    }
+  }
+  return null;
+}
 
-  const visible = exercises.slice(0, MAX_CHIPS);
-  const overflow = exercises.length - MAX_CHIPS;
-
-  return (
-    <div className="training-card__chips">
-      {visible.map((title) => (
-        <span key={title} className="training-card__chip">
-          {title}
-        </span>
-      ))}
-      {overflow > 0 && (
-        <span className="training-card__chip training-card__chip--overflow">
-          +{overflow} more
-        </span>
-      )}
-    </div>
-  );
+function formatDayLabel(daysAway) {
+  if (daysAway === 1) return 'Tomorrow';
+  if (daysAway === 2) return 'In 2 days';
+  return `In ${daysAway} days`;
 }
 
 export default function TrainingView({
@@ -40,23 +39,20 @@ export default function TrainingView({
   completedDates,
   getWorkoutForDate,
   getLog,
-  getYouTubeLink,
-  setYouTubeLink,
-  onUpdateExerciseNotes,
   onStartWorkout,
-  onSaveAsTemplate,
   navigate,
 }) {
   const workoutTitle = getWorkoutForDate(currentDate);
   const workout = workoutTitle ? workouts[workoutTitle] : null;
-  const [expandedExercise, setExpandedExercise] = useState(null);
   const [viewMode, setViewMode] = useState('week');
 
   const logKey = workoutTitle ? `${currentDate}::${workoutTitle}` : null;
   const existingLog = logKey ? getLog(logKey) : null;
   const isCompleted = !!(existingLog && existingLog.completedAt);
 
-  // Compute quick stats from the log for the completed card
+  const { currentStreak, isActiveToday } = calculateStreaks(completedDates);
+  const streakDisplay = isActiveToday ? currentStreak : (currentStreak > 0 ? currentStreak : 0);
+
   const completedStats = isCompleted ? (() => {
     const allSets = Object.values(existingLog.exercises || {}).flat();
     const doneSets = allSets.filter((s) => s.completed);
@@ -75,6 +71,8 @@ export default function TrainingView({
     return { doneSets: doneSets.length, totalSets: allSets.length, durationMin, volumeByUnit };
   })() : null;
 
+  const nextWorkout = !workout ? findNextWorkout(schedule, currentDate) : null;
+
   const handleStartWorkout = () => {
     if (workoutTitle) {
       onStartWorkout(`${currentDate}::${workoutTitle}`);
@@ -83,6 +81,17 @@ export default function TrainingView({
 
   return (
     <div className="view training-view">
+      {/* Greeting header */}
+      <div className="training-greeting">
+        <h2 className="training-greeting__text">{getGreeting()}</h2>
+        {streakDisplay > 0 && (
+          <span className="training-greeting__streak">
+            <Flame size={16} />
+            {streakDisplay} day{streakDisplay !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
       {viewMode === 'week' ? (
         <DateStrip
           currentDate={currentDate}
@@ -117,93 +126,65 @@ export default function TrainingView({
           <>
             {isCompleted ? (
               <div className="training-card training-card--completed">
-                <div className="training-card__header">
-                  <h2 className="training-card__title">{workout.title}</h2>
-                  <span className="training-card__done-badge">
-                    <CheckCircle2 size={16} />
-                    Done
-                  </span>
+                <div className="training-card__celebration">
+                  <CheckCircle2 size={48} strokeWidth={1.5} />
+                  <h2 className="training-card__celebration-title">Workout Complete</h2>
+                  <p className="training-card__celebration-sub">{workout.title}</p>
                 </div>
                 {completedStats && (
-                  <div className="training-card__stats">
+                  <div className="training-card__stats-grid">
                     {completedStats.durationMin != null && (
-                      <span className="training-card__stat">{completedStats.durationMin} min</span>
+                      <div className="training-card__stat-item">
+                        <span className="training-card__stat-value">{completedStats.durationMin}</span>
+                        <span className="training-card__stat-label">minutes</span>
+                      </div>
                     )}
-                    <span className="training-card__stat">
-                      {completedStats.doneSets}{completedStats.doneSets !== completedStats.totalSets ? `/${completedStats.totalSets}` : ''} sets
-                    </span>
+                    <div className="training-card__stat-item">
+                      <span className="training-card__stat-value">{completedStats.doneSets}</span>
+                      <span className="training-card__stat-label">sets</span>
+                    </div>
                     {Object.entries(completedStats.volumeByUnit).map(([unit, vol]) => (
-                      <span key={unit} className="training-card__stat">{vol.toLocaleString()} {unit}</span>
+                      <div key={unit} className="training-card__stat-item">
+                        <span className="training-card__stat-value">{vol.toLocaleString()}</span>
+                        <span className="training-card__stat-label">{unit}</span>
+                      </div>
                     ))}
                   </div>
                 )}
-                <ExerciseChips workout={workout} />
+                <p className="training-card__motivation">Crushed it 💪</p>
               </div>
             ) : (
               <div className="training-card">
                 <div className="training-card__header">
                   <h2 className="training-card__title">{workout.title}</h2>
+                  <span className="training-card__exercise-count">
+                    {workout.blocks.reduce((n, b) => n + b.exercises.length, 0)} exercises
+                  </span>
                 </div>
-                <div className="training-card__actions">
-                  <button
-                    className="training-card__start-btn"
-                    onClick={handleStartWorkout}
-                  >
-                    Start Workout
-                  </button>
-                </div>
-                <ExerciseChips workout={workout} />
-              </div>
-            )}
-
-            {/* Exercise list below the card */}
-            <div className="training-view__exercises">
-              {(() => {
-                let globalIdx = 0;
-                return workout.blocks.map((block, blockIdx) => {
-                  const isSuperset = block.exercises.length > 1;
-                  const exercises = block.exercises.map((exercise, exIdx) => {
-                    const letter = String.fromCharCode(65 + globalIdx);
-                    globalIdx++;
+                <div className="training-card__exercises">
+                  {workout.blocks.map((block, blockIdx) => {
+                    const isSuperset = block.exercises.length > 1;
                     return (
-                      <ExerciseRow
-                        key={exIdx}
-                        blockLetter={letter}
-                        exercise={exercise}
-                        youtubeLink={getYouTubeLink(exercise.title)}
-                        onYoutubeLinkChange={(url) =>
-                          setYouTubeLink(exercise.title, url)
-                        }
-                        onExerciseNotesChange={(notes) =>
-                          onUpdateExerciseNotes(workoutTitle, exercise.title, notes)
-                        }
-                        isExpanded={expandedExercise === `${blockIdx}-${exIdx}`}
-                        onToggleExpand={() =>
-                          setExpandedExercise(
-                            expandedExercise === `${blockIdx}-${exIdx}`
-                              ? null
-                              : `${blockIdx}-${exIdx}`
-                          )
-                        }
-                      />
-                    );
-                  });
-
-                  if (isSuperset) {
-                    return (
-                      <div key={blockIdx} className="superset-group">
-                        <div className="superset-group__label">Superset</div>
-                        <div className="superset-group__exercises">{exercises}</div>
+                      <div key={blockIdx} className={isSuperset ? 'training-card__superset' : undefined}>
+                        {isSuperset && (
+                          <div className="training-card__superset-label">Superset</div>
+                        )}
+                        {block.exercises.map((exercise, exIdx) => (
+                          <div key={exIdx} className="training-card__exercise-row">
+                            <span className="training-card__exercise-name">{exercise.title}</span>
+                            <span className="training-card__exercise-sets">
+                              {exercise.sets.length} set{exercise.sets.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     );
-                  }
-                  return <div key={blockIdx}>{exercises}</div>;
-                });
-              })()}
-            </div>
+                  })}
+                </div>
+              </div>
+            )}
           </>
         ) : (
-          /* Rest day card */
           <div className="training-rest-card">
             <div className="training-rest-card__icon">
               <Moon size={36} strokeWidth={1.5} />
@@ -212,6 +193,17 @@ export default function TrainingView({
             <p className="training-rest-card__message">
               Recovery is part of the plan. Rest up and come back strong.
             </p>
+            {nextWorkout && (
+              <div className="training-rest-card__next">
+                <span className="training-rest-card__next-label">Up next</span>
+                <span className="training-rest-card__next-title">
+                  {nextWorkout.title}
+                </span>
+                <span className="training-rest-card__next-day">
+                  {formatDayLabel(nextWorkout.daysAway)}
+                </span>
+              </div>
+            )}
             <button
               className="btn btn-secondary btn-small training-rest-card__plan-btn"
               onClick={() => navigate(ROUTE_PLANNER)}
@@ -221,6 +213,18 @@ export default function TrainingView({
           </div>
         )}
       </div>
+
+      {/* Sticky CTA — only when workout exists and not completed */}
+      {workout && !isCompleted && (
+        <div className="training-sticky-cta">
+          <button
+            className="training-sticky-cta__btn"
+            onClick={handleStartWorkout}
+          >
+            Start Workout
+          </button>
+        </div>
+      )}
     </div>
   );
 }

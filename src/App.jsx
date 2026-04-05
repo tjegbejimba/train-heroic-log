@@ -260,21 +260,9 @@ export default function App() {
           completedDates={completedDates}
           getWorkoutForDate={getWorkoutForDate}
           getLog={getLog}
-          setWorkoutDate={handleSetWorkoutDate}
-          getYouTubeLink={getLink}
-          setYouTubeLink={setLink}
-          onUpdateExerciseNotes={(workoutTitle, exerciseTitle, notes) =>
-            applyWrites(applyNoteChange(snap(), exerciseTitle, notes, { workoutTitle }))
-          }
           onStartWorkout={(logKey) => {
             createSession(logKey, new Date().toISOString());
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
-          }}
-          onSaveAsTemplate={(workout) => {
-            const result = applyTemplateChange(snap(), { type: 'create', workout });
-            if (result.error) { showToast(result.error, 'error'); return false; }
-            applyWrites(result);
-            showToast('Template saved!');
           }}
           navigate={navigate}
         />

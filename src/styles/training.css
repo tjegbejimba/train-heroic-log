@@ -1,8 +1,34 @@
 /* ========== TrainingView — Home Screen ========== */
 
+/* Greeting header */
+.training-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-lg) var(--space-sm);
+}
+
+.training-greeting__text {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+.training-greeting__streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-yellow);
+  background: rgba(251, 191, 36, 0.12);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+}
+
 .training-view__content {
   padding: var(--space-lg);
-  padding-bottom: 90px;
+  padding-bottom: 140px;
 }
 
 .training-view__exercises {
@@ -17,19 +43,10 @@
   padding: 0;
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition: transform var(--transition);
-}
-
-.training-card:active {
-  transform: scale(0.98);
 }
 
 .training-card--completed {
   border-color: rgba(52, 211, 153, 0.3);
-}
-
-.training-card--completed .training-card__header {
-  background: linear-gradient(135deg, #059669, var(--color-accent-green));
 }
 
 .training-card__header {
@@ -48,65 +65,133 @@
   margin: 0;
 }
 
-.training-card__done-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.training-card__exercise-count {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: white;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: var(--font-weight-medium);
   flex-shrink: 0;
 }
 
-/* Stats row (completed card) */
-.training-card__stats {
+/* ═══ Unified exercise list inside card ═══ */
+.training-card__exercises {
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
+}
+
+.training-card__exercise-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  padding: var(--space-lg) var(--space-lg) 0;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.training-card__stat {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  padding: var(--space-xs) var(--space-md);
+.training-card__exercise-row:last-child {
+  border-bottom: none;
 }
 
-/* Exercise chips */
-.training-card__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
+.training-card__exercise-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
 }
 
-.training-card__chip {
+.training-card__exercise-sets {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Superset grouping */
+.training-card__superset {
+  background: var(--color-accent-subtle);
+  border-radius: var(--radius-md);
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.training-card__superset-label {
   font-size: var(--font-size-xs);
   color: var(--color-accent-blue);
-  background: var(--color-accent-subtle);
-  border: none;
-  border-radius: var(--radius-full);
-  padding: var(--space-xs) var(--space-md);
-  transition: background var(--transition);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
 }
 
-.training-card__chip--overflow {
-  color: var(--color-accent-hover);
-  font-weight: var(--font-weight-medium);
+.training-card__superset .training-card__exercise-row {
+  border-color: rgba(99, 102, 241, 0.15);
 }
 
-/* Start Workout button */
-.training-card__actions {
-  padding: 0 var(--space-lg) var(--space-lg);
+/* ═══ Celebration completed state ═══ */
+.training-card__celebration {
+  padding: var(--space-3xl) var(--space-xl) var(--space-xl);
+  text-align: center;
+  color: var(--color-accent-green);
 }
 
-.training-card__start-btn {
+.training-card__celebration-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: var(--space-md) 0 var(--space-xs);
+}
+
+.training-card__celebration-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.training-card__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--space-md);
+  padding: 0 var(--space-xl) var(--space-lg);
+}
+
+.training-card__stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.training-card__stat-value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent-green);
+}
+
+.training-card__stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.training-card__motivation {
+  text-align: center;
+  padding: 0 var(--space-xl) var(--space-xl);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ═══ Sticky CTA ═══ */
+.training-sticky-cta {
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  left: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 50;
+  padding-top: var(--space-xl);
+  background: linear-gradient(to top, var(--color-bg) 70%, transparent);
+  pointer-events: none;
+}
+
+.training-sticky-cta__btn {
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-lg);
@@ -115,11 +200,13 @@
   border: none;
   cursor: pointer;
   transition: all var(--transition);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  pointer-events: auto;
 }
 
-.training-card__start-btn:active {
+.training-sticky-cta__btn:active {
   transform: scale(0.97);
-  box-shadow: 0 0 24px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.4);
 }
 
 /* ========== Rest Day Card ========== */
@@ -154,6 +241,41 @@
   margin: 0;
   max-width: 260px;
   line-height: 1.5;
+}
+
+/* Up next preview */
+.training-rest-card__next {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  width: 100%;
+  max-width: 300px;
+}
+
+.training-rest-card__next-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.training-rest-card__next-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-blue);
+  flex: 1;
+}
+
+.training-rest-card__next-day {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .training-rest-card__plan-btn {
