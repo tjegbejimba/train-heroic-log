@@ -8,7 +8,7 @@ function makeEmptySet(unit = 'lb', repsUnit = 'reps') {
 }
 
 function makeEmptyExercise() {
-  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsUnit: 'reps', showValue: true, unit: 'lb' };
+  return { title: '', notes: '', workoutNotes: '', sets: [makeEmptySet()], repsUnit: 'reps', showValue: true, unit: 'lb', restDuration: null };
 }
 
 function makeEmptyBlock() {
