@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react';
+import RestDurationPicker from '../components/RestDurationPicker';
 
 const UNIT_OPTIONS = ['lb', 'kg', 'bw', 'reps', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
 
@@ -100,6 +101,20 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
       ...next[bIdx],
       exercises: next[bIdx].exercises.map((ex, i) =>
         i === eIdx ? { ...ex, workoutNotes } : ex
+      ),
+    };
+    setBlocks(next);
+  }
+
+  // --- Rest duration picker state ---
+  const [openRestPicker, setOpenRestPicker] = useState(null); // "bIdx-eIdx" or null
+
+  function setExerciseRestDuration(bIdx, eIdx, restDuration) {
+    const next = [...blocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) =>
+        i === eIdx ? { ...ex, restDuration } : ex
       ),
     };
     setBlocks(next);
@@ -330,6 +345,14 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       </div>
                     )}
                   </div>
+                  <RestDurationPicker
+                    value={ex.restDuration ?? null}
+                    onChange={(val) => setExerciseRestDuration(bIdx, eIdx, val)}
+                    isOpen={openRestPicker === `${bIdx}-${eIdx}`}
+                    onToggle={() =>
+                      setOpenRestPicker(openRestPicker === `${bIdx}-${eIdx}` ? null : `${bIdx}-${eIdx}`)
+                    }
+                  />
                   <button
                     className="btn-icon btn-icon--danger"
                     onClick={() => removeExercise(bIdx, eIdx)}

@@ -11,6 +11,10 @@ import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
 import { getSetMeta } from '../utils/setMeta';
 import { buildSummary, findPRs } from '../utils/workoutSummary';
+import { resolveRestDuration } from '../utils/resolveRestDuration';
+import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
+import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
+import { findNextIncompleteSet } from '../utils/findNextIncompleteSet';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -48,6 +52,12 @@ export default function ActiveWorkoutView({
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [completedLog, setCompletedLog] = useState(null);
   const [restTimerActive, setRestTimerActive] = useState(false);
+  const [restTimerDuration, setRestTimerDuration] = useState(null);
+  const restTimerKey = useRef(0);
+  const firedRestTimerSets = useRef(new Set());
+  const userScrolledDuringRest = useRef(false);
+  const workoutContainerRef = useRef(null);
+  const currentExerciseRef = useRef(null);
   const [expandedNotes, setExpandedNotes] = useState({});
   const [editingNote, setEditingNote] = useState(null);
   const { settings } = useSettings();
@@ -69,6 +79,27 @@ export default function ActiveWorkoutView({
     }
     return map;
   }, [allLogs, workoutTitle, workout?.blocks, date]);
+
+  // Track manual scrolls during rest to suppress auto-scroll
+  useEffect(() => {
+    if (!restTimerActive) {
+      userScrolledDuringRest.current = false;
+      return;
+    }
+    const handleScroll = () => { userScrolledDuringRest.current = true; };
+    const target = workoutContainerRef.current || window;
+    target.addEventListener('scroll', handleScroll, { passive: true });
+    return () => target.removeEventListener('scroll', handleScroll);
+  }, [restTimerActive]);
+
+  const scrollToNextSet = useCallback(() => {
+    if (userScrolledDuringRest.current) return;
+    const next = findNextIncompleteSet(workout, currentLog);
+    if (!next) return;
+    const escaped = CSS.escape(`${next.exerciseTitle}::${next.setIndex}`);
+    const el = document.querySelector(`[data-set-id="${escaped}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [workout, currentLog]);
 
   const toggleEditMode = () => {
     if (editMode) {
@@ -187,9 +218,31 @@ export default function ActiveWorkoutView({
     setCurrentLog(updated);
     saveLog(logKey, updated);
 
-    // Auto-start rest timer when a set transitions to completed
-    if (!wasCompleted && newSetData.completed) {
-      setRestTimerActive(true);
+    // Track current exercise context for manual timer
+    for (const block of workout.blocks) {
+      const found = block.exercises.find((ex) => ex.title === exerciseTitle);
+      if (found) { currentExerciseRef.current = found; break; }
+    }
+
+    // Auto-start rest timer (superset-aware, with re-fire prevention)
+    if (shouldStartRestTimer(exerciseTitle, setIndex, wasCompleted, newSetData.completed, firedRestTimerSets.current)) {
+      // Look up the exercise object and its block to determine superset status
+      let exercise = null;
+      let isSuperset = false;
+      for (const block of workout.blocks) {
+        const found = block.exercises.find((ex) => ex.title === exerciseTitle);
+        if (found) {
+          exercise = found;
+          isSuperset = block.exercises.length > 1;
+          break;
+        }
+      }
+      const duration = resolveRestDuration(exercise || {}, isSuperset, settings.restDuration);
+      if (duration != null) {
+        restTimerKey.current += 1;
+        setRestTimerDuration(duration);
+        setRestTimerActive(true);
+      }
     }
   };
 
@@ -272,7 +325,11 @@ export default function ActiveWorkoutView({
         workoutTitle={workoutTitle}
         startedAt={currentLog.startedAt}
         onCancel={() => setShowCancelModal(true)}
-        onTimerOpen={() => setRestTimerActive(true)}
+        onTimerOpen={() => {
+          restTimerKey.current += 1;
+          setRestTimerDuration(resolveManualTimerDuration(currentExerciseRef.current, settings.restDuration));
+          setRestTimerActive(true);
+        }}
         isEditMode={editMode}
         onToggleEdit={onUpdateWorkout ? toggleEditMode : null}
       />
@@ -287,7 +344,7 @@ export default function ActiveWorkoutView({
         </span>
       </div>
 
-      <div className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
+      <div ref={workoutContainerRef} className={`active-workout-view__content${restTimerActive ? ' active-workout-view__content--timer' : ''}`}>
         {/* Edit mode banner */}
         {editMode && (
           <div className="aw-edit-banner">
@@ -387,17 +444,18 @@ export default function ActiveWorkoutView({
                       const prevSets = prevSetsMap[exercise.title];
                       const meta = getSetMeta(set);
                       return (
-                        <LogSetRow
-                          key={setIdx}
-                          setIndex={setIdx}
-                          set={set}
-                          loggedSet={exerciseLogs[setIdx]}
-                          isNext={setIdx === firstIncomplete}
-                          onUpdate={(newSetData) =>
-                            updateExerciseSet(exercise.title, setIdx, newSetData)
-                          }
-                          lastHint={formatLastHint(prevSets?.[setIdx] ?? null, meta)}
-                        />
+                        <div key={setIdx} data-set-id={`${exercise.title}::${setIdx}`}>
+                          <LogSetRow
+                            setIndex={setIdx}
+                            set={set}
+                            loggedSet={exerciseLogs[setIdx]}
+                            isNext={setIdx === firstIncomplete}
+                            onUpdate={(newSetData) =>
+                              updateExerciseSet(exercise.title, setIdx, newSetData)
+                            }
+                            lastHint={formatLastHint(prevSets?.[setIdx] ?? null, meta)}
+                          />
+                        </div>
                       );
                     })}
                     {editMode && (
@@ -512,9 +570,10 @@ export default function ActiveWorkoutView({
       {/* Rest timer — floating */}
       {restTimerActive && (
         <RestTimer
-          initialSeconds={settings.restDuration}
-          onDone={() => setRestTimerActive(false)}
-          onSkip={() => setRestTimerActive(false)}
+          key={restTimerKey.current}
+          initialSeconds={restTimerDuration || settings.restDuration}
+          onDone={() => { setRestTimerActive(false); scrollToNextSet(); }}
+          onSkip={() => { setRestTimerActive(false); scrollToNextSet(); }}
         />
       )}
 
