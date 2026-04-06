@@ -71,6 +71,13 @@ body,
   overflow: hidden;
 }
 
+/* html background paints the entire canvas (including behind
+   the iOS home indicator). Match the navbar color so the
+   safe-area gap at the bottom looks seamless. */
+html {
+  background-color: var(--color-surface-elevated);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-bg);
