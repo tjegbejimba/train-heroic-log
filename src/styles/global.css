@@ -92,13 +92,11 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* App container — fixed inset:0 covers full viewport including safe areas */
+/* App container — height:100dvh; html background fills any gap
+   below the viewport boundary (iOS home indicator area) */
 .app {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg);
