@@ -91,14 +91,15 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* App container — height:100dvh; html background fills any gap
-   below the viewport boundary (iOS home indicator area) */
+/* App container — extends into home indicator area so navbar
+   reaches the physical screen bottom */
 .app {
   width: 100%;
-  height: 100dvh;
+  height: calc(100dvh + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg);
+  overflow: hidden;
   padding-top: env(safe-area-inset-top);
 }
 
