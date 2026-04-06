@@ -99,7 +99,6 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg);
-  overflow: hidden;
   padding-top: env(safe-area-inset-top);
 }
 
