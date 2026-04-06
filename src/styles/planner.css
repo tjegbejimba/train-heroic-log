@@ -198,7 +198,7 @@
 
 /* ========== Template Editor ========== */
 .tpl-editor {
-  padding-bottom: 100px;
+  padding-bottom: var(--space-xl);
 }
 
 .tpl-editor__header {

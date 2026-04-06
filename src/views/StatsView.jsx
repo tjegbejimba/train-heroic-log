@@ -58,7 +58,7 @@ export default function StatsView({ logs, completedDates }) {
 
   if (isEmpty) {
     return (
-      <div className="stats-view">
+      <div className="view stats-view">
         <div className="stats-view__empty">
           <TrendingUp size={48} strokeWidth={1.5} />
           <h3>No stats yet</h3>
@@ -69,7 +69,7 @@ export default function StatsView({ logs, completedDates }) {
   }
 
   return (
-    <div className="stats-view">
+    <div className="view stats-view">
       <div className="stats-view__range-pills">
         {RANGES.map(p => (
           <button

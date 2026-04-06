@@ -28,7 +28,7 @@
 
 .training-view__content {
   padding: var(--space-lg);
-  padding-bottom: 140px;
+  padding-bottom: var(--space-xl);
 }
 
 .training-view__exercises {
