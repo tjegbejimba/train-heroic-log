@@ -224,8 +224,11 @@ export default function App() {
   const handleSetWorkoutDate = (dateStr, workoutTitle) =>
     applyWrites(applyScheduleChange(snap(), { [dateStr]: workoutTitle ?? null }));
 
-  const handleApplyPlan = (dateMap) =>
+  const handleApplyPlan = (dateMap) => {
     applyWrites(applyScheduleChange(snap(), dateMap));
+    showToast('Plan saved!');
+    navigate(ROUTE_TRAINING);
+  };
 
   // Wrapped rename handler that also updates schedule and workouts (Bug 2 + Bug 4)
   const handleRenameTemplate = (id, newName) => {
@@ -267,7 +270,7 @@ export default function App() {
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
           }}
           onScheduleTemplate={(date, templateName) => {
-            applyWrites(applyScheduleChange(snap(), date, templateName));
+            applyWrites(applyScheduleChange(snap(), { [date]: templateName }));
           }}
           templateList={templateList}
           navigate={navigate}
