@@ -225,6 +225,21 @@ button {
   transform: scale(0.97);
 }
 
+.btn-text-danger {
+  background: none;
+  border: none;
+  color: var(--color-accent-red);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  padding: var(--space-sm) 0;
+  opacity: 0.8;
+}
+
+.btn-text-danger:active {
+  opacity: 0.5;
+}
+
 .btn-small {
   min-height: 36px;
   padding: var(--space-sm) var(--space-lg);
