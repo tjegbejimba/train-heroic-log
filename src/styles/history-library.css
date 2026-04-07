@@ -381,7 +381,7 @@
   outline: none;
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-md) var(--space-lg) var(--space-md) calc(var(--space-lg) + 24px);
   min-height: 44px;
   transition: box-shadow var(--transition);
 }
