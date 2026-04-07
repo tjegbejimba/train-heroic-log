@@ -91,11 +91,10 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* App container — extends into home indicator area so navbar
-   reaches the physical screen bottom */
+/* App container */
 .app {
   width: 100%;
-  height: calc(100dvh + env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg);
