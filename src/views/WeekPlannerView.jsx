@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -51,33 +51,6 @@ export default function WeekPlannerView({
   const [templateSearch, setTemplateSearch] = useState('');
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
-
-  // Refs so the unmount cleanup can read current values without stale closures
-  const draftRef = useRef(draft);
-  const templatesRef = useRef(templates);
-  const onApplyPlanRef = useRef(onApplyPlan);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
-  useEffect(() => { templatesRef.current = templates; }, [templates]);
-  useEffect(() => { onApplyPlanRef.current = onApplyPlan; }, [onApplyPlan]);
-
-  // Auto-apply any unsaved draft when the user navigates away from the planner
-  useEffect(() => {
-    return () => {
-      const pending = draftRef.current;
-      if (Object.keys(pending).length === 0) return;
-      const currentTemplates = templatesRef.current;
-      const dateMap = {};
-      Object.entries(pending).forEach(([dateStr, templateId]) => {
-        if (templateId === null) {
-          dateMap[dateStr] = null;
-        } else {
-          const tpl = currentTemplates[templateId];
-          if (tpl) dateMap[dateStr] = tpl.name;
-        }
-      });
-      if (Object.keys(dateMap).length > 0) onApplyPlanRef.current(dateMap);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goToPrevWeek = () => {
     const d = parseLocalDate(weekDates[0]);
@@ -157,7 +130,7 @@ export default function WeekPlannerView({
     weekDates.forEach((dateStr) => {
       cleared[dateStr] = null;
     });
-    setDraft(cleared);
+    setDraft((prev) => ({ ...prev, ...cleared }));
     setShowClearConfirm(false);
   };
 
@@ -255,7 +228,7 @@ export default function WeekPlannerView({
                 <div className="planner-day__workout">
                   <button
                     className="planner-day__workout-name"
-                    onClick={() => !isDrafted && onNavigateToDate(dateStr)}
+                    onClick={isDrafted ? undefined : () => onNavigateToDate(dateStr)}
                     title={isDrafted ? undefined : 'Go to workout'}
                     style={{ opacity: isDrafted ? 0.7 : 1 }}
                   >
