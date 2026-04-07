@@ -46,6 +46,7 @@ export default function WeekPlannerView({
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
   const [weekStart, setWeekStart] = useState(today);
   const [showPicker, setShowPicker] = useState(null); // dateStr or null
+  const [draft, setDraft] = useState({}); // dateStr -> templateId (uncommitted changes)
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
 
@@ -55,30 +56,42 @@ export default function WeekPlannerView({
     const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() - 7);
     setWeekStart(formatLocalDate(d));
+    setDraft({});
   };
 
   const goToNextWeek = () => {
     const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() + 7);
     setWeekStart(formatLocalDate(d));
+    setDraft({});
   };
 
   const goToThisWeek = () => {
     setWeekStart(today);
+    setDraft({});
   };
 
-  const getWorkoutForDate = (dateStr) => schedule[dateStr] || null;
+  const getWorkoutForDate = (dateStr) => {
+    // Draft takes priority
+    if (draft[dateStr] !== undefined) {
+      if (draft[dateStr] === null) return null; // cleared
+      const tpl = templates[draft[dateStr]];
+      return tpl ? tpl.name : null;
+    }
+    return schedule[dateStr] || null;
+  };
 
   const assignTemplate = (dateStr, templateId) => {
-    const tpl = templates[templateId];
-    if (tpl) onApplyPlan({ [dateStr]: tpl.name });
+    setDraft((prev) => ({ ...prev, [dateStr]: templateId }));
     setShowPicker(null);
     setTemplateSearch('');
   };
 
   const clearDay = (dateStr) => {
-    onApplyPlan({ [dateStr]: null });
+    setDraft((prev) => ({ ...prev, [dateStr]: null }));
   };
+
+  const hasDraftChanges = Object.keys(draft).length > 0;
 
   // Close template picker on Escape
   useEffect(() => {
@@ -90,12 +103,34 @@ export default function WeekPlannerView({
     return () => window.removeEventListener('keydown', handler);
   }, [showPicker]);
 
+  const applyPlan = () => {
+    let missing = 0;
+    const dateMap = {};
+    Object.entries(draft).forEach(([dateStr, templateId]) => {
+      if (templateId === null) {
+        dateMap[dateStr] = null;
+      } else {
+        const tpl = templates[templateId];
+        if (tpl) {
+          dateMap[dateStr] = tpl.name;
+        } else {
+          missing++;
+        }
+      }
+    });
+    onApplyPlan(dateMap);
+    setDraft({});
+    if (missing > 0) {
+      showToast(`${missing} template${missing > 1 ? 's' : ''} no longer exist and were skipped`, 'error');
+    }
+  };
+
   const clearWeek = () => {
     const cleared = {};
     weekDates.forEach((dateStr) => {
       cleared[dateStr] = null;
     });
-    onApplyPlan(cleared);
+    setDraft((prev) => ({ ...prev, ...cleared }));
     setShowClearConfirm(false);
   };
 
@@ -104,7 +139,7 @@ export default function WeekPlannerView({
     nextMonday.setDate(nextMonday.getDate() + 7);
     const nextWeekDates = getWeekDates(formatLocalDate(nextMonday));
 
-    const dateMap = {};
+    const newDraft = { ...draft };
     let skipped = 0;
     weekDates.forEach((dateStr, idx) => {
       const workoutName = getWorkoutForDate(dateStr);
@@ -113,20 +148,20 @@ export default function WeekPlannerView({
       if (workoutName) {
         const tpl = templateList.find((t) => t.name === workoutName);
         if (tpl) {
-          dateMap[nextDate] = tpl.name;
+          newDraft[nextDate] = tpl.id;
         } else {
           // No matching template — clear the destination day so the copy is
           // consistent (don't silently leave whatever was previously scheduled)
-          dateMap[nextDate] = null;
+          newDraft[nextDate] = null;
           skipped++;
         }
       } else {
-        dateMap[nextDate] = null;
+        newDraft[nextDate] = null;
       }
     });
 
-    onApplyPlan(dateMap);
     setWeekStart(nextWeekDates[0]);
+    setDraft(newDraft);
     if (skipped > 0) {
       showToast(`${skipped} day${skipped > 1 ? 's' : ''} skipped — no matching template found`, 'error');
     }
@@ -143,7 +178,10 @@ export default function WeekPlannerView({
     <div className="view planner-view">
       <div className="planner-view__header">
         <h1>Week Planner</h1>
-        <p className="text-secondary text-sm">{formatWeekRange()}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          <p className="text-secondary text-sm">{formatWeekRange()}</p>
+          {hasDraftChanges && <span className="planner-draft-badge">Unsaved changes</span>}
+        </div>
       </div>
 
       <div className="planner-view__nav">
@@ -170,11 +208,14 @@ export default function WeekPlannerView({
         {weekDates.map((dateStr, idx) => {
           const workoutName = getWorkoutForDate(dateStr);
           const isToday = dateStr === today;
+          const isDrafted = draft[dateStr] !== undefined;
 
           return (
             <div
               key={dateStr}
-              className={`planner-day card ${isToday ? 'planner-day--today' : ''}`}
+              className={`planner-day card ${isToday ? 'planner-day--today' : ''} ${
+                isDrafted ? 'planner-day--draft' : ''
+              }`}
             >
               <div className="planner-day__header">
                 <span className="planner-day__name">{DAY_NAMES[idx]}</span>
@@ -187,8 +228,9 @@ export default function WeekPlannerView({
                 <div className="planner-day__workout">
                   <button
                     className="planner-day__workout-name"
-                    onClick={() => onNavigateToDate(dateStr)}
-                    title="Go to workout"
+                    onClick={isDrafted ? undefined : () => onNavigateToDate(dateStr)}
+                    title={isDrafted ? undefined : 'Go to workout'}
+                    style={{ opacity: isDrafted ? 0.7 : 1 }}
                   >
                     {workoutName}
                   </button>
@@ -218,6 +260,11 @@ export default function WeekPlannerView({
       </div>
 
       <div className="planner-view__actions">
+        {hasDraftChanges && (
+          <button className="btn btn-primary w-full" onClick={applyPlan}>
+            Apply Plan
+          </button>
+        )}
         <div className="planner-view__secondary-actions">
           <button
             className="btn btn-secondary btn-small"
@@ -301,7 +348,7 @@ export default function WeekPlannerView({
       {showClearConfirm && (
         <Modal
           title="Clear Week?"
-          message="This will remove all workouts from this week."
+          message="This will remove all workouts from this week. You'll need to Apply Plan to save changes."
           onConfirm={clearWeek}
           onCancel={() => setShowClearConfirm(false)}
           confirmText="Clear"
