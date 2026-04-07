@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -46,79 +46,39 @@ export default function WeekPlannerView({
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
   const [weekStart, setWeekStart] = useState(today);
   const [showPicker, setShowPicker] = useState(null); // dateStr or null
-  const [draft, setDraft] = useState({}); // dateStr -> templateId (uncommitted changes)
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
-  // Refs so the unmount cleanup can read current values without stale closures
-  const draftRef = useRef(draft);
-  const templatesRef = useRef(templates);
-  const onApplyPlanRef = useRef(onApplyPlan);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
-  useEffect(() => { templatesRef.current = templates; }, [templates]);
-  useEffect(() => { onApplyPlanRef.current = onApplyPlan; }, [onApplyPlan]);
-
-  // Auto-apply any unsaved draft when the user navigates away from the planner
-  useEffect(() => {
-    return () => {
-      const pending = draftRef.current;
-      if (Object.keys(pending).length === 0) return;
-      const currentTemplates = templatesRef.current;
-      const dateMap = {};
-      Object.entries(pending).forEach(([dateStr, templateId]) => {
-        if (templateId === null) {
-          dateMap[dateStr] = null;
-        } else {
-          const tpl = currentTemplates[templateId];
-          if (tpl) dateMap[dateStr] = tpl.name;
-        }
-      });
-      if (Object.keys(dateMap).length > 0) onApplyPlanRef.current(dateMap);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const goToPrevWeek = () => {
     const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() - 7);
     setWeekStart(formatLocalDate(d));
-    setDraft({});
   };
 
   const goToNextWeek = () => {
     const d = parseLocalDate(weekDates[0]);
     d.setDate(d.getDate() + 7);
     setWeekStart(formatLocalDate(d));
-    setDraft({});
   };
 
   const goToThisWeek = () => {
     setWeekStart(today);
-    setDraft({});
   };
 
-  const getWorkoutForDate = (dateStr) => {
-    // Draft takes priority
-    if (draft[dateStr] !== undefined) {
-      if (draft[dateStr] === null) return null; // cleared
-      const tpl = templates[draft[dateStr]];
-      return tpl ? tpl.name : null;
-    }
-    return schedule[dateStr] || null;
-  };
+  const getWorkoutForDate = (dateStr) => schedule[dateStr] || null;
 
   const assignTemplate = (dateStr, templateId) => {
-    setDraft((prev) => ({ ...prev, [dateStr]: templateId }));
+    const tpl = templates[templateId];
+    if (tpl) onApplyPlan({ [dateStr]: tpl.name });
     setShowPicker(null);
     setTemplateSearch('');
   };
 
   const clearDay = (dateStr) => {
-    setDraft((prev) => ({ ...prev, [dateStr]: null }));
+    onApplyPlan({ [dateStr]: null });
   };
-
-  const hasDraftChanges = Object.keys(draft).length > 0;
 
   // Close template picker on Escape
   useEffect(() => {
@@ -130,34 +90,12 @@ export default function WeekPlannerView({
     return () => window.removeEventListener('keydown', handler);
   }, [showPicker]);
 
-  const applyPlan = () => {
-    let missing = 0;
-    const dateMap = {};
-    Object.entries(draft).forEach(([dateStr, templateId]) => {
-      if (templateId === null) {
-        dateMap[dateStr] = null;
-      } else {
-        const tpl = templates[templateId];
-        if (tpl) {
-          dateMap[dateStr] = tpl.name;
-        } else {
-          missing++;
-        }
-      }
-    });
-    onApplyPlan(dateMap);
-    setDraft({});
-    if (missing > 0) {
-      showToast(`${missing} template${missing > 1 ? 's' : ''} no longer exist and were skipped`, 'error');
-    }
-  };
-
   const clearWeek = () => {
     const cleared = {};
     weekDates.forEach((dateStr) => {
       cleared[dateStr] = null;
     });
-    setDraft(cleared);
+    onApplyPlan(cleared);
     setShowClearConfirm(false);
   };
 
@@ -166,7 +104,7 @@ export default function WeekPlannerView({
     nextMonday.setDate(nextMonday.getDate() + 7);
     const nextWeekDates = getWeekDates(formatLocalDate(nextMonday));
 
-    const newDraft = { ...draft };
+    const dateMap = {};
     let skipped = 0;
     weekDates.forEach((dateStr, idx) => {
       const workoutName = getWorkoutForDate(dateStr);
@@ -175,20 +113,20 @@ export default function WeekPlannerView({
       if (workoutName) {
         const tpl = templateList.find((t) => t.name === workoutName);
         if (tpl) {
-          newDraft[nextDate] = tpl.id;
+          dateMap[nextDate] = tpl.name;
         } else {
           // No matching template — clear the destination day so the copy is
           // consistent (don't silently leave whatever was previously scheduled)
-          newDraft[nextDate] = null;
+          dateMap[nextDate] = null;
           skipped++;
         }
       } else {
-        newDraft[nextDate] = null;
+        dateMap[nextDate] = null;
       }
     });
 
+    onApplyPlan(dateMap);
     setWeekStart(nextWeekDates[0]);
-    setDraft(newDraft);
     if (skipped > 0) {
       showToast(`${skipped} day${skipped > 1 ? 's' : ''} skipped — no matching template found`, 'error');
     }
@@ -205,10 +143,7 @@ export default function WeekPlannerView({
     <div className="view planner-view">
       <div className="planner-view__header">
         <h1>Week Planner</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-          <p className="text-secondary text-sm">{formatWeekRange()}</p>
-          {hasDraftChanges && <span className="planner-draft-badge">Unsaved changes</span>}
-        </div>
+        <p className="text-secondary text-sm">{formatWeekRange()}</p>
       </div>
 
       <div className="planner-view__nav">
@@ -235,14 +170,11 @@ export default function WeekPlannerView({
         {weekDates.map((dateStr, idx) => {
           const workoutName = getWorkoutForDate(dateStr);
           const isToday = dateStr === today;
-          const isDrafted = draft[dateStr] !== undefined;
 
           return (
             <div
               key={dateStr}
-              className={`planner-day card ${isToday ? 'planner-day--today' : ''} ${
-                isDrafted ? 'planner-day--draft' : ''
-              }`}
+              className={`planner-day card ${isToday ? 'planner-day--today' : ''}`}
             >
               <div className="planner-day__header">
                 <span className="planner-day__name">{DAY_NAMES[idx]}</span>
@@ -255,9 +187,8 @@ export default function WeekPlannerView({
                 <div className="planner-day__workout">
                   <button
                     className="planner-day__workout-name"
-                    onClick={() => !isDrafted && onNavigateToDate(dateStr)}
-                    title={isDrafted ? undefined : 'Go to workout'}
-                    style={{ opacity: isDrafted ? 0.7 : 1 }}
+                    onClick={() => onNavigateToDate(dateStr)}
+                    title="Go to workout"
                   >
                     {workoutName}
                   </button>
@@ -287,11 +218,6 @@ export default function WeekPlannerView({
       </div>
 
       <div className="planner-view__actions">
-        {hasDraftChanges && (
-          <button className="btn btn-primary w-full" onClick={applyPlan}>
-            Apply Plan
-          </button>
-        )}
         <div className="planner-view__secondary-actions">
           <button
             className="btn btn-secondary btn-small"
@@ -375,7 +301,7 @@ export default function WeekPlannerView({
       {showClearConfirm && (
         <Modal
           title="Clear Week?"
-          message="This will remove all workouts from this week. You'll need to Apply Plan to save changes."
+          message="This will remove all workouts from this week."
           onConfirm={clearWeek}
           onCancel={() => setShowClearConfirm(false)}
           confirmText="Clear"
