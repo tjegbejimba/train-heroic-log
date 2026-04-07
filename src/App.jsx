@@ -267,7 +267,7 @@ export default function App() {
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
           }}
           onScheduleTemplate={(date, templateName) => {
-            applyWrites(applyScheduleChange(snap(), { [date]: templateName }));
+            applyWrites(applyScheduleChange(snap(), date, templateName));
           }}
           templateList={templateList}
           navigate={navigate}
