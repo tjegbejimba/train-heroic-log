@@ -57,14 +57,12 @@
 }
 
 .date-strip__day-indicator {
-  font-size: var(--font-size-sm);
-  height: 4px;
-  width: 4px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .date-strip__day--scheduled .date-strip__day-indicator {
   color: var(--color-accent-blue);
-  content: '•';
 }
 
 .date-strip__day--completed {
