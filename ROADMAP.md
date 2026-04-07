@@ -105,6 +105,7 @@
 - YouTube link preview thumbnail instead of raw URL text
 
 ### Planner
+- **Drag-and-drop workout reorder** — long-press a workout card to drag it to a different day (requires `@dnd-kit` for touch support). Consider deferring to native iOS app if PWA touch feel isn't satisfactory.
 - Draft persistence across week navigation — currently `goToPrevWeek` / `goToNextWeek` silently discard unsaved changes
 - Unsaved changes guard — confirm dialog when leaving WeekPlannerView with a pending draft
 - Rest day label — explicitly mark a day as "Rest Day" (distinct from unscheduled)
@@ -135,3 +136,14 @@
 - **Storage indicator live updates** — recalculate when logs or workouts change, not just templates
 - **Template preview shows part labels** — "Part A: Squat (4 sets), Part B: Leg Press…" with superset indication
 - **Import progress indicator** — spinner during large CSV parse (currently synchronous and blocking)
+
+---
+
+## 🍎 Native iOS App (Future)
+
+If TrainLog outgrows the PWA format (drag-drop friction, home indicator gaps, push notification limits, scroll conflicts), consider a native Swift/SwiftUI rewrite.
+
+- **Cost:** $99/year Apple Developer Program (required for personal device install beyond 7-day free provisioning)
+- **Distribution:** TestFlight or direct device install — no App Store listing needed for personal use
+- **Trigger signals:** drag-and-drop feels inadequate in PWA, more iOS-specific features needed, want native haptics/animations
+- **Migration path:** Keep NAS backend as-is; native app replaces the React frontend, same `/api/data` sync endpoints
