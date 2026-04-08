@@ -2,6 +2,8 @@ import { useState, useMemo, useRef } from 'react';
 import { ChevronUp, ChevronDown, Layers3, Plus, Trash2, X } from 'lucide-react';
 import RestDurationPicker from '../components/RestDurationPicker';
 import BarWeightPicker from '../components/BarWeightPicker';
+import { useToast } from '../components/Toast';
+import { validateTemplate } from '../utils/templateValidation';
 
 const UNIT_OPTIONS = ['lb', 'kg', 'bw', 'reps', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
 
@@ -18,6 +20,7 @@ function makeEmptyBlock() {
 }
 
 export default function TemplateEditorView({ template, exerciseNames, onSave, onCancel }) {
+  const showToast = useToast();
   const [name, setName] = useState(template.name);
   const [blocks, setBlocks] = useState(() =>
     template.blocks.length > 0 ? template.blocks.map(cloneBlock) : [makeEmptyBlock()]
@@ -75,7 +78,13 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     const next = [...blocks];
     const exs = next[bIdx].exercises.filter((_, i) => i !== eIdx);
     if (exs.length === 0) {
-      // Remove the block if no exercises left
+      if (blocks.length <= 1) {
+        // Last exercise in the only block — reset to empty block
+        next[bIdx] = makeEmptyBlock();
+        setBlocks(next);
+        showToast('Exercise removed — block reset');
+        return;
+      }
       removeBlock(bIdx);
       return;
     }
@@ -229,21 +238,22 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   }
 
   function handleSave() {
-    // Filter out blocks with no exercises that have titles
-    const cleanBlocks = blocks
-      .map((block) => ({
-        ...block,
-        exercises: block.exercises.filter((ex) => ex.title.trim()),
-      }))
-      .filter((block) => block.exercises.length > 0);
+    const { cleanBlocks, discardedCount, error } = validateTemplate(name, blocks);
 
-    if (cleanBlocks.length === 0 || !name.trim()) return;
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
 
     onSave({
       ...template,
       name: name.trim(),
       blocks: cleanBlocks,
     });
+
+    if (discardedCount > 0) {
+      showToast(`${discardedCount} untitled exercise${discardedCount !== 1 ? 's' : ''} removed`);
+    }
   }
 
   const isPickerOpen = (bIdx, eIdx) =>

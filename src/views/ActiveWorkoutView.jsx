@@ -153,6 +153,7 @@ export default function ActiveWorkoutView({
   const handleRemoveSet = (blockIdx, exIdx, setIdx) => {
     setEditBlocks((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
+      if (next[blockIdx].exercises[exIdx].sets.length <= 1) return prev;
       next[blockIdx].exercises[exIdx].sets.splice(setIdx, 1);
       return next;
     });

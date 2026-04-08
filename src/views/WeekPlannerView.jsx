@@ -49,26 +49,48 @@ export default function WeekPlannerView({
   const [draft, setDraft] = useState({}); // dateStr -> templateId (uncommitted changes)
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
+  const [pendingNavAction, setPendingNavAction] = useState(null); // deferred week-nav callback
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
+  const hasDraftChanges = Object.keys(draft).length > 0;
+
+  const navigateWeek = (action) => {
+    if (hasDraftChanges) {
+      setPendingNavAction(() => action);
+      return;
+    }
+    action();
+  };
+
+  const confirmNavAway = () => {
+    if (pendingNavAction) pendingNavAction();
+    setPendingNavAction(null);
+  };
+
   const goToPrevWeek = () => {
-    const d = parseLocalDate(weekDates[0]);
-    d.setDate(d.getDate() - 7);
-    setWeekStart(formatLocalDate(d));
-    setDraft({});
+    navigateWeek(() => {
+      const d = parseLocalDate(weekDates[0]);
+      d.setDate(d.getDate() - 7);
+      setWeekStart(formatLocalDate(d));
+      setDraft({});
+    });
   };
 
   const goToNextWeek = () => {
-    const d = parseLocalDate(weekDates[0]);
-    d.setDate(d.getDate() + 7);
-    setWeekStart(formatLocalDate(d));
-    setDraft({});
+    navigateWeek(() => {
+      const d = parseLocalDate(weekDates[0]);
+      d.setDate(d.getDate() + 7);
+      setWeekStart(formatLocalDate(d));
+      setDraft({});
+    });
   };
 
   const goToThisWeek = () => {
-    setWeekStart(today);
-    setDraft({});
+    navigateWeek(() => {
+      setWeekStart(today);
+      setDraft({});
+    });
   };
 
   const getWorkoutForDate = (dateStr) => {
@@ -90,8 +112,6 @@ export default function WeekPlannerView({
   const clearDay = (dateStr) => {
     setDraft((prev) => ({ ...prev, [dateStr]: null }));
   };
-
-  const hasDraftChanges = Object.keys(draft).length > 0;
 
   // Close template picker on Escape
   useEffect(() => {
@@ -366,6 +386,18 @@ export default function WeekPlannerView({
           onCancel={() => setShowClearConfirm(false)}
           confirmText="Clear"
           cancelText="Keep"
+          isDestructive
+        />
+      )}
+
+      {pendingNavAction && (
+        <Modal
+          title="Unsaved Changes"
+          message="You have unapplied changes this week. Navigate away and discard them?"
+          onConfirm={confirmNavAway}
+          onCancel={() => setPendingNavAction(null)}
+          confirmText="Discard"
+          cancelText="Stay"
           isDestructive
         />
       )}

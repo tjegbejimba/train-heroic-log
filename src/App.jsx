@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useSchedule } from './hooks/useSchedule';
 import { useYouTubeLinks } from './hooks/useYouTubeLinks';
@@ -239,6 +239,64 @@ export default function App() {
     applyWrites(applyTemplateChange(snap(), { type: 'save', template: { ...tpl, name: newName }, previousName: tpl.name }));
   };
 
+  // Memoize exercise names (used by template editor)
+  const exerciseNames = useMemo(() => {
+    const names = new Set();
+    Object.values(workouts).forEach((w) =>
+      w.blocks.forEach((b) =>
+        b.exercises.forEach((ex) => names.add(ex.title))
+      )
+    );
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [workouts]);
+
+  // Shared clear-all handler (used by SettingsView in two routes)
+  const handleClearAllData = useCallback(async (keys) => {
+    if (syncReloadInProgress) return;
+    syncReloadInProgress = true;
+    window.stop();
+    await flushPendingPushes();
+    if (!keys) {
+      await clearServer();
+      clearLS();
+    } else {
+      keys.forEach((k) => removeLS(k));
+    }
+    sessionStorage.setItem('skipSync', '1');
+    setTimeout(() => window.location.reload(), 0);
+  }, [clearServer]);
+
+  const handlePullSync = useCallback(async () => {
+    const { ok, changed } = await pullSync();
+    if (ok) {
+      showToast(changed ? 'Synced from server!' : 'Already up to date');
+      if (changed) {
+        await safeFlushAndReload({ syncReload: '1' });
+      }
+    } else {
+      showToast('Server unreachable', 'error');
+    }
+  }, [pullSync, showToast]);
+
+  const handlePushSync = useCallback(async () => {
+    const ok = await pushSync();
+    showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
+  }, [pushSync, showToast]);
+
+  const settingsProps = {
+    onReimport: () => navigate(ROUTE_IMPORT),
+    templateList,
+    deleteTemplate: handleDeleteTemplate,
+    renameTemplate: handleRenameTemplate,
+    duplicateTemplate,
+    navigate,
+    onClearAllData: handleClearAllData,
+    syncStatus,
+    lastSynced,
+    onPullSync: handlePullSync,
+    onPushSync: handlePushSync,
+  };
+
   // Render current view
   let currentView = null;
   const { view, params } = navState;
@@ -365,63 +423,11 @@ export default function App() {
       break;
 
     case ROUTE_SETTINGS:
-      currentView = (
-        <SettingsView
-          onReimport={() => {
-            navigate(ROUTE_IMPORT);
-          }}
-          templateList={templateList}
-          deleteTemplate={handleDeleteTemplate}
-          renameTemplate={handleRenameTemplate}
-          duplicateTemplate={duplicateTemplate}
-          navigate={navigate}
-          onClearAllData={async (keys) => {
-            if (syncReloadInProgress) return;
-            syncReloadInProgress = true;
-            window.stop();
-            await flushPendingPushes(); // flush any in-flight writes before clearing
-            if (!keys) {
-              // Clear server first — if offline the server keeps old data, which
-              // would win on next pull and restore everything the user just deleted.
-              await clearServer();
-              clearLS();
-            } else {
-              keys.forEach((k) => removeLS(k));
-            }
-            sessionStorage.setItem('skipSync', '1');
-            setTimeout(() => window.location.reload(), 0);
-          }}
-          syncStatus={syncStatus}
-          lastSynced={lastSynced}
-          onPullSync={async () => {
-            const { ok, changed } = await pullSync();
-            if (ok) {
-              showToast(changed ? 'Synced from server!' : 'Already up to date');
-              if (changed) {
-                await safeFlushAndReload({ syncReload: '1' });
-              }
-            } else {
-              showToast('Server unreachable', 'error');
-            }
-          }}
-          onPushSync={async () => {
-            const ok = await pushSync();
-            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
-          }}
-        />
-      );
+      currentView = <SettingsView {...settingsProps} />;
       break;
 
     case ROUTE_EDIT_TEMPLATE: {
       const tpl = templates[params.templateId];
-      // Build exercise names list from all workouts
-      const exerciseNameSet = new Set();
-      Object.values(workouts).forEach((w) =>
-        w.blocks.forEach((b) =>
-          b.exercises.forEach((ex) => exerciseNameSet.add(ex.title))
-        )
-      );
-      const exerciseNames = [...exerciseNameSet].sort((a, b) => a.localeCompare(b));
 
       currentView = tpl ? (
         <TemplateEditorView
@@ -441,47 +447,7 @@ export default function App() {
           onCancel={() => navigate(ROUTE_LIBRARY, { tab: 'templates' })}
         />
       ) : (
-        <SettingsView
-          onReimport={() => navigate(ROUTE_IMPORT)}
-          templateList={templateList}
-          deleteTemplate={handleDeleteTemplate}
-          renameTemplate={handleRenameTemplate}
-          duplicateTemplate={duplicateTemplate}
-          navigate={navigate}
-          onClearAllData={async (keys) => {
-            if (syncReloadInProgress) return;
-            syncReloadInProgress = true;
-            window.stop();
-            await flushPendingPushes(); // flush any in-flight writes before clearing
-            if (!keys) {
-              // Clear server first — if offline the server keeps old data, which
-              // would win on next pull and restore everything the user just deleted.
-              await clearServer();
-              clearLS();
-            } else {
-              keys.forEach((k) => removeLS(k));
-            }
-            sessionStorage.setItem('skipSync', '1');
-            setTimeout(() => window.location.reload(), 0);
-          }}
-          syncStatus={syncStatus}
-          lastSynced={lastSynced}
-          onPullSync={async () => {
-            const { ok, changed } = await pullSync();
-            if (ok) {
-              showToast(changed ? 'Synced from server!' : 'Already up to date');
-              if (changed) {
-                await safeFlushAndReload({ syncReload: '1' });
-              }
-            } else {
-              showToast('Server unreachable', 'error');
-            }
-          }}
-          onPushSync={async () => {
-            const ok = await pushSync();
-            showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
-          }}
-        />
+        <SettingsView {...settingsProps} />
       );
       break;
     }
