@@ -42,6 +42,12 @@
 - `onClearAllData` called `localStorage.removeItem` directly, bypassing `removeLS` → fixed
 - `failedKeys` lost on page reload → persisted to `sessionStorage`
 - `Modal` had no Escape key or overlay click to dismiss → added
+- Template Editor: removing last exercise in only block silently failed → now resets block with toast feedback
+- Template Editor: `handleSave` returned silently on invalid state → now shows error toast (empty name / no exercises)
+- Template Editor: exercises with empty titles silently dropped on save → now shows discard count toast
+- WeekPlanner: navigating weeks silently discarded unsaved draft → now shows confirm dialog
+- Active Workout: edit mode allowed removing all sets from an exercise → enforced minimum 1 set
+- `ROUTE_EDIT_TEMPLATE` fallback in `App.jsx` duplicated entire `SettingsView` render → extracted into shared props
 
 ### Features Added
 - **Reps as a unit** — independent unit dropdowns on both reps and weight sides of set rows
@@ -68,9 +74,6 @@
 ### History
 - PR logic in `getSetPR` uses synthesised `log.key` field; old logs with a top-level `key` stored in the object itself could shadow it — low risk but fragile
 
-### Template Editor
-- Removing the last exercise in the only block is silently ignored; "Save Template" then does nothing with no error toast
-
 ### Planner
 - "Copy to Next Week" stages the draft but requires a manual "Apply Plan" tap — not obvious to users
 - Multi-day clear in a single draft batch can prematurely delete workout objects that are still in use
@@ -80,7 +83,6 @@
 
 ### Navigation
 - No browser history integration — back button doesn't work; iOS PWA swipe-back exits to home screen
-- `ROUTE_EDIT_TEMPLATE` fallback in `App.jsx` duplicates all `SettingsView` prop bindings — maintenance hazard
 
 ### Library
 - Notes draft may initialise from stale memo value on rapid double-tap open/save/reopen
