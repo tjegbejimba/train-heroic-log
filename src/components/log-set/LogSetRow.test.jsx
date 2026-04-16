@@ -142,4 +142,44 @@ describe('LogSetRow', () => {
     expect(inputs[0].disabled).toBe(true);
     expect(inputs[1].disabled).toBe(true);
   });
+
+  it('clamps negative reps to 0', () => {
+    const onUpdate = vi.fn();
+    const { container } = render(
+      <LogSetRow setIndex={0} set={defaultSet} loggedSet={null} onUpdate={onUpdate} />
+    );
+    const repsInput = container.querySelectorAll('input')[0];
+    fireEvent.change(repsInput, { target: { value: '-5' } });
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ actualReps: 0 })
+    );
+  });
+
+  it('clamps negative weight to 0', () => {
+    const onUpdate = vi.fn();
+    const { container } = render(
+      <LogSetRow setIndex={0} set={defaultSet} loggedSet={null} onUpdate={onUpdate} />
+    );
+    const weightInput = container.querySelectorAll('input')[1];
+    fireEvent.change(weightInput, { target: { value: '-10' } });
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ actualWeight: 0 })
+    );
+  });
+
+  it('does not let −2.5 button go below 0', () => {
+    const onUpdate = vi.fn();
+    render(
+      <LogSetRow
+        setIndex={0}
+        set={defaultSet}
+        loggedSet={{ actualReps: 10, actualWeight: 1, completed: false }}
+        onUpdate={onUpdate}
+      />
+    );
+    fireEvent.click(screen.getByLabelText('Decrease weight by 2.5'));
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ actualWeight: 0 })
+    );
+  });
 });

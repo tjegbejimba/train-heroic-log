@@ -70,9 +70,12 @@
 ### Active Workout
 - Rest timer re-fires when a completed set is un-checked then re-checked — confusing when reviewing logged sets
 - `handleCompleteWorkout` closure captures pre-modal state snapshot — low risk but fragile
+- No validation for negative weight/reps — users can enter nonsense values
+- Completion modal can be closed mid-flow, potentially losing summary data
 
 ### History
 - PR logic in `getSetPR` uses synthesised `log.key` field; old logs with a top-level `key` stored in the object itself could shadow it — low risk but fragile
+- Volume calculation silently ignores NaN weights instead of showing a warning
 
 ### Planner
 - "Copy to Next Week" stages the draft but requires a manual "Apply Plan" tap — not obvious to users
@@ -80,6 +83,8 @@
 
 ### Sync & Data
 - Sync merge is server-wins with no notification — if two sessions are open simultaneously one will silently overwrite the other
+- Stale retry payloads — when a push fails and retries later, it sends the old payload instead of current localStorage value, silently overwriting user edits made between failure and retry
+- Orphaned YouTube links accumulate when exercises are renamed or deleted — no cleanup mechanism exists
 
 ### Navigation
 - No browser history integration — back button doesn't work; iOS PWA swipe-back exits to home screen
@@ -91,20 +96,34 @@
 
 ## 💡 Feature Ideas
 
+### 🏆 Quick Wins — Utility Code Exists, Needs UI
+- **Surface workout streaks** — `streaks.js` exists; show current streak, longest streak, and weekly frequency on TrainingView or a dashboard
+- **Overload suggestions** — `overloadSuggestion.js` exists; show "suggested weight" hints based on last session (e.g., "You hit all reps → try +5 lb")
+- **Plate calculator** — `plateCalculator.js` exists; show "load 45+25+10 per side" under barbell exercises during active workout
+- **1RM estimates in UI** — `oneRepMax.js` exists; show estimated 1RM on exercise history / progress chart
+- **Save workout duration** — active workout has a timer but elapsed time isn't saved to the log; show "45 min" in history
+
 ### Active Workout
 - Auto-scroll to next set after completing current set + starting rest timer
 - Per-exercise rest duration override in the template editor
 - Template divergence warning — banner if the scheduled workout's template was edited since the session started
+- **Copy last session weights** — one-tap "fill all sets from last session" (Hevy's most-loved feature)
+- **Session RPE / rating** — rate how a session felt (1–5 stars or RPE 1–10) for fatigue tracking
+- **Superset flow enforcement** — data model supports supersets but UI doesn't enforce alternate-exercise flow during logging
+- **Hide timer toggle** — some users find the always-visible timer distracting; option to collapse it
 
 ### History & Progress
 - Filter / search history by workout title or exercise name
 - Export history as CSV
 - Bodyweight rep PR tracking — for bodyweight exercises, track highest rep count
 - Sort order toggle in exercise drilldown (newest-first vs oldest-first to see progression)
+- **Volume trends dashboard** — weekly/monthly aggregate charts (total sets, reps, tonnage per week)
+- **Quick-start last workout** — "Start Again" button on history entries to repeat without navigating to calendar
 
 ### Library
 - Show which workouts contain each exercise ("in 3 workouts")
 - YouTube link preview thumbnail instead of raw URL text
+- **Exercise rename propagation** — renaming an exercise should cascade to logs, YouTube links, and autocomplete
 
 ### Planner
 - **Drag-and-drop workout reorder** — long-press a workout card to drag it to a different day (requires `@dnd-kit` for touch support). Consider deferring to native iOS app if PWA touch feel isn't satisfactory.
@@ -112,16 +131,31 @@
 - Unsaved changes guard — confirm dialog when leaving WeekPlannerView with a pending draft
 - Rest day label — explicitly mark a day as "Rest Day" (distinct from unscheduled)
 - Tap scheduled workout name in planner to navigate to it in TrainingView
+- **Workout preview on calendar** — subtitle or tooltip showing exercise count/names under workout title
 
 ### Settings & Data
 - Theme selector — dark-only today; light / auto toggle
 - Sync conflict notification — lightweight banner when server data overwrites local changes
 - Version display reads from `package.json` via `import.meta.env.VITE_APP_VERSION`
 - **In-app feedback / bug report** — "Send Feedback" button in Settings opens a short form (title, description, category: Bug / Feature / Other); on submit, POSTs to the NAS backend which creates a GitHub issue via the GitHub API using a stored token. Include app version, device/browser info, and an optional localStorage snapshot for bug reports.
+- **Sync status indicator** — small dot in navbar (green = synced, yellow = pending, red = failed) so users know if data is safe
 
 ### Import
 - Re-import warning — alert when a CSV re-import would overwrite existing workout data
 - Drag-and-drop CSV onto the import zone
+
+### Server & Infrastructure
+- **API key authentication** — simple env-var API key middleware to prevent unauthorized access on Tailscale network
+- **Rate limiting** — `express-rate-limit` to prevent accidental or malicious request floods
+- **Automated server backups** — cron job snapshotting `server/data/` daily with retention policy
+- **Request logging** — audit trail for all PUT/DELETE calls with timestamp and key
+- **Server-side data validation** — reject malformed JSON, enforce value types, cap payload size
+
+### Architecture
+- **Data schema versioning** — `schemaVersion` field + migration runner so future changes don't break old logs
+- **IndexedDB migration** — localStorage caps at 5–10MB; IndexedDB has unlimited storage for growing history
+- **Background Sync API** — use SW `sync` event to reliably retry failed pushes when connectivity returns
+- **E2E tests** — Playwright suite for critical path (start workout → log sets → complete → verify history)
 
 ---
 
@@ -138,6 +172,13 @@
 - **Storage indicator live updates** — recalculate when logs or workouts change, not just templates
 - **Template preview shows part labels** — "Part A: Squat (4 sets), Part B: Leg Press…" with superset indication
 - **Import progress indicator** — spinner during large CSV parse (currently synchronous and blocking)
+- **Input validation** — reject negative weight/reps, enforce upper bounds on sets per exercise and note length
+- **PWA manifest shortcuts** — home screen shortcuts for "Start Workout" and "View History"
+- **Toast accessibility** — add `role="status"` and `aria-live="polite"` so screen readers announce notifications
+- **Modal focus traps** — prevent Tab from escaping modal dialogs (WCAG)
+- **Chart accessibility** — add `role="img"` and `<title>` to SVG charts, keyboard navigation for data points
+- **`aria-expanded` on collapsibles** — exercise rows, history entries, and settings sections
+- **Input labels** — replace placeholder-only inputs with proper `<label>` elements
 
 ---
 

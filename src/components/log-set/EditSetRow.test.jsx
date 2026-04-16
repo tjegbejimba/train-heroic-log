@@ -72,4 +72,24 @@ describe('EditSetRow', () => {
     render(<EditSetRow setIndex={0} set={timedSet} onTargetChange={() => {}} onRemoveSet={() => {}} />);
     expect(screen.getByText('Time')).toBeTruthy();
   });
+
+  it('clamps negative reps to 0', () => {
+    const onTargetChange = vi.fn();
+    const { container } = render(
+      <EditSetRow setIndex={0} set={defaultSet} onTargetChange={onTargetChange} onRemoveSet={() => {}} />
+    );
+    const repsInput = container.querySelectorAll('input')[0];
+    fireEvent.change(repsInput, { target: { value: '-3' } });
+    expect(onTargetChange).toHaveBeenCalledWith(0, 'reps', 0);
+  });
+
+  it('clamps negative weight to 0', () => {
+    const onTargetChange = vi.fn();
+    const { container } = render(
+      <EditSetRow setIndex={0} set={defaultSet} onTargetChange={onTargetChange} onRemoveSet={() => {}} />
+    );
+    const weightInput = container.querySelectorAll('input')[1];
+    fireEvent.change(weightInput, { target: { value: '-50' } });
+    expect(onTargetChange).toHaveBeenCalledWith(0, 'weight', 0);
+  });
 });

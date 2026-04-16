@@ -5,6 +5,13 @@ import { getSetMeta } from '../../utils/setMeta';
 import { hapticLight } from '../../utils/haptics';
 import PlateDisplay from '../PlateDisplay';
 
+function clampNonNegative(value, parseFn) {
+  if (value === '') return { num: '', display: '' };
+  const parsed = parseFn(value);
+  const clamped = parsed < 0 ? 0 : parsed;
+  return { num: clamped, display: String(clamped) };
+}
+
 /**
  * Logging-mode set row. 6 props — handles input state, time conversion,
  * auto-fill, haptics, and latestRef race prevention internally.
@@ -81,22 +88,22 @@ export default function LogSetRow({
   }, [loggedSet?.actualReps, loggedSet?.actualWeight, loggedSet?.completed]);
 
   const handleRepsChange = (value, { updateTimeStr = true } = {}) => {
-    const numVal = value === '' ? '' : parseInt(value, 10);
-    setLocalReps(value);
+    const { num, display } = clampNonNegative(value, (v) => parseInt(v, 10));
+    setLocalReps(display);
     if (isTimeReps && updateTimeStr) {
-      setLocalTimeRepsStr(value !== '' ? secondsToMmss(Number(value)) : '');
+      setLocalTimeRepsStr(display !== '' ? secondsToMmss(Number(display)) : '');
     }
-    latestRef.current.actualReps = numVal;
+    latestRef.current.actualReps = num;
     onUpdate({ ...latestRef.current });
   };
 
   const handleWeightChange = (value, { updateTimeStr = true } = {}) => {
-    const numVal = value === '' ? '' : parseFloat(value);
-    setLocalWeight(value);
+    const { num, display } = clampNonNegative(value, parseFloat);
+    setLocalWeight(display);
     if (isTimeWeight && updateTimeStr) {
-      setLocalTimeWeightStr(value !== '' ? secondsToMmss(Number(value)) : '');
+      setLocalTimeWeightStr(display !== '' ? secondsToMmss(Number(display)) : '');
     }
-    latestRef.current.actualWeight = numVal;
+    latestRef.current.actualWeight = num;
     onUpdate({ ...latestRef.current });
   };
 

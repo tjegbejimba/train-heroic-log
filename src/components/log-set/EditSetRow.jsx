@@ -19,9 +19,11 @@ export default function EditSetRow({ setIndex, set, onTargetChange, onRemoveSet 
             min="0"
             className="log-set-row__input"
             value={set.reps ?? ''}
-            onChange={(e) =>
-              onTargetChange(setIndex, 'reps', e.target.value === '' ? null : parseInt(e.target.value, 10))
-            }
+            onChange={(e) => {
+              if (e.target.value === '') return onTargetChange(setIndex, 'reps', null);
+              const v = parseInt(e.target.value, 10);
+              onTargetChange(setIndex, 'reps', v < 0 ? 0 : v);
+            }}
           />
         </div>
         {!isBodyweight && (
@@ -35,9 +37,11 @@ export default function EditSetRow({ setIndex, set, onTargetChange, onRemoveSet 
               step="0.5"
               className="log-set-row__input"
               value={set.weight ?? ''}
-              onChange={(e) =>
-                onTargetChange(setIndex, 'weight', e.target.value === '' ? null : parseFloat(e.target.value))
-              }
+              onChange={(e) => {
+                if (e.target.value === '') return onTargetChange(setIndex, 'weight', null);
+                const v = parseFloat(e.target.value);
+                onTargetChange(setIndex, 'weight', v < 0 ? 0 : v);
+              }}
             />
           </div>
         )}
