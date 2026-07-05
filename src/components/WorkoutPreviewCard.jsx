@@ -1,8 +1,27 @@
 import { useState } from 'react';
-import { Save, Check, MessageSquare } from 'lucide-react';
+import { Check, Dumbbell, MessageSquare, Play, Save } from 'lucide-react';
+
+function getExerciseCount(workout) {
+  return (workout.blocks || []).reduce(
+    (total, block) => total + (block.exercises?.length || 0),
+    0
+  );
+}
+
+function getSetCount(workout) {
+  return (workout.blocks || []).reduce(
+    (total, block) => total + (block.exercises || []).reduce(
+      (blockTotal, exercise) => blockTotal + (exercise.sets?.length || 0),
+      0
+    ),
+    0
+  );
+}
 
 export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTemplate }) {
   const [saved, setSaved] = useState(false);
+  const exerciseCount = getExerciseCount(workout);
+  const setCount = getSetCount(workout);
 
   const handleSaveTemplate = () => {
     if (onSaveAsTemplate) {
@@ -15,46 +34,90 @@ export default function WorkoutPreviewCard({ workout, onStartWorkout, onSaveAsTe
   };
 
   return (
-    <div className="workout-preview-card card">
-      <div className="flex-between mb-md">
-        <div className="workout-preview-card__coach">
-          <div className="workout-preview-card__coach-avatar">
-            {workout.title
-              .split(' ')
-              .slice(0, 2)
-              .map((w) => w[0])
-              .join('')
-              .toUpperCase()}
-          </div>
+    <section className="workout-preview-card card" aria-labelledby="today-workout-title">
+      <div className="workout-preview-card__topline">
+        <div className="workout-preview-card__badge">
+          <Dumbbell size={16} aria-hidden="true" />
+          Today&apos;s session
         </div>
         {onSaveAsTemplate && (
           <button
-            className="btn btn-secondary btn-small"
+            className="workout-preview-card__save"
             onClick={handleSaveTemplate}
             disabled={saved}
           >
             {saved
-              ? <><Check size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Saved</>
-              : <><Save size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Save Template</>}
+              ? <><Check size={14} />Saved</>
+              : <><Save size={14} />Save</>}
           </button>
         )}
       </div>
 
-      <h2 className="workout-preview-card__title">{workout.title}</h2>
+      <h2 id="today-workout-title" className="workout-preview-card__title">
+        {workout.title}
+      </h2>
+
+      <div className="workout-preview-card__metrics" aria-label="Workout summary">
+        <div className="workout-preview-card__metric">
+          <span className="workout-preview-card__metric-value">{exerciseCount}</span>
+          <span className="workout-preview-card__metric-label">Exercises</span>
+        </div>
+        <div className="workout-preview-card__metric">
+          <span className="workout-preview-card__metric-value">{setCount}</span>
+          <span className="workout-preview-card__metric-label">Sets</span>
+        </div>
+        <div className="workout-preview-card__metric">
+          <span className="workout-preview-card__metric-value">{workout.blocks?.length || 0}</span>
+          <span className="workout-preview-card__metric-label">Parts</span>
+        </div>
+      </div>
 
       <button
-        className="btn btn-primary btn--large w-full mt-lg"
+        className="workout-preview-card__start"
         onClick={onStartWorkout}
       >
-        Start Session
+        <Play size={18} fill="currentColor" aria-hidden="true" />
+        Start Workout
       </button>
 
       {workout.notes && (
-        <div className="mt-lg">
-          <div className="text-blue mt-md mb-md" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><MessageSquare size={14} /> Workout Notes</div>
-          <p className="text-secondary">{workout.notes}</p>
+        <div className="workout-preview-card__notes">
+          <div className="workout-preview-card__notes-label">
+            <MessageSquare size={14} aria-hidden="true" />
+            Workout notes
+          </div>
+          <p>{workout.notes}</p>
         </div>
       )}
-    </div>
+
+      <div className="workout-preview-card__exercises">
+        {(workout.blocks || []).map((block, blockIdx) => {
+          const isSuperset = (block.exercises || []).length > 1;
+          return (
+            <div
+              key={blockIdx}
+              className={`workout-preview-card__block ${
+                isSuperset ? 'workout-preview-card__block--superset' : ''
+              }`}
+            >
+              <div className="workout-preview-card__block-label">
+                <span>{block.value || String.fromCharCode(65 + blockIdx)}</span>
+                {isSuperset && <strong>Superset</strong>}
+              </div>
+              <div className="workout-preview-card__block-exercises">
+                {(block.exercises || []).map((exercise, exIdx) => (
+                  <div key={exIdx} className="workout-preview-card__exercise-row">
+                    <span className="workout-preview-card__exercise-name">{exercise.title}</span>
+                    <span className="workout-preview-card__exercise-sets">
+                      {exercise.sets?.length || 0} set{(exercise.sets?.length || 0) !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

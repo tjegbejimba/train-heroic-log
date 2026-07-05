@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, Play, CalendarPlus } from 'lucide-react';
 
 export default function TemplatePreviewSheet({
@@ -6,42 +7,80 @@ export default function TemplatePreviewSheet({
   onSchedule,
   onClose,
 }) {
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   if (!template) return null;
 
   const exerciseCount = template.blocks.reduce(
     (sum, b) => sum + b.exercises.length,
     0
   );
+  const setCount = template.blocks.reduce(
+    (sum, block) => sum + block.exercises.reduce(
+      (exerciseSum, exercise) => exerciseSum + exercise.sets.length,
+      0
+    ),
+    0
+  );
 
   return (
     <div className="tpl-preview-overlay" onClick={onClose}>
-      <div className="tpl-preview-sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="tpl-preview-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tpl-preview-title"
+      >
+        <div className="tpl-preview__grabber" aria-hidden="true" />
         <div className="tpl-preview__header">
-          <h2 className="tpl-preview__title">{template.name}</h2>
-          <button className="tpl-preview__close" onClick={onClose}>
+          <div>
+            <span className="tpl-preview__kicker">Template preview</span>
+            <h2 id="tpl-preview-title" className="tpl-preview__title">{template.name}</h2>
+          </div>
+          <button className="tpl-preview__close" onClick={onClose} aria-label="Close template preview">
             <X size={20} />
           </button>
         </div>
-        <p className="tpl-preview__meta">
-          {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
-        </p>
+
+        <div className="tpl-preview__meta" aria-label="Template summary">
+          <span>{exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</span>
+          <span>{setCount} set{setCount !== 1 ? 's' : ''}</span>
+          <span>{template.blocks.length} part{template.blocks.length !== 1 ? 's' : ''}</span>
+        </div>
 
         <div className="tpl-preview__exercises">
           {template.blocks.map((block, bIdx) => {
             const isSuperset = block.exercises.length > 1;
             return (
-              <div key={bIdx}>
-                {isSuperset && (
-                  <div className="tpl-preview__superset-label">Superset</div>
-                )}
-                {block.exercises.map((ex, eIdx) => (
-                  <div key={eIdx} className="tpl-preview__exercise-row">
-                    <span className="tpl-preview__exercise-name">{ex.title}</span>
-                    <span className="tpl-preview__exercise-sets">
-                      {ex.sets.length} set{ex.sets.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                ))}
+              <div
+                key={bIdx}
+                className={`tpl-preview__block ${isSuperset ? 'tpl-preview__block--superset' : ''}`}
+              >
+                <div className="tpl-preview__block-heading">
+                  <span className="tpl-preview__block-letter">
+                    {block.value || String.fromCharCode(65 + bIdx)}
+                  </span>
+                  {isSuperset && (
+                    <span className="tpl-preview__superset-label">Superset</span>
+                  )}
+                </div>
+                <div className="tpl-preview__block-list">
+                  {block.exercises.map((ex, eIdx) => (
+                    <div key={eIdx} className="tpl-preview__exercise-row">
+                      <span className="tpl-preview__exercise-name">{ex.title}</span>
+                      <span className="tpl-preview__exercise-sets">
+                        {ex.sets.length} set{ex.sets.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
