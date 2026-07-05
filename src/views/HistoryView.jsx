@@ -1,7 +1,21 @@
 import { useState, useMemo } from 'react';
-import { BarChart2, FileText, CheckCircle2, Circle, Trash2 } from 'lucide-react';
+import {
+  BarChart2,
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  Dumbbell,
+  FileText,
+  Flame,
+  Timer,
+  Trash2,
+  Trophy,
+  Weight,
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import { calculateStreaks } from '../utils/streaks';
+
+const VOLUME_UNITS = new Set(['lb', 'kg']);
 
 export default function HistoryView({ allLogs, deleteLog, workouts, completedDates }) {
   const [expandedKey, setExpandedKey] = useState(null);
@@ -12,18 +26,13 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     [completedDates]
   );
 
-  // Only show completed workouts
   const completedLogs = useMemo(
     () => allLogs.filter((log) => log.completedAt),
     [allLogs]
   );
 
-  // Build PR map: for each exercise, track best weight per rep count
   const prMap = useMemo(() => {
-    // bests[exName][repCount] = { weight, logKey, date, setIdx }
     const bests = {};
-
-    // Process logs in chronological order (oldest first)
     const chronological = [...completedLogs].reverse();
 
     chronological.forEach((log) => {
@@ -66,6 +75,15 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return d.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
+  const formatFullDate = (dateStr) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   const formatDuration = (startedAt, completedAt) => {
     if (!startedAt || !completedAt) return '--';
     const ms = new Date(completedAt) - new Date(startedAt);
@@ -75,11 +93,8 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
-  // Helper: look up the unit for an exercise from the workout definition or the logged set
   const getExerciseUnit = (exName, sets) => {
-    // New logs store unit on each set
     if (sets[0]?.unit) return sets[0].unit;
-    // Fall back to workout definition
     if (workouts) {
       for (const w of Object.values(workouts)) {
         for (const block of w.blocks || []) {
@@ -94,11 +109,8 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return 'lb';
   };
 
-  // Units where volume (reps x weight) is meaningful
-  const VOLUME_UNITS = new Set(['lb', 'kg']);
-
   const calcVolume = (exercises) => {
-    const totals = {}; // unit -> total
+    const totals = {};
     Object.entries(exercises || {}).forEach(([exName, sets]) => {
       const unit = getExerciseUnit(exName, sets);
       if (!VOLUME_UNITS.has(unit)) return;
@@ -119,12 +131,17 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     const parts = Object.entries(totals)
       .filter(([, vol]) => vol > 0)
       .map(([unit, vol]) => {
-        const label = unit;
-        if (vol >= 1000) return `${(vol / 1000).toFixed(1)}k ${label}`;
-        return `${Math.round(vol)} ${label}`;
+        if (vol >= 1000) return `${(vol / 1000).toFixed(1)}k ${unit}`;
+        return `${Math.round(vol)} ${unit}`;
       });
     if (parts.length === 0) return null;
-    return parts.join(' \u00b7 ');
+    return parts.join(' · ');
+  };
+
+  const formatSetLoad = (reps, weight) => {
+    if (reps == null || reps === '') return '--';
+    const load = weight !== '' && weight != null ? weight : 'BW';
+    return `${reps} × ${load}`;
   };
 
   const getSetPR = (exName, set, logKey, setIdx) => {
@@ -145,7 +162,6 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return null;
   };
 
-  // Count PRs for a log entry
   const countPRs = (log) => {
     let count = 0;
     Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
@@ -167,68 +183,84 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
   if (completedLogs.length === 0) {
     return (
       <div className="view history-view">
-        <div className="history-view__header">
+        <header className="history-view__header">
           <h1>History</h1>
-        </div>
-        <div className="empty-state">
-          <div className="empty-state-icon"><BarChart2 size={48} /></div>
-          <h3>No completed workouts yet</h3>
-          <p className="text-secondary">
-            Complete a workout session to see it here
+          <p className="history-view__lede">
+            Completed sessions will become your training timeline.
           </p>
-        </div>
+        </header>
+
+        <section className="history-empty" aria-labelledby="history-empty-title">
+          <div className="history-empty__icon">
+            <BarChart2 size={32} strokeWidth={1.8} />
+          </div>
+          <h2 id="history-empty-title">No completed workouts yet</h2>
+          <p>
+            Finish a workout and this screen will stack your volume, PRs,
+            streaks, and session notes in one calm timeline.
+          </p>
+          <div className="history-empty__cue">
+            <Dumbbell size={16} />
+            Start from the Training tab, then come back here.
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
     <div className="view history-view">
-      <div className="history-view__header">
+      <header className="history-view__header">
         <h1>History</h1>
-        <p className="text-secondary text-sm">
-          {completedLogs.length} workout{completedLogs.length !== 1 ? 's' : ''}{' '}
-          completed
+        <p className="history-view__lede">
+          <span className="history-view__count">{completedLogs.length}</span>{' '}
+          workout{completedLogs.length !== 1 ? 's' : ''} completed, latest first.
         </p>
-      </div>
+      </header>
 
       {completedDates && completedDates.size > 0 && (
-        <div className="streak-bar">
-          <div className="streak-bar__stat">
-            <span className={`streak-bar__icon ${streaks.isActiveToday ? 'streak-bar__icon--active' : ''}`}>🔥</span>
-            <span className="streak-bar__value">{streaks.currentStreak}</span>
-            <span className="streak-bar__label">
-              {streaks.currentStreak === 0 ? 'No streak' : streaks.currentStreak === 1 ? 'day' : 'days'}
+        <section className="streak-bar" aria-label="Workout streak summary">
+          <div className="streak-bar__primary">
+            <span className={`streak-bar__icon ${streaks.isActiveToday ? 'streak-bar__icon--active' : ''}`}>
+              <Flame size={22} strokeWidth={2.2} />
             </span>
+            <span className="streak-bar__value">{streaks.currentStreak}</span>
+            <span className="streak-bar__label">Current streak</span>
           </div>
-          <div className="streak-bar__divider" />
-          <div className="streak-bar__stat">
-            <span className="streak-bar__icon">🏆</span>
-            <span className="streak-bar__value">{streaks.longestStreak}</span>
-            <span className="streak-bar__label">{streaks.longestStreak === 1 ? 'day best' : 'days best'}</span>
+
+          <div className="streak-bar__secondary">
+            <Trophy size={16} strokeWidth={2} />
+            <span className="streak-bar__secondary-value">{streaks.longestStreak}</span>
+            <span>Best streak</span>
           </div>
+
           {streaks.currentStreak > 0 && !streaks.isActiveToday && (
-            <div className="streak-bar__nudge">Workout today to keep your streak!</div>
+            <p className="streak-bar__nudge">
+              <Flame size={14} />
+              Workout today to keep the streak alive.
+            </p>
           )}
-        </div>
+        </section>
       )}
 
-      <div className="history-view__list">
+      <div className="history-view__list" aria-label="Completed workouts">
         {completedLogs.map((log) => {
           const isExpanded = expandedKey === log.key;
           const exerciseNames = Object.keys(log.exercises || {});
-          const totalSets = Object.values(log.exercises || {}).flat().length;
-          const completedSets = Object.values(log.exercises || {})
-            .flat()
-            .filter((s) => s.completed).length;
-          const volume = calcVolume(log.exercises);
-          const volumeStr = formatVolume(volume);
+          const allSets = Object.values(log.exercises || {}).flat();
+          const totalSets = allSets.length;
+          const completedSets = allSets.filter((s) => s.completed).length;
+          const volumeStr = formatVolume(calcVolume(log.exercises));
           const prCount = countPRs(log);
           const duration = formatDuration(log.startedAt, log.completedAt);
+          const fullDate = formatFullDate(log.date);
 
           return (
-            <div key={log.key} className="history-entry">
-              {/* Left column: date badge */}
-              <div className="history-entry__date-col">
+            <article
+              key={log.key}
+              className={`history-entry ${isExpanded ? 'history-entry--open' : ''}`}
+            >
+              <div className="history-entry__date-col" aria-label={fullDate}>
                 <span className="history-entry__day-num">
                   {formatDayNumber(log.date)}
                 </span>
@@ -240,46 +272,60 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                 </span>
               </div>
 
-              {/* Right column: card */}
               <div className="history-card">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="history-card__toggle"
-                  onClick={() => setExpandedKey(isExpanded ? null : log.key)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedKey(isExpanded ? null : log.key); } }}
-                >
-                  <div className="history-card__summary">
-                    <div className="history-card__title-row">
-                      <h3 className="history-card__title">{log.workoutTitle}</h3>
-                      {prCount > 0 && (
-                        <span className="history-card__pr-count-badge">
-                          {prCount} PR{prCount !== 1 ? 's' : ''}
+                <div className="history-card__top">
+                  <button
+                    type="button"
+                    className="history-card__toggle"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpandedKey(isExpanded ? null : log.key)}
+                  >
+                    <span className="history-card__summary">
+                      <span className="history-card__title-row">
+                        <span className="history-card__title">{log.workoutTitle}</span>
+                        {prCount > 0 && (
+                          <span className="history-card__pr-count-badge">
+                            <Trophy size={12} strokeWidth={2.4} />
+                            {prCount} PR{prCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </span>
+
+                      <span className="history-card__meta">
+                        {duration !== '--' && (
+                          <span className="history-card__meta-item">
+                            <Timer size={13} />
+                            <span className="history-card__metric-value">{duration}</span>
+                          </span>
+                        )}
+                        {volumeStr && (
+                          <span className="history-card__meta-item history-card__meta-item--volume">
+                            <Weight size={13} />
+                            <span className="history-card__metric-value">{volumeStr}</span>
+                          </span>
+                        )}
+                        <span className="history-card__meta-item">
+                          <Dumbbell size={13} />
+                          <span className="history-card__metric-value">
+                            {completedSets}/{totalSets}
+                          </span>
+                          sets
                         </span>
-                      )}
-                    </div>
-                    <div className="history-card__meta">
-                      {duration !== '--' && (
-                        <span>{duration}</span>
-                      )}
-                      {volumeStr && (
-                        <>
-                          <span className="history-card__dot" />
-                          <span>{volumeStr}</span>
-                        </>
-                      )}
-                      <span className="history-card__dot" />
-                      <span>{completedSets}/{totalSets} sets</span>
-                    </div>
-                  </div>
+                      </span>
+                    </span>
+
+                    <ChevronDown
+                      className="history-card__chevron"
+                      size={18}
+                      aria-hidden="true"
+                    />
+                  </button>
 
                   <button
+                    type="button"
                     className="history-card__delete-btn"
-                    aria-label="Delete log"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTarget(log.key);
-                    }}
+                    aria-label={`Delete ${log.workoutTitle} from ${fullDate}`}
+                    onClick={() => setDeleteTarget(log.key)}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -287,11 +333,10 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
 
                 {isExpanded && (
                   <div className="history-card__details">
-                    {/* Overall workout note */}
                     {log.workoutNote && (
                       <div className="history-card__workout-note">
                         <span className="history-card__workout-note-label">
-                          Session Note
+                          Session note
                         </span>
                         <p>{log.workoutNote}</p>
                       </div>
@@ -300,23 +345,31 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                     {exerciseNames.map((exName) => {
                       const sets = log.exercises[exName];
                       return (
-                        <div key={exName} className="history-card__exercise">
-                          <h4 className="history-card__exercise-name">
-                            {exName}
-                          </h4>
+                        <section key={exName} className="history-card__exercise">
+                          <div className="history-card__exercise-header">
+                            <h4 className="history-card__exercise-name">
+                              {exName}
+                            </h4>
+                            <span className="history-card__exercise-count">
+                              {sets.filter((set) => set.completed).length}/{sets.length} sets
+                            </span>
+                          </div>
+
                           {(log.exerciseNotes || {})[exName] && (
                             <p className="history-card__exercise-note">
-                              <FileText size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                              <FileText size={13} />
                               {log.exerciseNotes[exName]}
                             </p>
                           )}
-                          <div className="history-card__sets-table">
-                            <div className="history-card__sets-header">
-                              <span>Set</span>
-                              <span>Target</span>
-                              <span>Actual</span>
-                              <span></span>
+
+                          <div className="history-card__sets-table" role="table" aria-label={`${exName} logged sets`}>
+                            <div className="history-card__sets-header" role="row">
+                              <span role="columnheader">Set</span>
+                              <span role="columnheader">Target</span>
+                              <span role="columnheader">Actual</span>
+                              <span role="columnheader" aria-label="Status"></span>
                             </div>
+
                             {sets.map((set, idx) => {
                               const prReps = getSetPR(exName, set, log.key, idx);
                               const isPR = prReps !== null;
@@ -328,42 +381,51 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                                       ? 'history-card__set-row--completed'
                                       : ''
                                   } ${isPR ? 'history-card__set-row--pr' : ''}`}
+                                  role="row"
                                 >
-                                  <span className="text-secondary">
+                                  <span className="history-card__set-index" role="cell">
                                     {idx + 1}
                                   </span>
-                                  <span className="text-secondary">
-                                    {set.targetReps != null
-                                      ? `${set.targetReps} × ${set.targetWeight || 'BW'}`
-                                      : '--'}
+                                  <span className="history-card__set-value" role="cell">
+                                    {formatSetLoad(set.targetReps, set.targetWeight)}
                                   </span>
-                                  <span>
-                                    {set.actualReps !== '' &&
-                                    set.actualReps != null
-                                      ? `${set.actualReps} × ${set.actualWeight !== '' && set.actualWeight != null ? set.actualWeight : 'BW'}`
-                                      : '--'}
+                                  <span className="history-card__set-value history-card__set-value--actual" role="cell">
+                                    {formatSetLoad(set.actualReps, set.actualWeight)}
                                     {isPR && (
                                       <span className="history-card__pr-badge">
+                                        <Trophy size={11} strokeWidth={2.4} />
                                         PR @ {prReps} rep{prReps !== 1 ? 's' : ''}
                                       </span>
                                     )}
                                   </span>
-                                  <span>
+                                  <span className="history-card__set-status" role="cell">
                                     {set.completed
-                                      ? <CheckCircle2 size={15} style={{ color: 'var(--color-accent-green)' }} />
-                                      : <Circle size={15} style={{ opacity: 0.3 }} />}
+                                      ? (
+                                        <CheckCircle2
+                                          size={16}
+                                          className="history-card__status-icon history-card__status-icon--complete"
+                                          aria-label="Completed"
+                                        />
+                                      )
+                                      : (
+                                        <Circle
+                                          size={16}
+                                          className="history-card__status-icon history-card__status-icon--open"
+                                          aria-label="Not completed"
+                                        />
+                                      )}
                                   </span>
                                 </div>
                               );
                             })}
                           </div>
-                        </div>
+                        </section>
                       );
                     })}
                   </div>
                 )}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
