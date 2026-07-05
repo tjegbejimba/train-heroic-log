@@ -97,6 +97,11 @@ export default function TrainingView({
   })() : null;
 
   const nextWorkout = !workout ? findNextWorkout(schedule, currentDate) : null;
+  const quickStartBlockedReason = workoutTitle
+    ? isCompleted
+      ? 'This day already has a completed workout. Schedule this template for another day.'
+      : 'This day already has a planned workout. Schedule this template for another day.'
+    : '';
 
   const handleStartWorkout = () => {
     if (workoutTitle) {
@@ -271,7 +276,9 @@ export default function TrainingView({
       {previewTemplate && (
         <TemplatePreviewSheet
           template={previewTemplate}
+          startDisabledReason={quickStartBlockedReason}
           onStartNow={() => {
+            if (quickStartBlockedReason) return;
             if (onScheduleTemplate) {
               onScheduleTemplate(currentDate, previewTemplate.name);
               onStartWorkout(`${currentDate}::${previewTemplate.name}`);

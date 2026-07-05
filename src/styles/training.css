@@ -932,6 +932,22 @@
   background: var(--surface-elevated);
 }
 
+.tpl-preview__start-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
+  transform: none;
+}
+
+.tpl-preview__start-note {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: calc(-1 * var(--space-xs)) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
 .tpl-preview__schedule-btn {
   display: inline-flex;
   align-items: center;

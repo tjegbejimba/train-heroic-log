@@ -6,6 +6,7 @@ export default function TemplatePreviewSheet({
   onStartNow,
   onSchedule,
   onClose,
+  startDisabledReason = '',
 }) {
   useEffect(() => {
     const handler = (event) => {
@@ -87,10 +88,17 @@ export default function TemplatePreviewSheet({
         </div>
 
         <div className="tpl-preview__actions">
-          <button className="tpl-preview__start-btn" onClick={onStartNow}>
+          <button
+            className="tpl-preview__start-btn"
+            onClick={onStartNow}
+            disabled={!!startDisabledReason}
+          >
             <Play size={18} />
             Start Now
           </button>
+          {startDisabledReason && (
+            <p className="tpl-preview__start-note">{startDisabledReason}</p>
+          )}
           <button className="tpl-preview__schedule-btn" onClick={onSchedule}>
             <CalendarPlus size={18} />
             Schedule
