@@ -33,6 +33,7 @@ export default function RestDurationPicker({ value, onChange, isOpen, onToggle }
         className="rest-picker__trigger"
         onClick={onToggle}
         aria-label="Rest duration"
+        type="button"
       >
         <Timer size={14} />
         {value != null && <span className="rest-picker__badge">{formatBadge(value)}</span>}
@@ -71,6 +72,8 @@ export default function RestDurationPicker({ value, onChange, isOpen, onToggle }
             key={preset.label}
             className={`rest-picker__pill${value === preset.value && !isOtherActive ? ' rest-picker__pill--active' : ''}`}
             onClick={() => handlePresetClick(preset.value)}
+            aria-pressed={value === preset.value && !isOtherActive}
+            type="button"
           >
             {preset.label}
           </button>
@@ -78,6 +81,8 @@ export default function RestDurationPicker({ value, onChange, isOpen, onToggle }
         <button
           className={`rest-picker__pill${isOtherActive || showCustomInput ? ' rest-picker__pill--active' : ''}`}
           onClick={handleOtherClick}
+          aria-pressed={isOtherActive || showCustomInput}
+          type="button"
         >
           Other
         </button>

@@ -41,6 +41,7 @@ export default function BarWeightPicker({ value, onChange, isOpen, onToggle, uni
         className="bar-weight-picker__trigger"
         onClick={onToggle}
         aria-label="Bar weight"
+        type="button"
       >
         <Dumbbell size={14} />
         {value != null && <span className="bar-weight-picker__badge">{value} {unit}</span>}
@@ -79,6 +80,8 @@ export default function BarWeightPicker({ value, onChange, isOpen, onToggle, uni
             key={preset.label}
             className={`bar-weight-picker__pill${value === preset.value && !isOtherActive ? ' bar-weight-picker__pill--active' : ''}`}
             onClick={() => handlePresetClick(preset.value)}
+            aria-pressed={value === preset.value && !isOtherActive}
+            type="button"
           >
             {preset.label}
           </button>
@@ -86,6 +89,8 @@ export default function BarWeightPicker({ value, onChange, isOpen, onToggle, uni
         <button
           className={`bar-weight-picker__pill${isOtherActive || showCustomInput ? ' bar-weight-picker__pill--active' : ''}`}
           onClick={handleOtherClick}
+          aria-pressed={isOtherActive || showCustomInput}
+          type="button"
         >
           Other
         </button>

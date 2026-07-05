@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { CalendarRange, Moon, CheckCircle2, Flame } from 'lucide-react';
+import { CalendarRange, CheckCircle2, Flame, Moon, Play, Sparkles } from 'lucide-react';
 import { ROUTE_PLANNER } from '../constants';
 import DateStrip from '../components/DateStrip';
 import MonthCalendar from '../components/MonthCalendar';
 import TemplatePreviewSheet from '../components/TemplatePreviewSheet';
+import WorkoutPreviewCard from '../components/WorkoutPreviewCard';
 import { calculateStreaks } from '../utils/streaks';
 
 function getGreeting() {
@@ -30,6 +31,26 @@ function formatDayLabel(daysAway) {
   if (daysAway === 1) return 'Tomorrow';
   if (daysAway === 2) return 'In 2 days';
   return `In ${daysAway} days`;
+}
+
+function formatSelectedDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getTemplateExercises(template) {
+  return (template.blocks || []).flatMap((block) => block.exercises || []);
+}
+
+function getTemplateSetCount(template) {
+  return getTemplateExercises(template).reduce(
+    (sum, exercise) => sum + (exercise.sets?.length || 0),
+    0
+  );
 }
 
 export default function TrainingView({
@@ -76,6 +97,14 @@ export default function TrainingView({
   })() : null;
 
   const nextWorkout = !workout ? findNextWorkout(schedule, currentDate) : null;
+  const dateHasCompletedLog = completedDates.has(currentDate);
+  const quickStartBlockedReason = workoutTitle
+    ? isCompleted
+      ? 'This day already has a completed workout. Schedule this template for another day.'
+      : 'This day already has a planned workout. Schedule this template for another day.'
+    : dateHasCompletedLog
+      ? 'This day already has a completed workout. Schedule this template for another day.'
+      : '';
 
   const handleStartWorkout = () => {
     if (workoutTitle) {
@@ -85,13 +114,18 @@ export default function TrainingView({
 
   return (
     <div className="view training-view">
-      {/* Greeting header */}
       <div className="training-greeting">
-        <h2 className="training-greeting__text">{getGreeting()}</h2>
+        <div className="training-greeting__copy">
+          <h1 className="training-greeting__text">{getGreeting()}</h1>
+          <p className="training-greeting__subtext">
+            {formatSelectedDate(currentDate)}
+          </p>
+        </div>
         {streakDisplay > 0 && (
           <span className="training-greeting__streak">
             <Flame size={16} />
-            {streakDisplay} day{streakDisplay !== 1 ? 's' : ''}
+            <span className="training-greeting__streak-count">{streakDisplay}</span>
+            <span>day{streakDisplay !== 1 ? 's' : ''}</span>
           </span>
         )}
       </div>
@@ -118,7 +152,7 @@ export default function TrainingView({
               className="btn btn-secondary btn-small"
               onClick={() => setViewMode('week')}
             >
-              <CalendarRange size={14} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+              <CalendarRange size={14} />
               Week View
             </button>
           </div>
@@ -158,34 +192,10 @@ export default function TrainingView({
                 <p className="training-card__motivation">Crushed it 💪</p>
               </div>
             ) : (
-              <div className="training-card">
-                <div className="training-card__header">
-                  <h2 className="training-card__title">{workout.title}</h2>
-                  <span className="training-card__exercise-count">
-                    {workout.blocks.reduce((n, b) => n + b.exercises.length, 0)} exercises
-                  </span>
-                </div>
-                <div className="training-card__exercises">
-                  {workout.blocks.map((block, blockIdx) => {
-                    const isSuperset = block.exercises.length > 1;
-                    return (
-                      <div key={blockIdx} className={isSuperset ? 'training-card__superset' : undefined}>
-                        {isSuperset && (
-                          <div className="training-card__superset-label">Superset</div>
-                        )}
-                        {block.exercises.map((exercise, exIdx) => (
-                          <div key={exIdx} className="training-card__exercise-row">
-                            <span className="training-card__exercise-name">{exercise.title}</span>
-                            <span className="training-card__exercise-sets">
-                              {exercise.sets.length} set{exercise.sets.length !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <WorkoutPreviewCard
+                workout={workout}
+                onStartWorkout={handleStartWorkout}
+              />
             )}
           </>
         ) : (
@@ -207,74 +217,74 @@ export default function TrainingView({
               {nextWorkout && (
                 <div className="training-rest-card__next">
                   <span className="training-rest-card__next-label">Up next</span>
-                  <span className="training-rest-card__next-title">
-                    {nextWorkout.title}
-                  </span>
-                  <span className="training-rest-card__next-day">
-                    {formatDayLabel(nextWorkout.daysAway)}
-                  </span>
+                  <div className="training-rest-card__next-main">
+                    <span className="training-rest-card__next-title">
+                      {nextWorkout.title}
+                    </span>
+                    <span className="training-rest-card__next-day">
+                      {formatDayLabel(nextWorkout.daysAway)}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Template cards on rest days */}
-            {templateList && templateList.length > 0 && (
-              <div className="training-templates">
-                <div className="training-templates__label">Quick Start</div>
-                <div className="training-templates__scroll">
-                  {templateList.map((tpl) => {
-                    const exercises = tpl.blocks.flatMap((b) => b.exercises);
-                    return (
-                      <button
-                        key={tpl.id}
-                        className="training-templates__card"
-                        onClick={() => setPreviewTemplate(tpl)}
-                      >
-                        <span className="training-templates__card-name">{tpl.name}</span>
-                        <span className="training-templates__card-meta">
-                          {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
-                        </span>
-                        <div className="training-templates__card-exercises">
-                          {exercises.slice(0, 3).map((ex, i) => (
-                            <span key={i} className="training-templates__card-exercise">
-                              {ex.title}
-                            </span>
-                          ))}
-                          {exercises.length > 3 && (
-                            <span className="training-templates__card-exercise">
-                              +{exercises.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </>
         )}
-      </div>
 
-      {/* Sticky CTA — only when workout exists and not completed */}
-      {workout && !isCompleted && (
-        <div className="training-sticky-cta">
-          <button
-            className="training-sticky-cta__btn"
-            onClick={handleStartWorkout}
-          >
-            Start Workout
-          </button>
-        </div>
-      )}
+        {templateList && templateList.length > 0 && (
+          <section className="training-templates" aria-labelledby="training-quick-start">
+            <div className="training-templates__header">
+              <div>
+                <h2 id="training-quick-start" className="training-templates__title">
+                  Quick Start
+                </h2>
+                <p className="training-templates__subtext">
+                  Preview a saved template and train on demand.
+                </p>
+              </div>
+              <Sparkles size={18} aria-hidden="true" />
+            </div>
+            <div className="training-templates__scroll">
+              {templateList.map((tpl) => {
+                const exercises = getTemplateExercises(tpl);
+                const setCount = getTemplateSetCount(tpl);
+                return (
+                  <button
+                    key={tpl.id}
+                    className="training-templates__card"
+                    onClick={() => setPreviewTemplate(tpl)}
+                    aria-label={`Preview ${tpl.name}`}
+                  >
+                    <span className="training-templates__card-kicker">
+                      <Play size={12} aria-hidden="true" />
+                      Template
+                    </span>
+                    <span className="training-templates__card-name">{tpl.name}</span>
+                    <span className="training-templates__card-meta">
+                      {exercises.length} exercise{exercises.length !== 1 ? 's' : ''} · {setCount} set{setCount !== 1 ? 's' : ''}
+                    </span>
+                    <span className="training-templates__card-exercises">
+                      {exercises.slice(0, 3).map((ex) => ex.title).join(' / ')}
+                      {exercises.length > 3 ? ` / +${exercises.length - 3} more` : ''}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
 
       {/* Template preview sheet */}
       {previewTemplate && (
         <TemplatePreviewSheet
           template={previewTemplate}
+          startDisabledReason={quickStartBlockedReason}
           onStartNow={() => {
+            if (quickStartBlockedReason) return;
             if (onScheduleTemplate) {
               onScheduleTemplate(currentDate, previewTemplate.name);
+              onStartWorkout(`${currentDate}::${previewTemplate.name}`);
             }
             setPreviewTemplate(null);
           }}

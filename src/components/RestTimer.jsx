@@ -75,11 +75,29 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
 
   return (
     <div className={`rest-timer${isUrgent ? ' rest-timer--urgent' : ''}${isPaused ? ' rest-timer--paused' : ''}`}>
+      <div className="rest-timer__header">
+        <span className="rest-timer__eyebrow">Rest timer</span>
+        <button
+          className="rest-timer__close"
+          onClick={onSkip}
+          aria-label="Close rest timer"
+          type="button"
+        >
+          <X size={18} />
+        </button>
+      </div>
       <div
         className="rest-timer__progress-ring-wrap"
         onClick={() => setIsPaused(p => !p)}
         role="button"
         aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsPaused(p => !p);
+          }
+        }}
       >
         <svg className="rest-timer__ring" viewBox="0 0 100 100" aria-hidden="true">
           <circle
@@ -101,9 +119,10 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
         </svg>
         <div className="rest-timer__inner">
           <span className="rest-timer__label">{isPaused ? 'PAUSED' : 'REST'}</span>
-          <span className="rest-timer__countdown">
+          <span className="rest-timer__countdown" aria-live="polite">
             {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
           </span>
+          <span className="rest-timer__hint">{isPaused ? 'Tap to resume' : 'Tap to pause'}</span>
         </div>
       </div>
 
@@ -112,6 +131,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           className="rest-timer__adjust-btn"
           onClick={() => adjust(-15)}
           aria-label="Subtract 15 seconds"
+          type="button"
         >
           −15s
         </button>
@@ -119,6 +139,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           className="rest-timer__skip-btn"
           onClick={onSkip}
           aria-label="Skip rest"
+          type="button"
         >
           <X size={16} />
           Skip
@@ -127,6 +148,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           className="rest-timer__adjust-btn"
           onClick={() => adjust(+15)}
           aria-label="Add 15 seconds"
+          type="button"
         >
           +15s
         </button>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MinusCircle, TrendingUp } from 'lucide-react';
 import { ROUTE_LIBRARY } from '../constants';
 import ProgressChart from '../components/ProgressChart';
 import { estimated1RM, epley, brzycki } from '../utils/oneRepMax';
@@ -60,6 +60,13 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
     }, []);
   }, [sessions]);
 
+  const completedSetCount = useMemo(() => {
+    return sessions.reduce(
+      (total, session) => total + (session.sets || []).filter((set) => set.completed).length,
+      0
+    );
+  }, [sessions]);
+
   return (
     <div className="view exercise-history-view">
       <div className="exercise-history-view__header">
@@ -67,25 +74,38 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
           className="btn btn-secondary btn-small exercise-history-view__back"
           onClick={() => navigate(ROUTE_LIBRARY)}
         >
-          <ArrowLeft size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+          <ArrowLeft size={14} />
           Library
         </button>
-        <h1 className="exercise-history-view__title">{exerciseTitle}</h1>
-        <p className="text-secondary text-sm">
-          {sessions.length} session{sessions.length !== 1 ? 's' : ''} logged
-        </p>
+        <div className="exercise-history-view__title-row">
+          <div>
+            <h1 className="exercise-history-view__title">{exerciseTitle}</h1>
+            <p className="exercise-history-view__subtitle">
+              {sessions.length} session{sessions.length !== 1 ? 's' : ''} logged / {completedSetCount} completed set{completedSetCount !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <span className="exercise-history-view__icon" aria-hidden="true">
+            <TrendingUp size={20} />
+          </span>
+        </div>
       </div>
 
       {best1RM && (
         <div className="exercise-history-view__1rm-card">
-          <div className="exercise-history-view__1rm-value">
-            Est. 1RM: <span>{Math.round(best1RM.est)} {best1RM.unit}</span>
+          <div>
+            <p className="exercise-history-view__1rm-label">Estimated 1RM</p>
+            <div className="exercise-history-view__1rm-value">
+              <span>{Math.round(best1RM.est)}</span>
+              <small>{best1RM.unit}</small>
+            </div>
           </div>
-          <div className="exercise-history-view__1rm-basis">
-            Based on {best1RM.weight} {best1RM.unit} × {best1RM.reps} rep{best1RM.reps !== 1 ? 's' : ''}
-          </div>
-          <div className="exercise-history-view__1rm-formulas">
-            Epley: {Math.round(best1RM.epley)} | Brzycki: {Math.round(best1RM.brzycki)}
+          <div className="exercise-history-view__1rm-meta">
+            <div className="exercise-history-view__1rm-basis">
+              Based on {best1RM.weight} {best1RM.unit} x {best1RM.reps} rep{best1RM.reps !== 1 ? 's' : ''}
+            </div>
+            <div className="exercise-history-view__1rm-formulas">
+              Epley {Math.round(best1RM.epley)} / Brzycki {Math.round(best1RM.brzycki)}
+            </div>
           </div>
         </div>
       )}
@@ -98,55 +118,67 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
 
       {sessions.length === 0 ? (
         <div className="empty-state">
-          <p className="text-secondary">No completed sessions for this exercise yet.</p>
+          <div className="empty-state-icon"><TrendingUp size={34} /></div>
+          <h3>No history yet</h3>
+          <p className="text-secondary">Complete this exercise in a workout and its load trend will appear here.</p>
         </div>
       ) : (
         <div className="exercise-history-view__list">
           {sessions.map((session, idx) => (
             <div key={idx} className="card exercise-history-session">
               <div className="exercise-history-session__meta">
-                <span className="exercise-history-session__date">
-                  {new Date(session.date + 'T12:00:00').toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                <div>
+                  <span className="exercise-history-session__date">
+                    {new Date(session.date + 'T12:00:00').toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="exercise-history-session__workout">{session.workoutTitle}</span>
+                </div>
+                <span className="exercise-history-session__set-count">
+                  {(session.sets || []).filter((set) => set.completed).length}/{session.sets?.length || 0} done
                 </span>
-                <span className="text-secondary text-sm">{session.workoutTitle}</span>
               </div>
 
-              <table className="exercise-history-session__table">
-                <thead>
-                  <tr>
-                    <th>Set</th>
-                    <th>Target</th>
-                    <th>Actual</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {session.sets.map((set, sIdx) => {
-                    const targetReps = set.targetReps ?? '—';
-                    const targetWeight = set.targetWeight != null ? `${set.targetWeight}` : null;
-                    const target = targetWeight ? `${targetReps} × ${targetWeight}` : `${targetReps} reps`;
-                    const actualReps = set.actualReps !== '' && set.actualReps != null ? set.actualReps : '—';
-                    const actualWeight = set.actualWeight !== '' && set.actualWeight != null ? `${set.actualWeight}` : null;
-                    const actual = actualWeight ? `${actualReps} × ${actualWeight}` : `${actualReps}`;
-                    return (
-                      <tr key={sIdx} className={set.completed ? '' : 'exercise-history-session__row--skipped'}>
-                        <td>{sIdx + 1}</td>
-                        <td className="text-secondary">{target}</td>
-                        <td className={set.completed ? 'exercise-history-session__actual--done' : 'text-secondary'}>
-                          {actual}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="exercise-history-session__table-wrap">
+                <table className="exercise-history-session__table">
+                  <thead>
+                    <tr>
+                      <th>Set</th>
+                      <th>Target</th>
+                      <th>Actual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {session.sets.map((set, sIdx) => {
+                      const targetReps = set.targetReps ?? '-';
+                      const targetWeight = set.targetWeight != null ? `${set.targetWeight}` : null;
+                      const target = targetWeight ? `${targetReps} x ${targetWeight}` : `${targetReps} reps`;
+                      const actualReps = set.actualReps !== '' && set.actualReps != null ? set.actualReps : '-';
+                      const actualWeight = set.actualWeight !== '' && set.actualWeight != null ? `${set.actualWeight}` : null;
+                      const actual = actualWeight ? `${actualReps} x ${actualWeight}` : `${actualReps}`;
+                      return (
+                        <tr key={sIdx} className={set.completed ? '' : 'exercise-history-session__row--skipped'}>
+                          <td>{sIdx + 1}</td>
+                          <td>{target}</td>
+                          <td>
+                            <span className={set.completed ? 'exercise-history-session__actual--done' : 'exercise-history-session__actual--skipped'}>
+                              {set.completed ? <CheckCircle2 size={14} /> : <MinusCircle size={14} />}
+                              {actual}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
               {session.exerciseNote && (
-                <p className="exercise-history-session__note text-secondary text-sm">
+                <p className="exercise-history-session__note">
                   {session.exerciseNote}
                 </p>
               )}

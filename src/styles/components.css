@@ -1,10 +1,18 @@
+/* ==========================================================================
+   components.css — shared, cross-cutting primitives only.
+   Component-scoped styles live with their view:
+     DateStrip / WorkoutPreviewCard  -> training.css
+     BlockSection / Superset / ExerciseRow -> active-workout.css
+     YouTubeLinkInput -> library.css
+   ========================================================================== */
+
 /* ========== NavBar ========== */
 .navbar {
   flex-shrink: 0;
-  padding: 2px 0 4px;
-  background-color: var(--color-surface-elevated);
-  border-top: 1px solid var(--color-border);
-  z-index: 100;
+  padding: 2px 0 calc(4px + env(safe-area-inset-bottom));
+  background-color: var(--surface-elevated);
+  border-top: 1px solid var(--border-subtle);
+  z-index: var(--z-nav);
 }
 
 .navbar__tabs {
@@ -21,18 +29,22 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px 0 2px;
+  padding: 6px 0 2px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: color var(--transition), transform var(--dur-fast) var(--ease-out-quart);
   border: none;
   background: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   position: relative;
 }
 
+.navbar__tab:active {
+  transform: scale(0.94);
+}
+
 .navbar__tab--active {
-  color: var(--color-accent-blue);
+  color: var(--accent-text);
 }
 
 .navbar__tab--active::before {
@@ -41,10 +53,11 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 28px;
+  width: 26px;
   height: 3px;
-  background-color: var(--color-accent-blue);
+  background-color: var(--accent);
   border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 10px -1px var(--accent);
 }
 
 .navbar__icon {
@@ -56,278 +69,6 @@
 .navbar__label {
   font-size: var(--font-size-xs);
   font-weight: 500;
-}
-
-/* ========== DateStrip ========== */
-.date-strip {
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-md) var(--space-lg);
-}
-
-.date-strip__header {
-  margin-bottom: var(--space-md);
-}
-
-.date-strip__month-year {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-}
-
-.date-strip__scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-.date-strip__days {
-  display: flex;
-  gap: var(--space-md);
-  padding-bottom: var(--space-sm);
-}
-
-.date-strip__day {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md) var(--space-sm);
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  transition: all var(--transition);
-  border-radius: var(--radius-lg);
-  min-width: 52px;
-  min-height: 56px;
-  position: relative;
-}
-
-.date-strip__day-number {
-  font-size: var(--font-size-base);
-  font-weight: 500;
-}
-
-.date-strip__day-indicator {
-  font-size: 10px;
-  line-height: 1;
-}
-
-.date-strip__day--scheduled .date-strip__day-indicator {
-  color: var(--color-accent-blue);
-}
-
-.date-strip__day--completed {
-  color: var(--color-accent-green);
-}
-
-.date-strip__day--completed .date-strip__day-indicator {
-  color: var(--color-accent-green);
-}
-
-.date-strip__day--today {
-  position: relative;
-}
-
-.date-strip__day--today::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: var(--color-accent-blue);
-}
-
-.date-strip__day--selected {
-  color: white;
-  background-color: var(--color-accent-blue);
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
-}
-
-.date-strip__day--selected.date-strip__day--today::after {
-  background-color: white;
-}
-
-/* ========== WorkoutPreviewCard ========== */
-.workout-preview-card__coach-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background-color: var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-}
-
-.workout-preview-card__title {
-  font-size: var(--font-size-xl);
-  line-height: 1.3;
-}
-
-.btn--large {
-  padding: var(--space-lg) var(--space-xl);
-  font-size: var(--font-size-lg);
-}
-
-/* ========== BlockSection ========== */
-.block-section {
-  padding: var(--space-md) var(--space-lg);
-  margin-top: var(--space-lg);
-  margin-bottom: var(--space-md);
-}
-
-.block-section__label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-/* ========== Superset grouping ========== */
-.superset-group {
-  border-left: 3px solid var(--color-accent-blue);
-  margin-bottom: var(--space-md);
-}
-
-.superset-group__label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-accent-blue);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: var(--space-sm) var(--space-lg);
-}
-
-.superset-group__exercises .exercise-row:last-child,
-.superset-group__exercises .active-workout-view__exercise:last-child {
-  margin-bottom: 0;
-  border-bottom: none;
-}
-
-/* ========== ExerciseRow ========== */
-.exercise-row {
-  margin-bottom: var(--space-md);
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-md) var(--space-lg);
-}
-
-.exercise-row__toggle {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: inherit;
-  padding: 0;
-  text-align: left;
-}
-
-.exercise-row__badge {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: var(--color-border);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-  transition: background-color var(--transition), color var(--transition);
-}
-
-.exercise-row__toggle:hover .exercise-row__badge {
-  background-color: rgba(75, 123, 255, 0.15);
-  color: var(--color-accent-blue);
-}
-
-.exercise-row__toggle:hover .exercise-row__title {
-  color: var(--color-accent-blue);
-}
-
-.exercise-row__info {
-  flex: 1;
-}
-
-.exercise-row__title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  margin-bottom: var(--space-xs);
-  transition: color var(--transition);
-}
-
-.exercise-row__sets {
-  font-size: var(--font-size-sm);
-  color: var(--color-accent-blue);
-}
-
-.exercise-row__expand-icon {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  display: flex;
-  align-items: center;
-}
-
-.exercise-row__details {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-border);
-}
-
-.exercise-row__notes-toggle {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-}
-
-.exercise-row__notes-edit textarea {
-  width: 100%;
-  resize: vertical;
-}
-
-.exercise-row__video {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.exercise-row__video iframe {
-  border-radius: var(--radius-md);
-}
-
-.text-sm {
-  font-size: var(--font-size-sm);
-}
-
-/* ========== YouTubeLinkInput ========== */
-.youtube-link-input {
-  padding: var(--space-md);
-  background-color: var(--color-bg);
-  border-radius: var(--radius-md);
-}
-
-.youtube-link-input input {
-  margin-bottom: var(--space-md);
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ========== Modal ========== */
@@ -344,7 +85,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-lg);
-  z-index: 200;
+  z-index: var(--z-modal);
   overflow-y: auto;
 }
 
@@ -378,6 +119,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .modal {
+    animation: none;
+  }
+}
+
 .modal__message {
   color: var(--color-text-secondary);
   margin-bottom: var(--space-lg);
@@ -389,48 +136,17 @@
   gap: var(--space-md);
 }
 
+/* ========== Shared utilities ========== */
 .flex-1 {
   flex: 1;
 }
 
-.btn-danger {
-  background-color: var(--color-accent-red);
-  color: white;
-  border-color: var(--color-accent-red);
-}
-.btn-danger:hover,
-.btn-danger:active {
-  background-color: var(--color-accent-red);
-  border-color: var(--color-accent-red);
-  filter: brightness(0.85);
+.text-sm {
+  font-size: var(--font-size-sm);
 }
 
-/* ========== TrainingView ========== */
-/* Training styles moved to training.css */
-
-/* ========== Mobile ========== */
-@media (max-width: 768px) {
-  /* Date strip: taller tap targets */
-  .date-strip__day {
-    min-height: 56px;
-    padding: var(--space-md) var(--space-md);
-    gap: var(--space-sm);
-  }
-
-  /* Exercise rows: larger tap zone */
-  .exercise-row {
-    padding: var(--space-lg) var(--space-lg);
-  }
-
-  .exercise-row__toggle {
-    padding: var(--space-sm) 0;
-  }
-
-  /* Library notes toggle: full-width touch target */
-  .library-card__notes-toggle {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

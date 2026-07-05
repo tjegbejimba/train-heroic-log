@@ -4,7 +4,7 @@ export default function BlockSection({ block }) {
     : block.units || 'BLOCK';
 
   return (
-    <div className="block-section">
+    <div className="block-section" aria-label={label}>
       <h3 className="block-section__label">{label}</h3>
     </div>
   );

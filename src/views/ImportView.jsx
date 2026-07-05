@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, ClipboardPaste, FileUp, RefreshCw } from 'lucide-react';
 import { parseCSV, getParseStats } from '../csv/parser';
 
 export default function ImportView({ onImport }) {
@@ -6,39 +7,61 @@ export default function ImportView({ onImport }) {
   const [parseStats, setParseStats] = useState(null);
   const [parseErrors, setParseErrors] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const parseCsvText = (text) => {
+    if (!text || !text.trim()) {
+      setParseErrors(['Paste CSV text or choose a TrainHeroic export file first.']);
+      setParseStats(null);
+      setIsReady(false);
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const csvText = event.target?.result;
-        const { workoutMap, scheduleMap, parseErrors: errors } = parseCSV(csvText);
+    try {
+      const { workoutMap, scheduleMap, parseErrors: errors } = parseCSV(text);
 
-        if (errors.length > 0) {
-          setParseErrors(errors);
-          setParseStats(null);
-          setIsReady(false);
-          return;
-        }
-
-        const stats = getParseStats(workoutMap, scheduleMap);
-        setParseStats({
-          workoutMap,
-          scheduleMap,
-          stats,
-        });
-        setParseErrors([]);
-        setIsReady(true);
-      } catch (err) {
-        setParseErrors([`Error parsing CSV: ${err.message}`]);
+      if (errors.length > 0) {
+        setParseErrors(errors);
         setParseStats(null);
         setIsReady(false);
+        return;
       }
+
+      const stats = getParseStats(workoutMap, scheduleMap);
+      setParseStats({
+        workoutMap,
+        scheduleMap,
+        stats,
+      });
+      setParseErrors([]);
+      setIsReady(true);
+    } catch (err) {
+      setParseErrors([`Error parsing CSV: ${err.message}`]);
+      setParseStats(null);
+      setIsReady(false);
+    }
+  };
+
+  const handleFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const nextText = String(event.target?.result || '');
+      setCsvText(nextText);
+      parseCsvText(nextText);
     };
     reader.readAsText(file);
+  };
+
+  const handleFileSelect = (e) => {
+    handleFile(e.target.files?.[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFile(e.dataTransfer.files?.[0]);
   };
 
   const handleImport = () => {
@@ -51,56 +74,100 @@ export default function ImportView({ onImport }) {
     <div className="view view--full-height import-view">
       <div className="import-view__content">
         <div className="import-view__header">
-          <h1>TrainLog</h1>
-          <p className="text-secondary">Import your TrainHeroic workout data</p>
+          <span className="import-view__icon" aria-hidden="true">
+            <FileUp size={28} />
+          </span>
+          <h1>Import TrainHeroic CSV</h1>
+          <p>Drop an export, choose a file, or paste raw CSV to build workouts, schedule, and templates.</p>
         </div>
 
         {!parseStats ? (
-          <div className="import-view__upload">
+          <div
+            className={`import-view__upload${isDragging ? ' import-view__upload--dragging' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv"
               onChange={handleFileSelect}
-              style={{ display: 'none' }}
+              className="import-view__file-input"
             />
+            <span className="import-view__drop-icon" aria-hidden="true">
+              <FileUp size={30} />
+            </span>
             <button
               className="btn btn-primary btn--large"
               onClick={() => fileInputRef.current?.click()}
             >
-              📁 Choose CSV File
+              Choose CSV File
             </button>
-            <p className="text-secondary text-center mt-lg">
-              Select your TrainHeroic CSV export
+            <p>
+              Drag a .csv file here, or choose from Files.
             </p>
+            <div className="import-view__paste">
+              <label htmlFor="csv-paste">
+                <ClipboardPaste size={15} />
+                Paste CSV
+              </label>
+              <textarea
+                id="csv-paste"
+                value={csvText}
+                onChange={(e) => {
+                  setCsvText(e.target.value);
+                  if (parseErrors.length) setParseErrors([]);
+                }}
+                placeholder="WorkoutTitle,ScheduledDate,ExerciseTitle,ExerciseData..."
+                rows={5}
+              />
+              <button
+                className="btn btn-secondary"
+                onClick={() => parseCsvText(csvText)}
+                disabled={!csvText.trim()}
+              >
+                Preview pasted CSV
+              </button>
+            </div>
           </div>
         ) : (
           <div className="import-view__preview card">
-            <h2>Import Summary</h2>
+            <div className="import-view__preview-head">
+              <span aria-hidden="true"><CheckCircle2 size={22} /></span>
+              <div>
+                <h2>Ready to import</h2>
+                <p>Review the parsed program before replacing local workout data.</p>
+              </div>
+            </div>
             <div className="import-view__stats">
-              <div className="stat">
+              <div className="import-stat">
                 <div className="stat-label">Workouts</div>
                 <div className="stat-value">{parseStats.stats.workoutCount}</div>
               </div>
-              <div className="stat">
+              <div className="import-stat">
                 <div className="stat-label">Exercises</div>
                 <div className="stat-value">{parseStats.stats.exerciseCount}</div>
               </div>
-              <div className="stat">
+              <div className="import-stat">
                 <div className="stat-label">Scheduled Dates</div>
                 <div className="stat-value">{parseStats.stats.scheduledDates}</div>
               </div>
             </div>
             {parseStats.stats.dateRange && (
-              <p className="text-secondary text-center mt-lg">
-                {parseStats.stats.dateRange.min} → {parseStats.stats.dateRange.max}
+              <p className="import-view__date-range">
+                {parseStats.stats.dateRange.min} to {parseStats.stats.dateRange.max}
               </p>
             )}
-            <div className="flex gap-md mt-lg">
+            <div className="import-view__actions">
               <button className="btn btn-secondary" onClick={() => setParseStats(null)}>
+                <RefreshCw size={15} />
                 Change File
               </button>
-              <button className="btn btn-primary flex-1" onClick={handleImport}>
+              <button className="btn btn-primary" onClick={handleImport}>
                 Import Data
               </button>
             </div>
@@ -109,8 +176,11 @@ export default function ImportView({ onImport }) {
 
         {parseErrors.length > 0 && (
           <div className="import-view__errors card">
-            <h3>Errors</h3>
-            <ul className="text-red">
+            <div className="import-view__errors-head">
+              <span aria-hidden="true"><AlertTriangle size={18} /></span>
+              <h3>CSV needs attention</h3>
+            </div>
+            <ul>
               {parseErrors.map((err, i) => (
                 <li key={i}>{err}</li>
               ))}

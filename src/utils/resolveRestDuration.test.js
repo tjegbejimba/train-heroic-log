@@ -24,17 +24,30 @@ describe('resolveRestDuration', () => {
     });
   });
 
-  describe('superset exercise', () => {
-    it('returns explicit restDuration when set', () => {
+  describe('superset exercise (round-based rest)', () => {
+    // In a superset the round only rests after its LAST movement; completing an
+    // earlier movement flows straight into the next exercise with no timer.
+    it('returns null for a non-last movement (no rest mid-round)', () => {
+      expect(resolveRestDuration({ restDuration: null }, true, 90, false)).toBeNull();
+      expect(resolveRestDuration({}, true, 90, false)).toBeNull();
+    });
+
+    it('suppresses even an explicit restDuration on a non-last movement', () => {
+      expect(resolveRestDuration({ restDuration: 45 }, true, 90, false)).toBeNull();
+    });
+
+    it('rests with the global default after the last movement of the round', () => {
+      expect(resolveRestDuration({ restDuration: null }, true, 90, true)).toBe(90);
+      expect(resolveRestDuration({}, true, 90, true)).toBe(90);
+    });
+
+    it('honors an explicit restDuration at the round boundary', () => {
+      expect(resolveRestDuration({ restDuration: 45 }, true, 90, true)).toBe(45);
+    });
+
+    it('treats the movement as the round boundary when position is omitted (back-compat)', () => {
+      expect(resolveRestDuration({}, true, 90)).toBe(90);
       expect(resolveRestDuration({ restDuration: 45 }, true, 90)).toBe(45);
-    });
-
-    it('returns null when restDuration is null (no timer)', () => {
-      expect(resolveRestDuration({ restDuration: null }, true, 90)).toBeNull();
-    });
-
-    it('returns null when restDuration is undefined (no timer)', () => {
-      expect(resolveRestDuration({}, true, 90)).toBeNull();
     });
   });
 });

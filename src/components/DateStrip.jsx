@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { CalendarDays, MapPin } from 'lucide-react';
 
+const WEEKDAY_FORMAT = { weekday: 'short' };
+
 export default function DateStrip({
   currentDate,
   onDateChange,
@@ -68,11 +70,15 @@ export default function DateStrip({
     return parseLocalDate(dateStr).getDate();
   };
 
+  const formatWeekday = (dateStr) => {
+    return parseLocalDate(dateStr).toLocaleDateString('en-US', WEEKDAY_FORMAT);
+  };
+
   const formatMonthYear = (dateStr) => {
     const date = parseLocalDate(dateStr);
     const month = date.toLocaleString('default', { month: 'short' });
     const year = date.getFullYear();
-    return `${month.toUpperCase()} '${String(year).slice(-2)}`;
+    return `${month} ${year}`;
   };
 
   return (
@@ -110,13 +116,21 @@ export default function DateStrip({
               <button
                 key={dateStr}
                 data-date={dateStr}
+                type="button"
                 className={`date-strip__day ${
                   isSelected ? 'date-strip__day--selected' : ''
                 } ${hasWorkout ? 'date-strip__day--scheduled' : ''} ${
                   isCompleted ? 'date-strip__day--completed' : ''
                 } ${isToday ? 'date-strip__day--today' : ''}`}
                 onClick={() => onDateChange(dateStr)}
+                aria-current={isSelected ? 'date' : undefined}
+                aria-label={`${formatWeekday(dateStr)} ${formatDateDisplay(dateStr)}${
+                  hasWorkout ? ', workout scheduled' : ', rest day'
+                }${isCompleted ? ', completed' : ''}`}
               >
+                <div className="date-strip__weekday">
+                  {formatWeekday(dateStr)}
+                </div>
                 <div className="date-strip__day-number">
                   {formatDateDisplay(dateStr)}
                 </div>

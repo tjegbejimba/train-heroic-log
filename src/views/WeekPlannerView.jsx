@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import Modal from '../components/Modal';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -177,9 +177,11 @@ export default function WeekPlannerView({
   return (
     <div className="view planner-view">
       <div className="planner-view__header">
-        <h1>Week Planner</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-          <p className="text-secondary text-sm">{formatWeekRange()}</p>
+        <div>
+          <h1>Week Planner</h1>
+          <p className="planner-view__range">{formatWeekRange()}</p>
+        </div>
+        <div className="planner-view__status-row">
           {hasDraftChanges && <span className="planner-draft-badge">Unsaved changes</span>}
         </div>
       </div>
@@ -197,11 +199,12 @@ export default function WeekPlannerView({
       </div>
 
       {templateList.length === 0 && (
-        <div className="empty-state" style={{ marginBottom: 'var(--space-md)' }}>
-          <p className="text-secondary text-sm">
-            No templates yet — save a workout as a template from the Training view to start planning.
-          </p>
+      <div className="planner-empty-state">
+        <div className="planner-empty-state__icon">
+          <CalendarCheck size={22} aria-hidden="true" />
         </div>
+        <p>No templates yet. Save a workout as a template to start planning.</p>
+      </div>
       )}
 
       <div className="planner-view__grid">
@@ -218,6 +221,7 @@ export default function WeekPlannerView({
               }`}
             >
               <div className="planner-day__header">
+                <span className="planner-day__marker" aria-hidden="true" />
                 <span className="planner-day__name">{DAY_NAMES[idx]}</span>
                 <span className="planner-day__date">
                   {parseLocalDate(dateStr).getDate()}
@@ -230,7 +234,7 @@ export default function WeekPlannerView({
                     className="planner-day__workout-name"
                     onClick={isDrafted ? undefined : () => onNavigateToDate(dateStr)}
                     title={isDrafted ? undefined : 'Go to workout'}
-                    style={{ opacity: isDrafted ? 0.7 : 1 }}
+                    disabled={isDrafted}
                   >
                     {workoutName}
                   </button>
@@ -239,7 +243,7 @@ export default function WeekPlannerView({
                     onClick={() => clearDay(dateStr)}
                     title="Remove workout"
                   >
-                    ✕
+                    <X size={16} aria-hidden="true" />
                   </button>
                 </div>
               ) : (
@@ -285,14 +289,25 @@ export default function WeekPlannerView({
       {showPicker && (
         <div className="modal-overlay" onClick={() => { setShowPicker(null); setTemplateSearch(''); }}>
           <div className="modal template-picker" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal__title">Pick a Template</h2>
-            <p className="modal__message">
-              {DAY_NAMES[weekDates.indexOf(showPicker)]},{' '}
-              {parseLocalDate(showPicker).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })}
-            </p>
+            <div className="template-picker__header">
+              <div>
+                <h2 className="modal__title">Pick a Template</h2>
+                <p className="modal__message">
+                  {DAY_NAMES[weekDates.indexOf(showPicker)]},{' '}
+                  {parseLocalDate(showPicker).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+              <button
+                className="template-picker__close"
+                onClick={() => { setShowPicker(null); setTemplateSearch(''); }}
+                aria-label="Close template picker"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             {templateList.length === 0 ? (
               <div className="empty-state">
@@ -302,14 +317,16 @@ export default function WeekPlannerView({
               </div>
             ) : (
               <>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Search templates..."
-                  value={templateSearch}
-                  onChange={(e) => setTemplateSearch(e.target.value)}
-                  style={{ marginBottom: 'var(--space-sm)' }}
-                />
+                <label className="template-picker__search">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Search templates..."
+                    value={templateSearch}
+                    onChange={(e) => setTemplateSearch(e.target.value)}
+                  />
+                </label>
                 <div className="template-picker__list">
                   {templateList
                     .filter((tpl) =>
@@ -322,12 +339,8 @@ export default function WeekPlannerView({
                         onClick={() => assignTemplate(showPicker, tpl.id)}
                       >
                         <span className="template-picker__name">{tpl.name}</span>
-                        <span className="template-picker__meta text-secondary text-sm">
-                          {tpl.blocks.reduce(
-                            (sum, b) => sum + b.exercises.length,
-                            0
-                          )}{' '}
-                          exercises
+                        <span className="template-picker__meta">
+                          {tpl.blocks.reduce((sum, b) => sum + b.exercises.length, 0)} exercises
                         </span>
                       </button>
                     ))}

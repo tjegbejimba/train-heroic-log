@@ -42,3 +42,6 @@ server/data/
 # Scripts scratch files
 scripts/youtubeLinks.txt
 todos.db
+
+# impeccable design hook local cache
+.impeccable/
