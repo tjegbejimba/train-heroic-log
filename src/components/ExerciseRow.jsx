@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import YouTubeLinkInput from './YouTubeLinkInput';
 import { formatSet, groupSets } from '../utils/formatters';
 import { extractVideoId } from '../utils/youtube';
@@ -19,6 +20,8 @@ export default function ExerciseRow({
       <button
         className="exercise-row__toggle"
         onClick={onToggleExpand}
+        aria-expanded={isExpanded}
+        type="button"
       >
         <div className="exercise-row__badge">{blockLetter}</div>
         <div className="exercise-row__info">
@@ -32,9 +35,11 @@ export default function ExerciseRow({
             ))}
           </div>
         </div>
-        <span className="exercise-row__expand-icon">
-          {isExpanded ? '▼' : '▶'}
-        </span>
+        <ChevronDown
+          size={18}
+          className={`exercise-row__expand-icon${isExpanded ? ' exercise-row__expand-icon--open' : ''}`}
+          aria-hidden="true"
+        />
       </button>
 
       {isExpanded && (
@@ -57,6 +62,7 @@ export default function ExerciseRow({
                       onExerciseNotesChange(notesDraft);
                       setEditingNotes(false);
                     }}
+                    type="button"
                   >
                     Save
                   </button>
@@ -66,6 +72,7 @@ export default function ExerciseRow({
                       setNotesDraft(exercise.notes || '');
                       setEditingNotes(false);
                     }}
+                    type="button"
                   >
                     Cancel
                   </button>
@@ -75,11 +82,12 @@ export default function ExerciseRow({
               <button
                 className="exercise-row__notes-toggle"
                 onClick={() => setEditingNotes(true)}
+                type="button"
               >
                 {exercise.notes ? (
                   <p className="text-secondary text-sm">{exercise.notes}</p>
                 ) : (
-                  <p className="text-secondary text-sm" style={{ opacity: 0.5 }}>
+                  <p className="exercise-row__notes-empty text-sm">
                     + Add exercise tips
                   </p>
                 )}
@@ -110,4 +118,3 @@ export default function ExerciseRow({
     </div>
   );
 }
-

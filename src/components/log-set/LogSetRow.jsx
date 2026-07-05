@@ -129,15 +129,17 @@ export default function LogSetRow({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={classNames}>
+    <div className={classNames} aria-current={isNext && !isCompleted ? 'step' : undefined}>
       <div className="log-set-row__meta">
         <span className="log-set-row__set-num">{setIndex + 1}</span>
-        <div className="log-set-row__target-wrap">
-          <span className="log-set-row__target">{formatSet(set)}</span>
-          {lastHint && (
-            <span className="log-set-row__last-hint">{lastHint}</span>
-          )}
-        </div>
+      </div>
+
+      <div className="log-set-row__target-wrap">
+        {isNext && !isCompleted && <span className="log-set-row__next-chip">Next</span>}
+        <span className="log-set-row__target">{formatSet(set)}</span>
+        {lastHint && (
+          <span className="log-set-row__last-hint">{lastHint}</span>
+        )}
       </div>
 
       <div className="log-set-row__inputs">
@@ -263,6 +265,7 @@ export default function LogSetRow({
         className={`log-set-row__complete${isCompleted ? ' log-set-row__complete--active' : ''}`}
         onClick={(e) => { e.currentTarget.blur(); handleToggleComplete(); }}
         aria-label={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+        type="button"
       >
         <Check size={20} strokeWidth={3} />
         {isCompleted && <span className="log-set-row__undo-label">undo</span>}

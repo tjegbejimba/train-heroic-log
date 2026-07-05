@@ -41,7 +41,7 @@ export default function SessionHeader({
 
   return (
     <div className="session-header">
-      <button className="session-header__cancel" onClick={onCancel} aria-label="Cancel workout">
+      <button className="session-header__cancel" onClick={onCancel} aria-label="Cancel workout" type="button">
         <X size={20} />
       </button>
 
@@ -59,12 +59,13 @@ export default function SessionHeader({
             className={`session-header__edit-btn${isEditMode ? ' session-header__edit-btn--active' : ''}`}
             onClick={onToggleEdit}
             aria-label={isEditMode ? 'Save edits' : 'Edit workout'}
+            aria-pressed={isEditMode}
             type="button"
           >
             <Pencil size={16} />
           </button>
         )}
-        <button className="session-header__timer-btn" onClick={onTimerOpen} aria-label="Open rest timer">
+        <button className="session-header__timer-btn" onClick={onTimerOpen} aria-label="Open rest timer" type="button">
           <Timer size={20} />
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Youtube, CheckCircle, ChevronDown, Pencil } from 'lucide-react';
+import { Youtube, CheckCircle, ChevronDown, Pencil, Trophy } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
+import BlockSection from '../components/BlockSection';
 import { LogSetRow, EditSetRow } from '../components/log-set';
 import Modal from '../components/Modal';
 import RestTimer from '../components/RestTimer';
@@ -10,12 +11,41 @@ import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
-import { getSetMeta } from '../utils/setMeta';
 import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
 import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
-import { findNextIncompleteSet } from '../utils/findNextIncompleteSet';
+
+function findNextActiveWorkoutSet(workout, currentLog) {
+  if (!workout?.blocks || !currentLog?.exercises) return null;
+
+  for (const block of workout.blocks) {
+    if (block.exercises.length > 1) {
+      const maxSets = Math.max(
+        ...block.exercises.map((exercise) => currentLog.exercises[exercise.title]?.length ?? 0)
+      );
+
+      for (let setIdx = 0; setIdx < maxSets; setIdx++) {
+        for (const exercise of block.exercises) {
+          const loggedSet = currentLog.exercises[exercise.title]?.[setIdx];
+          if (loggedSet && !loggedSet.completed) {
+            return { exerciseTitle: exercise.title, setIndex: setIdx };
+          }
+        }
+      }
+      continue;
+    }
+
+    for (const exercise of block.exercises) {
+      const loggedSets = currentLog.exercises[exercise.title];
+      if (!loggedSets) continue;
+      const setIndex = loggedSets.findIndex((set) => !set.completed);
+      if (setIndex !== -1) return { exerciseTitle: exercise.title, setIndex };
+    }
+  }
+
+  return null;
+}
 
 export default function ActiveWorkoutView({
   logKey,
@@ -95,7 +125,7 @@ export default function ActiveWorkoutView({
 
   const scrollToNextSet = useCallback(() => {
     if (userScrolledDuringRest.current) return;
-    const next = findNextIncompleteSet(workout, currentLog);
+    const next = findNextActiveWorkoutSet(workout, currentLog);
     if (!next) return;
     const escaped = CSS.escape(`${next.exerciseTitle}::${next.setIndex}`);
     const el = document.querySelector(`[data-set-id="${escaped}"]`);
@@ -319,6 +349,7 @@ export default function ActiveWorkoutView({
   const totalSets = allSets.length;
   const allDone = totalSets > 0 && completedSets === totalSets;
   const progressPct = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+  const nextIncompleteSet = findNextActiveWorkoutSet(workout, currentLog);
 
   return (
     <div className="view active-workout-view">
@@ -338,7 +369,7 @@ export default function ActiveWorkoutView({
       {/* Sticky progress bar directly under header */}
       <div className="aw-progress">
         <div className="aw-progress__bar">
-          <div className="aw-progress__fill" style={{ width: `${progressPct}%` }} />
+          <div className="aw-progress__fill" style={{ transform: `scaleX(${progressPct / 100})` }} />
         </div>
         <span className="aw-progress__label">
           {completedSets}/{totalSets} sets
@@ -360,6 +391,7 @@ export default function ActiveWorkoutView({
           let globalIdx = 0;
           return activeBlocks.map((block, blockIdx) => {
             const isSuperset = block.exercises.length > 1;
+            const showBlockLabel = Boolean(block.value || block.units);
 
             const exerciseCards = block.exercises.map((exercise, exIdx) => {
               const exerciseLogs = currentLog.exercises[exercise.title] || [];
@@ -369,6 +401,7 @@ export default function ActiveWorkoutView({
               const exerciseSets = exerciseLogs.length;
               const completedExSets = exerciseLogs.filter((s) => s?.completed).length;
               const allExDone = exerciseSets > 0 && completedExSets === exerciseSets;
+              const isCurrentExercise = nextIncompleteSet?.exerciseTitle === exercise.title && !editMode;
               const hasFormNotes = !!(exercise.notes || getYouTubeLink(exercise.title));
               const notesExpanded = expandedNotes[exercise.title];
               const sessionNote = (currentLog.exerciseNotes || {})[exercise.title] || '';
@@ -376,13 +409,22 @@ export default function ActiveWorkoutView({
               return (
                 <div
                   key={exIdx}
-                  className={`aw-exercise-card${allExDone && !editMode ? ' aw-exercise-card--done' : ''}`}
+                  className={[
+                    'aw-exercise-card',
+                    allExDone && !editMode ? 'aw-exercise-card--done' : '',
+                    isCurrentExercise ? 'aw-exercise-card--current' : '',
+                  ].filter(Boolean).join(' ')}
                 >
                   {/* Card header */}
                   <div className="aw-exercise-card__header">
                     <div className="aw-exercise-card__badge">{letter}</div>
                     <div className="aw-exercise-card__title-wrap">
                       <h3 className="aw-exercise-card__title">{exercise.title}</h3>
+                      {!editMode && (
+                        <p className="aw-exercise-card__progress">
+                          {completedExSets}/{exerciseSets} sets logged
+                        </p>
+                      )}
                       {exercise.workoutNotes && (
                         <p className="aw-exercise-card__workout-notes">{exercise.workoutNotes}</p>
                       )}
@@ -441,16 +483,17 @@ export default function ActiveWorkoutView({
                           />
                         );
                       }
-                      const firstIncomplete = exerciseLogs.findIndex((s) => !s?.completed);
                       const prevSets = prevSetsMap[exercise.title];
-                      const meta = getSetMeta(set);
                       return (
                         <div key={setIdx} data-set-id={`${exercise.title}::${setIdx}`}>
                           <LogSetRow
                             setIndex={setIdx}
                             set={set}
                             loggedSet={exerciseLogs[setIdx]}
-                            isNext={setIdx === firstIncomplete}
+                            isNext={
+                              nextIncompleteSet?.exerciseTitle === exercise.title &&
+                              nextIncompleteSet?.setIndex === setIdx
+                            }
                             onUpdate={(newSetData) =>
                               updateExerciseSet(exercise.title, setIdx, newSetData)
                             }
@@ -561,15 +604,24 @@ export default function ActiveWorkoutView({
             });
             if (isSuperset) {
               return (
-                <div key={blockIdx} className="aw-superset">
+                <section key={blockIdx} className="aw-block">
+                  {showBlockLabel && <BlockSection block={block} />}
+                  <div className="aw-superset">
                   <div className="aw-superset__label">
                     <span className="aw-superset__pill">Superset</span>
+                    <span className="aw-superset__hint">Log each movement, then rest</span>
                   </div>
                   <div className="aw-superset__exercises">{exerciseCards}</div>
-                </div>
+                  </div>
+                </section>
               );
             }
-            return <div key={blockIdx}>{exerciseCards}</div>;
+            return (
+              <section key={blockIdx} className="aw-block">
+                {showBlockLabel && <BlockSection block={block} />}
+                {exerciseCards}
+              </section>
+            );
           });
         })()}
 
@@ -638,7 +690,7 @@ export default function ActiveWorkoutView({
         const summary = computeSummary(completedLog);
         return (
           <Modal
-            title="Workout complete! 🎉"
+            title="Workout complete"
             onConfirm={() => { setShowSummaryModal(false); onComplete(); }}
             confirmText="Done"
             onCancel={null}
@@ -672,7 +724,7 @@ export default function ActiveWorkoutView({
                     <p className="aw-summary__pr-heading">New PRs</p>
                     {summary.prs.map((pr, i) => (
                       <div key={i} className="aw-summary__pr-item">
-                        <span className="aw-summary__pr-trophy">🏆</span>
+                        <span className="aw-summary__pr-trophy" aria-hidden="true"><Trophy size={15} /></span>
                         <span className="aw-summary__pr-text">
                           <strong>{pr.exTitle}</strong>
                           <span className="aw-summary__pr-weight"> {pr.reps} × {pr.weight} {pr.unit}</span>
@@ -689,4 +741,3 @@ export default function ActiveWorkoutView({
     </div>
   );
 }
-
