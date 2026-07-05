@@ -254,20 +254,23 @@ export default function ActiveWorkoutView({
       if (found) { currentExerciseRef.current = found; break; }
     }
 
-    // Auto-start rest timer (superset-aware, with re-fire prevention)
+    // Auto-start rest timer (superset round-aware, with re-fire prevention)
     if (shouldStartRestTimer(exerciseTitle, setIndex, wasCompleted, newSetData.completed, firedRestTimerSets.current)) {
-      // Look up the exercise object and its block to determine superset status
+      // Look up the exercise, its block, and its position within the block.
+      // In a superset, rest only fires after the last movement of the round.
       let exercise = null;
       let isSuperset = false;
+      let isLastInSuperset = true;
       for (const block of workout.blocks) {
-        const found = block.exercises.find((ex) => ex.title === exerciseTitle);
-        if (found) {
-          exercise = found;
+        const idx = block.exercises.findIndex((ex) => ex.title === exerciseTitle);
+        if (idx !== -1) {
+          exercise = block.exercises[idx];
           isSuperset = block.exercises.length > 1;
+          isLastInSuperset = idx === block.exercises.length - 1;
           break;
         }
       }
-      const duration = resolveRestDuration(exercise || {}, isSuperset, settings.restDuration);
+      const duration = resolveRestDuration(exercise || {}, isSuperset, settings.restDuration, isLastInSuperset);
       if (duration != null) {
         restTimerKey.current += 1;
         setRestTimerDuration(duration);

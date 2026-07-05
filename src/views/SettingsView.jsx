@@ -30,6 +30,7 @@ import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
 import { writeLS } from '../storage/index';
+import { buildBackup, BACKUP_KEYS } from '../storage/backup';
 import { flushPendingPushes } from '../storage/sync';
 import {
   LS_WORKOUTS,
@@ -62,6 +63,7 @@ export default function SettingsView({
   const [expandedId, setExpandedId] = useState(null);
   const [reminderDraft, setReminderDraft] = useState(settings.reminderTime || '');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [clearSelections, setClearSelections] = useState({});
   const [templateSearch, setTemplateSearch] = useState('');
@@ -174,13 +176,9 @@ export default function SettingsView({
   };
 
   const handleExportBackup = () => {
-    const backup = {};
-    [LS_WORKOUTS, LS_SCHEDULE, LS_YOUTUBE_LINKS, LS_WORKOUT_LOGS, LS_TEMPLATES].forEach(
-      (key) => {
-        const val = localStorage.getItem(key);
-        if (val) backup[key] = JSON.parse(val);
-      }
-    );
+    // A complete snapshot: every required section is always present (empty ones
+    // as {}) so restoring never leaves stale data behind.
+    const backup = buildBackup();
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
       type: 'application/json',
@@ -203,27 +201,18 @@ export default function SettingsView({
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = async (ev) => {
+      reader.onload = (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
-          const validKeys = [
-            LS_WORKOUTS,
-            LS_SCHEDULE,
-            LS_YOUTUBE_LINKS,
-            LS_WORKOUT_LOGS,
-            LS_TEMPLATES,
-          ];
-          let restored = 0;
-          validKeys.forEach((key) => {
-            if (data[key]) {
-              writeLS(key, data[key]); // write to LS + queue sync push
-              restored++;
-            }
-          });
-          await flushPendingPushes(); // push to server before reload
-          sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
-          showToast(`Restored ${restored} data sections!`);
-          setTimeout(() => window.location.reload(), 500); // brief delay so toast shows
+          const keys = BACKUP_KEYS.filter(
+            (key) => data[key] !== undefined && data[key] !== null
+          );
+          if (keys.length === 0) {
+            showToast('No TrainLog data found in that file', 'error');
+            return;
+          }
+          // Restore overwrites existing data — confirm before applying.
+          setPendingRestore({ data, keys });
         } catch {
           showToast('Invalid backup file', 'error');
         }
@@ -231,6 +220,19 @@ export default function SettingsView({
       reader.readAsText(file);
     };
     input.click();
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!pendingRestore) return;
+    const { data, keys } = pendingRestore;
+    keys.forEach((key) => {
+      writeLS(key, data[key]); // write to LS + queue sync push
+    });
+    await flushPendingPushes(); // push to server before reload
+    sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
+    setPendingRestore(null);
+    showToast(`Restored ${keys.length} data section${keys.length !== 1 ? 's' : ''}!`);
+    setTimeout(() => window.location.reload(), 500); // brief delay so toast shows
   };
 
   const clearDataLabels = {
@@ -581,6 +583,17 @@ export default function SettingsView({
           onCancel={() => setDeleteTarget(null)}
           confirmText="Delete"
           cancelText="Keep"
+        />
+      )}
+
+      {pendingRestore && (
+        <Modal
+          title="Restore from backup?"
+          message={`This overwrites your current data with this backup (${pendingRestore.keys.length} section${pendingRestore.keys.length !== 1 ? 's' : ''}). This can't be undone.`}
+          onConfirm={handleConfirmRestore}
+          onCancel={() => setPendingRestore(null)}
+          confirmText="Restore"
+          cancelText="Cancel"
         />
       )}
 
