@@ -11,12 +11,10 @@ export default function ProgressChart({ sessions }) {
 
   if (!sessions || sessions.length < 2) return null;
 
-  // --- Compute chart geometry ---
   const n = sessions.length;
   const weights = sessions.map((s) => s.bestWeight);
   const minWeight = Math.min(...weights);
   const maxWeight = Math.max(...weights);
-  // Pad the y range a bit so dots aren't clipped at the edges
   const weightRange = maxWeight - minWeight || 1;
   const yPad = weightRange * 0.12;
   const yMin = minWeight - yPad;
@@ -28,59 +26,60 @@ export default function ProgressChart({ sessions }) {
   const xOf = (i) => PADDING.left + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
   const yOf = (w) => PADDING.top + plotH - ((w - yMin) / (yMax - yMin)) * plotH;
 
-  // Build SVG polyline points
   const linePoints = sessions.map((s, i) => `${xOf(i)},${yOf(s.bestWeight)}`).join(' ');
 
-  // --- Y axis tick labels (3–4 ticks) ---
   const tickCount = 4;
   const yTicks = Array.from({ length: tickCount }, (_, i) => {
     const val = yMin + ((yMax - yMin) * i) / (tickCount - 1);
     return Math.round(val);
   });
 
-  // --- Volume sparkline ---
   const volumes = sessions.map((s) => s.volume);
   const maxVolume = Math.max(...volumes) || 1;
   const sparkTop = CHART_HEIGHT + 8;
   const sparkPlotH = SPARKLINE_HEIGHT - 4;
   const barWidth = Math.max(2, plotW / n - 2);
 
-  // --- Tooltip label for active dot ---
   const buildLabel = (s) => {
     const d = new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
-    return `${d} · ${s.bestReps} reps @ ${s.bestWeight}${s.unit}`;
+    return `${d} / ${s.bestReps} reps @ ${s.bestWeight}${s.unit}`;
   };
 
   return (
     <div className="progress-chart">
+      <div className="progress-chart__header">
+        <div>
+          <h2 className="progress-chart__title">Load trend</h2>
+          <p className="progress-chart__subtitle">Best working weight by session</p>
+        </div>
+        <span className="progress-chart__unit">{sessions[0].unit}</span>
+      </div>
       <svg
         viewBox={`0 0 ${CHART_WIDTH} ${TOTAL_HEIGHT}`}
         width="100%"
-        style={{ display: 'block', overflow: 'visible' }}
+        className="progress-chart__svg"
+        role="img"
         aria-label="Weight progress chart"
       >
-        {/* Y axis ticks + labels */}
         {yTicks.map((tick) => {
           const y = yOf(tick);
           return (
             <g key={tick}>
               <line
+                className="progress-chart__grid-line"
                 x1={PADDING.left}
                 y1={y}
                 x2={CHART_WIDTH - PADDING.right}
                 y2={y}
-                stroke="rgba(51, 65, 85, 0.6)"
-                strokeWidth="1"
               />
               <text
+                className="progress-chart__axis-label"
                 x={PADDING.left - 4}
                 y={y + 4}
                 textAnchor="end"
-                fontSize="10"
-                fill="#64748b"
               >
                 {tick}
               </text>
@@ -88,18 +87,6 @@ export default function ProgressChart({ sessions }) {
           );
         })}
 
-        {/* Unit label on y axis */}
-        <text
-          x={6}
-          y={PADDING.top}
-          fontSize="9"
-          fill="#64748b"
-          textAnchor="start"
-        >
-          {sessions[0].unit}
-        </text>
-
-        {/* X axis labels (first, last, and up to 2 in between for readability) */}
         {sessions
           .filter((_, i) => {
             if (n <= 4) return true;
@@ -113,70 +100,72 @@ export default function ProgressChart({ sessions }) {
             });
             return (
               <text
+                className="progress-chart__axis-label"
                 key={s.date + origIdx}
                 x={xOf(origIdx)}
                 y={CHART_HEIGHT - 2}
                 textAnchor="middle"
-                fontSize="9"
-                fill="#64748b"
               >
                 {d}
               </text>
             );
           })}
 
-        {/* Line */}
         <polyline
+          className="progress-chart__line"
           points={linePoints}
           fill="none"
-          stroke="var(--color-accent-blue, #6366f1)"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
         />
 
-        {/* Dots */}
         {sessions.map((s, i) => {
           const cx = xOf(i);
           const cy = yOf(s.bestWeight);
           const isPR = s.isPR;
-          const r = isPR ? 10 : 8;
-          const fill = isPR ? 'var(--color-accent-yellow, #fbbf24)' : 'var(--color-accent-blue, #6366f1)';
           const isActive = activeDot === i;
+          const tooltipX = Math.min(Math.max(cx, PADDING.left + 62), CHART_WIDTH - PADDING.right - 62);
           return (
             <g key={i}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill={fill}
-                stroke={isActive ? '#fff' : 'transparent'}
-                strokeWidth={isActive ? 2 : 0}
-                style={{ cursor: 'pointer' }}
+              <g
+                className={`progress-chart__point${isActive ? ' progress-chart__point--active' : ''}`}
                 onClick={() => setActiveDot(isActive ? null : i)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setActiveDot(isActive ? null : i);
+                  }
+                }}
+                role="button"
+                tabIndex="0"
+                aria-label={`${buildLabel(s)}${isPR ? ', personal record' : ''}`}
               >
-                <title>{buildLabel(s)}{isPR ? ' 🏆 PR' : ''}</title>
-              </circle>
-              {/* Tap label for active dot */}
-              {isActive && (
-                <g>
-                  {/* Background rect */}
+                {isPR ? (
                   <rect
-                    x={Math.min(cx - 60, CHART_WIDTH - PADDING.right - 120)}
-                    y={cy - r - 30}
-                    width="120"
-                    height="22"
-                    rx="5"
-                    fill="var(--color-surface-elevated, #334155)"
-                    stroke="rgba(99, 102, 241, 0.3)"
-                    strokeWidth="1"
+                    className="progress-chart__marker progress-chart__marker--pr"
+                    x={cx - 6}
+                    y={cy - 6}
+                    width="12"
+                    height="12"
+                    rx="2"
+                    transform={`rotate(45 ${cx} ${cy})`}
+                  />
+                ) : (
+                  <circle className="progress-chart__marker" cx={cx} cy={cy} r="5.5" />
+                )}
+                <title>{buildLabel(s)}{isPR ? ' PR' : ''}</title>
+              </g>
+              {isActive && (
+                <g className="progress-chart__tooltip">
+                  <rect
+                    x={tooltipX - 62}
+                    y={cy - 38}
+                    width="124"
+                    height="26"
+                    rx="8"
                   />
                   <text
-                    x={Math.min(cx, CHART_WIDTH - PADDING.right - 60)}
-                    y={cy - r - 14}
+                    x={tooltipX}
+                    y={cy - 21}
                     textAnchor="middle"
-                    fontSize="10"
-                    fill="#fff"
                   >
                     {buildLabel(s)}
                   </text>
@@ -186,35 +175,36 @@ export default function ProgressChart({ sessions }) {
           );
         })}
 
-        {/* Volume sparkline bars */}
         {sessions.map((s, i) => {
           const bh = Math.max(2, (s.volume / maxVolume) * sparkPlotH);
           const bx = xOf(i) - barWidth / 2;
           const by = sparkTop + sparkPlotH - bh;
           return (
             <rect
+              className="progress-chart__volume-bar"
               key={i}
               x={bx}
               y={by}
               width={barWidth}
               height={bh}
-              fill="rgba(99, 102, 241, 0.3)"
               rx="2"
             />
           );
         })}
 
-        {/* Sparkline label */}
         <text
+          className="progress-chart__axis-label progress-chart__volume-label"
           x={PADDING.left - 4}
           y={sparkTop + sparkPlotH / 2 + 4}
           textAnchor="end"
-          fontSize="8"
-          fill="#64748b"
         >
-          vol
+          volume
         </text>
       </svg>
+      <div className="progress-chart__legend" aria-hidden="true">
+        <span><i className="progress-chart__legend-dot" /> session best</span>
+        <span><i className="progress-chart__legend-diamond" /> PR</span>
+      </div>
     </div>
   );
 }

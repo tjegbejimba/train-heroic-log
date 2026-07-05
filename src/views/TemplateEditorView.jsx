@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react';
+import { ChevronUp, ChevronDown, Layers3, Plus, Trash2, X } from 'lucide-react';
 import RestDurationPicker from '../components/RestDurationPicker';
 import BarWeightPicker from '../components/BarWeightPicker';
 
@@ -249,6 +249,12 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   const isPickerOpen = (bIdx, eIdx) =>
     activeSearch && activeSearch.blockIdx === bIdx && activeSearch.exIdx === eIdx;
 
+  const exerciseTotal = blocks.reduce((sum, block) => sum + block.exercises.length, 0);
+  const setTotal = blocks.reduce(
+    (sum, block) => sum + block.exercises.reduce((exSum, ex) => exSum + ex.sets.length, 0),
+    0
+  );
+
   return (
     <div className="view tpl-editor">
       <div className="tpl-editor__header">
@@ -260,13 +266,22 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
             Save Template
           </button>
         </div>
-        <input
-          type="text"
-          className="input tpl-editor__name-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Template name..."
-        />
+        <div className="tpl-editor__name-wrap">
+          <label htmlFor="template-name">Template name</label>
+          <input
+            id="template-name"
+            type="text"
+            className="input tpl-editor__name-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Template name..."
+          />
+        </div>
+        <div className="tpl-editor__summary" aria-label={`${blocks.length} parts, ${exerciseTotal} exercises, ${setTotal} sets`}>
+          <span><Layers3 size={13} /> {blocks.length} part{blocks.length !== 1 ? 's' : ''}</span>
+          <span>{exerciseTotal} exercise{exerciseTotal !== 1 ? 's' : ''}</span>
+          <span>{setTotal} set{setTotal !== 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       <div className="tpl-editor__blocks">
@@ -274,9 +289,10 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
           <div key={bIdx} className="card tpl-editor__block">
             <div className="tpl-editor__block-header">
               <span className="tpl-editor__block-label">
-                Part {String.fromCharCode(65 + bIdx)}
+                <span className="tpl-editor__block-badge">{String.fromCharCode(65 + bIdx)}</span>
+                Part
                 {block.exercises.length > 1 && (
-                  <span className="text-secondary text-sm"> (superset)</span>
+                  <span className="tpl-editor__superset-badge">Superset</span>
                 )}
               </span>
               <div className="tpl-editor__block-actions">
@@ -285,6 +301,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                   onClick={() => moveBlock(bIdx, -1)}
                   disabled={bIdx === 0}
                   title="Move up"
+                  aria-label={`Move part ${String.fromCharCode(65 + bIdx)} up`}
                 >
                   <ChevronUp size={16} />
                 </button>
@@ -293,6 +310,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                   onClick={() => moveBlock(bIdx, 1)}
                   disabled={bIdx === blocks.length - 1}
                   title="Move down"
+                  aria-label={`Move part ${String.fromCharCode(65 + bIdx)} down`}
                 >
                   <ChevronDown size={16} />
                 </button>
@@ -301,6 +319,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                   onClick={() => removeBlock(bIdx)}
                   disabled={blocks.length <= 1}
                   title="Remove part"
+                  aria-label={`Remove part ${String.fromCharCode(65 + bIdx)}`}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -310,7 +329,8 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
             {block.exercises.map((ex, eIdx) => (
               <div key={eIdx} className="tpl-editor__exercise">
                 <div className="tpl-editor__exercise-header">
-                  <div className="tpl-editor__exercise-picker" style={{ position: 'relative', flex: 1 }}>
+                  <span className="tpl-editor__exercise-badge">{String.fromCharCode(65 + bIdx)}{eIdx + 1}</span>
+                  <div className="tpl-editor__exercise-picker">
                     <input
                       type="text"
                       className="input"
@@ -383,6 +403,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                     className="btn-icon btn-icon--danger"
                     onClick={() => removeExercise(bIdx, eIdx)}
                     title="Remove exercise"
+                    aria-label={`Remove exercise ${eIdx + 1} from part ${String.fromCharCode(65 + bIdx)}`}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -424,6 +445,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                             className="btn-icon btn-icon--small"
                             onClick={() => toggleShowValue(bIdx, eIdx)}
                             title="Remove value column"
+                            aria-label="Remove value column"
                           >
                             <X size={10} />
                           </button>
@@ -433,6 +455,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                           className="btn btn-secondary btn-small"
                           onClick={() => toggleShowValue(bIdx, eIdx)}
                           title="Add value column"
+                          aria-label="Add value column"
                         >
                           + val
                         </button>
@@ -446,7 +469,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       <input
                         type="number"
                         className="input tpl-editor__set-input"
-                        placeholder="—"
+                        placeholder="-"
                         value={set.reps ?? ''}
                         onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'reps', e.target.value)}
                       />
@@ -454,7 +477,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         <input
                           type="number"
                           className="input tpl-editor__set-input"
-                          placeholder="—"
+                          placeholder="-"
                           value={set.weight ?? ''}
                           onChange={(e) => updateSet(bIdx, eIdx, sIdx, 'weight', e.target.value)}
                         />
@@ -465,6 +488,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         className="btn-icon btn-icon--danger btn-icon--small"
                         onClick={() => removeSet(bIdx, eIdx, sIdx)}
                         title="Remove set"
+                        aria-label={`Remove set ${sIdx + 1}`}
                       >
                         <X size={12} />
                       </button>

@@ -10,7 +10,22 @@ import { downloadICS } from '../utils/ics';
 import { readLS } from '../storage/index';
 import { useSettings } from '../hooks/useSettings';
 import { getQuotaUsage, getQuotaWarning } from '../storage/quota';
-import { FolderOpen, Download, Upload, ChevronRight } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bell,
+  CalendarDays,
+  ChevronRight,
+  Cloud,
+  Database,
+  Download,
+  FolderOpen,
+  HardDrive,
+  Layers3,
+  MessageSquare,
+  ShieldAlert,
+  Timer,
+  Upload,
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
@@ -65,7 +80,7 @@ export default function SettingsView({
     if (permission !== 'granted') {
       showToast(
         permission === 'denied'
-          ? 'Notifications blocked — enable in browser settings'
+          ? 'Notifications blocked - enable in browser settings'
           : 'Notification permission dismissed',
         'error'
       );
@@ -245,55 +260,92 @@ export default function SettingsView({
 
   const selectedClearCount = Object.values(clearSelections).filter(Boolean).length;
   const allSelected = selectedClearCount === Object.keys(clearDataLabels).length;
+  const syncLabel =
+    syncStatus === 'online' ? 'Connected' : syncStatus === 'checking' ? 'Checking...' : 'Offline';
+  const storageTone =
+    storageUsage.level === 'critical'
+      ? 'settings-section--danger'
+      : storageUsage.level === 'warning'
+      ? 'settings-section--warning'
+      : '';
 
   return (
     <div className="view settings-view">
       <div className="settings-view__header">
         <h1>Settings</h1>
+        <p>Manage training defaults, sync, exports, and local data.</p>
       </div>
 
       <div className="settings-view__content">
-        {/* Workout section */}
-        <div className="card">
-          <h3 className="mb-md">Workout</h3>
-          <p className="text-secondary text-sm mb-sm">Default rest duration</p>
-          <div className="settings-view__rest-options">
-            {[30, 60, 90, 120, 180].map((s) => (
-              <button
-                key={s}
-                className={`btn btn-small${settings.restDuration === s ? ' btn-primary' : ' btn-secondary'}`}
-                onClick={() => updateSettings({ restDuration: s })}
-              >
-                {s < 60 ? `${s}s` : `${s / 60}min`}
-              </button>
-            ))}
+        <section className="settings-section">
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><Timer size={20} /></span>
+            <div>
+              <h2>Training setup</h2>
+              <p>Defaults and reusable structure for planning workouts.</p>
+            </div>
           </div>
-        </div>
+          <div className="settings-control">
+            <div className="settings-control__label">
+              <span>Default rest duration</span>
+              <small>Used when an exercise does not override rest.</small>
+            </div>
+            <div className="settings-view__rest-options">
+              {[30, 60, 90, 120, 180].map((s) => (
+                <button
+                  key={s}
+                  className={`btn btn-small${settings.restDuration === s ? ' btn-primary' : ' btn-secondary'}`}
+                  onClick={() => updateSettings({ restDuration: s })}
+                >
+                  {s < 60 ? `${s}s` : `${s / 60}min`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            className="settings-nav-row"
+            onClick={() => navigate(ROUTE_TEMPLATES)}
+          >
+            <span className="settings-nav-row__icon" aria-hidden="true"><Layers3 size={18} /></span>
+            <span className="settings-nav-row__body">
+              <strong>Templates</strong>
+              <small>
+                {templateList ? templateList.length : 0} template{(!templateList || templateList.length !== 1) ? 's' : ''} ready for planning
+              </small>
+            </span>
+            <ChevronRight size={18} className="settings-nav-row__chevron" />
+          </button>
+        </section>
 
-        {/* Notifications section */}
-        <div className="card">
-          <h3 className="mb-md">Notifications</h3>
+        <section className="settings-section">
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><Bell size={20} /></span>
+            <div>
+              <h2>Notifications</h2>
+              <p>Rest timer alerts and optional daily workout reminders.</p>
+            </div>
+          </div>
           {!notificationsSupported() ? (
             !window.isSecureContext ? (
-              <p className="text-secondary text-sm">
-                Notifications require HTTPS. Access the app via your Tailscale HTTPS address (e.g. <strong>https://…ts.net</strong>) and add it to your Home Screen.
+              <p className="settings-section__message">
+                Notifications require HTTPS. Access the app via your Tailscale HTTPS address (e.g. <strong>https://...ts.net</strong>) and add it to your Home Screen.
               </p>
             ) : (
-              <p className="text-secondary text-sm">
+              <p className="settings-section__message">
                 Not supported on this browser. On iPhone, add the app to your Home Screen first, then enable notifications.
               </p>
             )
           ) : notifStatus === 'denied' ? (
-            <p className="text-secondary text-sm">
+            <p className="settings-section__message">
               Notifications are blocked. Enable them in your browser or OS settings, then reload.
             </p>
           ) : settings.notificationsEnabled ? (
             <>
-              <p className="text-secondary text-sm mb-md">
+              <p className="settings-section__message">
                 Rest timer notifications are on. You'll also get a daily workout reminder if a time is set below.
               </p>
               <div className="settings-view__reminder-row">
-                <label className="text-sm">Daily workout reminder</label>
+                <label>Daily workout reminder</label>
                 <input
                   type="time"
                   className="input settings-view__reminder-time"
@@ -301,7 +353,7 @@ export default function SettingsView({
                   onChange={(e) => setReminderDraft(e.target.value)}
                 />
               </div>
-              <div className="settings-view__reminder-actions mt-sm">
+              <div className="settings-view__reminder-actions">
                 <button
                   className="btn btn-primary btn-small"
                   disabled={!reminderDraft || reminderDraft === settings.reminderTime}
@@ -319,7 +371,7 @@ export default function SettingsView({
                 )}
               </div>
               {settings.reminderTime && (
-                <p className="text-secondary text-sm mt-sm">
+                <p className="settings-section__hint">
                   Currently set for {settings.reminderTime}
                 </p>
               )}
@@ -328,44 +380,43 @@ export default function SettingsView({
                 onClick={handleDisableNotifications}
                 disabled={notifLoading}
               >
-                {notifLoading ? 'Disabling…' : 'Disable All Notifications'}
+                {notifLoading ? 'Disabling...' : 'Disable All Notifications'}
               </button>
             </>
           ) : (
             <>
-              <p className="text-secondary text-sm mb-md">
-                Get notified when your rest timer finishes — works even when the app is in the background.
+              <p className="settings-section__message">
+                Get notified when your rest timer finishes - works even when the app is in the background.
               </p>
               <button
                 className="btn btn-primary w-full"
                 onClick={handleEnableNotifications}
                 disabled={notifLoading}
               >
-                {notifLoading ? 'Enabling…' : 'Enable Notifications'}
+                {notifLoading ? 'Enabling...' : 'Enable Notifications'}
               </button>
             </>
           )}
-        </div>
+        </section>
 
-        {/* Sync section */}
-        <div className="card">
-          <h3 className="mb-md">NAS Sync</h3>
+        <section className="settings-section">
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><Cloud size={20} /></span>
+            <div>
+              <h2>NAS sync</h2>
+              <p>Offline-first data with manual pull/push controls.</p>
+            </div>
+          </div>
           <div className="settings-view__sync-status">
             <span className={`sync-dot sync-dot--${syncStatus}`} />
-            <span className="text-sm">
-              {syncStatus === 'online'
-                ? 'Connected'
-                : syncStatus === 'checking'
-                ? 'Checking...'
-                : 'Offline'}
-            </span>
+            <span>{syncLabel}</span>
             {lastSynced && (
-              <span className="text-secondary text-sm" style={{ marginLeft: 'auto' }}>
+              <span className="settings-view__last-synced">
                 Last synced: {new Date(lastSynced).toLocaleTimeString()}
               </span>
             )}
           </div>
-          <div className="settings-view__data-actions mt-md">
+          <div className="settings-view__data-actions">
             <button className="btn btn-secondary w-full" onClick={onPullSync}>
               Pull from Server
             </button>
@@ -373,17 +424,27 @@ export default function SettingsView({
               Push to Server
             </button>
           </div>
-          <p className="text-secondary text-sm mt-sm" style={{ fontSize: '11px' }}>
+          <p className="settings-section__hint">
             Data syncs automatically in background. Use these buttons for manual sync.
           </p>
-        </div>
+        </section>
 
-        {/* Data section */}
-        <div className="card">
-          <h3 className="mb-md">Data</h3>
-          <p className="text-secondary text-sm mb-sm">Export to Calendar</p>
-          <div className="settings-view__reminder-row mb-sm">
-            <label className="text-sm">From</label>
+        <section className="settings-section">
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><Database size={20} /></span>
+            <div>
+              <h2>Data portability</h2>
+              <p>Calendar export, CSV re-import, and complete backups.</p>
+            </div>
+          </div>
+          <div className="settings-subsection">
+            <div className="settings-subsection__title">
+              <CalendarDays size={16} />
+              <span>Export to Calendar</span>
+            </div>
+          </div>
+          <div className="settings-view__reminder-row">
+            <label>From</label>
             <input
               type="date"
               className="input settings-view__reminder-time"
@@ -391,8 +452,8 @@ export default function SettingsView({
               disabled
             />
           </div>
-          <div className="settings-view__reminder-row mb-md">
-            <label className="text-sm">Until</label>
+          <div className="settings-view__reminder-row">
+            <label>Until</label>
             <input
               type="date"
               className="input settings-view__reminder-time"
@@ -407,67 +468,84 @@ export default function SettingsView({
               className="btn btn-secondary w-full"
               onClick={handleExportCalendar}
             >
-              <Download size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              <Download size={15} />
               Export Schedule (.ics)
             </button>
           </div>
-          <p className="text-secondary text-sm mt-sm mb-md" style={{ fontSize: '11px' }}>
+          <p className="settings-section__hint">
             Imports into Apple Calendar, Google Calendar, or Outlook. Leave "Until" blank to export all future workouts.
           </p>
           <div className="settings-view__data-actions">
             <button className="btn btn-secondary w-full" onClick={onReimport}>
-              <FolderOpen size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              <FolderOpen size={15} />
               Re-import CSV
             </button>
             <button
               className="btn btn-secondary w-full"
               onClick={handleExportBackup}
             >
-              <Download size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              <Download size={15} />
               Export Backup (JSON)
             </button>
             <button
               className="btn btn-secondary w-full"
               onClick={handleImportBackup}
             >
-              <Upload size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              <Upload size={15} />
               Restore from Backup
             </button>
           </div>
-          <div className="settings-view__storage mt-lg">
-            <div className="flex-between">
-              <span className="text-secondary text-sm">Storage used</span>
-              <span className="text-sm">{formatBytes(storageUsage.used)} ({storageUsage.percent}%)</span>
+        </section>
+
+        <section className={`settings-section ${storageTone}`}>
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><HardDrive size={20} /></span>
+            <div>
+              <h2>Storage</h2>
+              <p>Local data stored on this device.</p>
             </div>
-            <div className="settings-view__storage-bar mt-sm">
+          </div>
+          <div className="settings-view__storage">
+            <div className="settings-view__storage-top">
+              <span>Storage used</span>
+              <strong>{formatBytes(storageUsage.used)} ({storageUsage.percent}%)</strong>
+            </div>
+            <div className="settings-view__storage-bar">
               <div
-                className={`settings-view__storage-fill${storageUsage.level === 'critical' ? ' storage-critical' : storageUsage.level === 'warning' ? ' storage-warning' : ''}`}
+                className={`settings-view__storage-fill settings-view__storage-fill--${storageUsage.level}`}
                 style={{
                   width: `${Math.min(storageUsage.percent, 100)}%`,
                 }}
               />
             </div>
             {storageUsage.level === 'critical' && (
-              <p className="text-red text-sm mt-sm" style={{ fontSize: '11px' }}>
-                ⚠️ Storage nearly full — consider clearing old workout logs
+              <p className="settings-section__alert">
+                <AlertTriangle size={15} />
+                Storage nearly full. Consider clearing old workout logs.
               </p>
             )}
             {storageUsage.level === 'warning' && (
-              <p className="text-yellow text-sm mt-sm" style={{ fontSize: '11px' }}>
-                Storage usage is getting high
+              <p className="settings-section__alert">
+                <AlertTriangle size={15} />
+                Storage usage is getting high.
               </p>
             )}
             {storageUsage.level === 'ok' && (
-              <p className="text-secondary text-sm mt-sm" style={{ fontSize: '11px' }}>
-                ~5 MB localStorage limit
+              <p className="settings-section__hint">
+                About 5 MB of localStorage is available in most browsers.
               </p>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Danger zone */}
-        <div className="card">
-          <h3 className="mb-md text-red">Danger Zone</h3>
+        <section className="settings-section settings-section--danger">
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><ShieldAlert size={20} /></span>
+            <div>
+              <h2>Danger zone</h2>
+              <p>Remove local training data from this device.</p>
+            </div>
+          </div>
           <button
             className="btn btn-danger w-full"
             onClick={() => {
@@ -484,35 +562,15 @@ export default function SettingsView({
           >
             Clear Data...
           </button>
-        </div>
+        </section>
 
-        {/* Templates — single entry point */}
-        <div className="card">
-          <button
-            className="settings-template-item__nav"
-            onClick={() => navigate(ROUTE_TEMPLATES)}
-          >
-            <div className="settings-template-item__info">
-              <div className="settings-template-item__name">Templates</div>
-              <div className="text-secondary text-sm">
-                {templateList ? templateList.length : 0} template{(!templateList || templateList.length !== 1) ? 's' : ''}
-              </div>
-            </div>
-            <ChevronRight size={18} className="settings-template-item__chevron" />
-          </button>
-        </div>
-
-        {/* App info */}
-        <div className="card">
-          <div className="text-secondary text-sm text-center" style={{ marginBottom: 'var(--space-md)' }}>
-            TrainLog v0.1.0
-          </div>
-          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-md)' }}>
-            <button className="btn btn-secondary w-full" onClick={() => setShowFeedback(true)}>
+        <section className="settings-section settings-section--about">
+          <div className="settings-view__version">TrainLog v0.1.0</div>
+          <button className="btn btn-secondary w-full" onClick={() => setShowFeedback(true)}>
+            <MessageSquare size={15} />
               Send Feedback
-            </button>
-          </div>
-        </div>
+          </button>
+        </section>
       </div>
 
       {deleteTarget && (
@@ -530,13 +588,11 @@ export default function SettingsView({
         <div className="modal-overlay">
           <div className="modal">
             <h2 className="modal__title">Clear Data</h2>
-            <p className="modal__message" style={{ marginBottom: 'var(--space-md)' }}>
+            <p className="modal__message settings-clear-modal__message">
               Select which data to delete. This cannot be undone.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-              <label
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600, paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--color-border)' }}
-              >
+            <div className="settings-clear-modal__checks">
+              <label className="settings-clear-modal__check settings-clear-modal__check--all">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -552,7 +608,7 @@ export default function SettingsView({
               {Object.entries(clearDataLabels).map(([key, label]) => (
                 <label
                   key={key}
-                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}
+                  className="settings-clear-modal__check"
                 >
                   <input
                     type="checkbox"
