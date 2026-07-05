@@ -63,20 +63,20 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onClose();
-      showToast('Feedback sent — thank you!');
+      showToast('Feedback sent - thank you!');
     } catch {
-      showToast('Failed to send feedback — please try again', 'error');
+      showToast('Failed to send feedback - please try again', 'error');
       setSubmitting(false);
     }
   }
 
   return (
     <div className="modal-overlay" onClick={() => { if (!submitting) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal feedback-modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="modal__title">Send Feedback</h2>
 
-        <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-sm)' }}>Category</p>
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
+        <p className="feedback-modal__label">Category</p>
+        <div className="feedback-modal__category-row">
           {['Bug', 'Feature', 'Other'].map((cat) => (
             <button
               key={cat}
@@ -89,38 +89,29 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
           ))}
         </div>
 
-        <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-sm)' }}>Title</p>
+        <label className="feedback-modal__label" htmlFor="feedback-title">Title</label>
         <input
+          id="feedback-title"
           type="text"
-          placeholder="Brief summary…"
+          placeholder="Brief summary..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={submitting}
           maxLength={120}
-          style={{ marginBottom: 'var(--space-md)' }}
         />
 
-        <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-sm)' }}>Description</p>
+        <label className="feedback-modal__label" htmlFor="feedback-description">Description</label>
         <textarea
-          placeholder="Describe the issue or feature request…"
+          id="feedback-description"
+          placeholder="Describe the issue or feature request..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={submitting}
           rows={5}
-          style={{ resize: 'vertical', fontFamily: 'inherit', marginBottom: 'var(--space-md)' }}
         />
 
         {category === 'Bug' && (
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-sm)',
-              cursor: 'pointer',
-              fontSize: 'var(--font-size-sm)',
-              marginBottom: 'var(--space-md)',
-            }}
-          >
+          <label className="feedback-modal__snapshot">
             <input
               type="checkbox"
               checked={includeSnapshot}
@@ -131,7 +122,7 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
           </label>
         )}
 
-        <div className="modal__actions flex gap-md">
+        <div className="modal__actions feedback-modal__actions">
           <button
             className="btn btn-secondary flex-1"
             onClick={onClose}
@@ -144,7 +135,7 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !description.trim()}
           >
-            {submitting ? 'Sending…' : 'Send Feedback'}
+            {submitting ? 'Sending...' : 'Send Feedback'}
           </button>
         </div>
       </div>

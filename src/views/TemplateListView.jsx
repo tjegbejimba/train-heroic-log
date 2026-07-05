@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Layers3, Search, Trash2 } from 'lucide-react';
 import { ROUTE_SETTINGS, ROUTE_EDIT_TEMPLATE } from '../constants';
 
 const SWIPE_THRESHOLD = 80;
@@ -42,10 +42,11 @@ function SwipeableRow({ children, onDelete }) {
   };
 
   return (
-    <div className="tpl-list__swipe-container">
+    <div className={`tpl-list__swipe-container${swiped ? ' tpl-list__swipe-container--open' : ''}`}>
       <div className="tpl-list__swipe-actions">
-        <button className="tpl-list__delete-btn" onClick={onDelete}>
+        <button className="tpl-list__delete-btn" onClick={onDelete} aria-label="Delete template">
           <Trash2 size={18} />
+          <span>Delete</span>
         </button>
       </div>
       <div
@@ -90,11 +91,18 @@ export default function TemplateListView({
         <button
           className="tpl-list__back"
           onClick={() => navigate(ROUTE_SETTINGS)}
+          aria-label="Back to settings"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="tpl-list__title">Templates</h1>
-        <span className="tpl-list__count">{templateList?.length || 0}</span>
+        <div className="tpl-list__heading">
+          <h1 className="tpl-list__title">Templates</h1>
+          <p>Reusable workouts for planning the week.</p>
+        </div>
+        <span className="tpl-list__count">
+          <Layers3 size={14} />
+          {templateList?.length || 0}
+        </span>
       </div>
 
       {templateList && templateList.length > 5 && (
@@ -112,9 +120,11 @@ export default function TemplateListView({
 
       <div className="tpl-list__items">
         {filtered.length === 0 ? (
-          <p className="tpl-list__empty">
-            {search ? 'No matching templates' : 'No templates yet'}
-          </p>
+          <div className="tpl-list__empty">
+            <span className="tpl-list__empty-icon" aria-hidden="true"><Layers3 size={30} /></span>
+            <h2>{search ? 'No matching templates' : 'No templates yet'}</h2>
+            <p>{search ? 'Try a shorter search term.' : 'Imported workouts become templates you can reuse in the planner.'}</p>
+          </div>
         ) : (
           filtered.map((tpl) => {
             const exerciseCount = tpl.blocks.reduce(
@@ -133,6 +143,7 @@ export default function TemplateListView({
                     <span className="tpl-list__row-name">{tpl.name}</span>
                     <span className="tpl-list__row-meta">
                       {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
+                      {tpl.blocks?.length ? ` / ${tpl.blocks.length} part${tpl.blocks.length !== 1 ? 's' : ''}` : ''}
                     </span>
                   </div>
                   <ChevronRight size={18} className="tpl-list__row-chevron" />

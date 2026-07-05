@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { BookOpen, Video, Upload, X, Check, AlertTriangle, Loader, Search, ChevronDown, ChevronRight, Play } from 'lucide-react';
+import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Loader, Play, Search, Upload, X } from 'lucide-react';
+import YouTubeLinkInput from '../components/YouTubeLinkInput';
 
 const YOUTUBE_URL_RE = /https?:\/\/[^\s]*youtu[^\s]*/i;
 
@@ -75,7 +76,7 @@ function extractUrls(text) {
     .filter((e) => YOUTUBE_URL_RE.test(e.url));
 }
 
-/** Format set summary: "4×8 @ 135lb" or just "3 sets" */
+/** Format set summary: "4x8 @ 135lb" or just "3 sets" */
 function formatSetSummary(exercise) {
   const sets = exercise.sets || [];
   if (sets.length === 0) return null;
@@ -84,10 +85,10 @@ function formatSetSummary(exercise) {
     (s) => s.reps === first.reps && s.weight === first.weight
   );
   if (allSame && first.reps && first.weight) {
-    return `${sets.length}×${first.reps} @ ${first.weight}${first.unit || 'lb'}`;
+    return `${sets.length}x${first.reps} @ ${first.weight}${first.unit || 'lb'}`;
   }
   if (allSame && first.reps) {
-    return `${sets.length}×${first.reps}`;
+    return `${sets.length}x${first.reps}`;
   }
   return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
 }
@@ -95,8 +96,6 @@ function formatSetSummary(exercise) {
 export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap }) {
   const [search, setSearch] = useState('');
   const [expandedExercise, setExpandedExercise] = useState(null);
-  const [editingLink, setEditingLink] = useState(null);
-  const [linkDraft, setLinkDraft] = useState('');
   const [editingNotes, setEditingNotes] = useState(null);
   const [notesDraft, setNotesDraft] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -147,17 +146,6 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
     const q = search.toLowerCase();
     return exercises.filter((ex) => ex.title.toLowerCase().includes(q));
   }, [exercises, search]);
-
-  const handleSaveLink = (exerciseTitle) => {
-    setYouTubeLink(exerciseTitle, linkDraft.trim());
-    setEditingLink(null);
-    setLinkDraft('');
-  };
-
-  const handleStartEditLink = (exerciseTitle) => {
-    setEditingLink(exerciseTitle);
-    setLinkDraft(youtubeLinks[exerciseTitle] || '');
-  };
 
   const exerciseNames = useMemo(
     () => exercises.map((e) => e.title),
@@ -234,7 +222,11 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
     return (
       <div className="view library-view">
         <div className="library-view__header">
+          <div className="library-view__header-icon" aria-hidden="true">
+            <BookOpen size={26} />
+          </div>
           <h1>Exercise Library</h1>
+          <p className="text-secondary text-sm">Import a workout to populate your exercise list, form cues, and reference videos.</p>
         </div>
         <div className="empty-state">
           <div className="empty-state-icon"><BookOpen size={48} /></div>
@@ -248,15 +240,18 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
   return (
     <div className="view library-view">
       <div className="library-view__header">
-        <h1>Exercise Library</h1>
-        <p className="text-secondary text-sm">
-          {exercises.length} exercise{exercises.length !== 1 ? 's' : ''} across{' '}
-          {Object.keys(workouts).length} workout
-          {Object.keys(workouts).length !== 1 ? 's' : ''}
-        </p>
+        <div>
+          <h1>Exercise Library</h1>
+          <p className="library-view__subtitle">
+            Search, tune form notes, and attach reference videos before the next session.
+          </p>
+        </div>
+        <div className="library-view__metric" aria-label={`${exercises.length} exercises`}>
+          <span>{exercises.length}</span>
+          <small>exercises</small>
+        </div>
       </div>
 
-      {/* Sticky search bar */}
       <div className="library-view__search-bar">
         <Search size={16} className="library-view__search-icon" />
         <input
@@ -286,7 +281,6 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
           filtered.map((exercise) => {
             const link = youtubeLinks[exercise.title];
             const isExpanded = expandedExercise === exercise.title;
-            const isEditingLink = editingLink === exercise.title;
             const setSummary = formatSetSummary(exercise);
 
             return (
@@ -294,6 +288,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                 {/* Collapsed row */}
                 <button
                   className="library-row__header"
+                  aria-expanded={isExpanded}
                   onClick={() =>
                     setExpandedExercise(isExpanded ? null : exercise.title)
                   }
@@ -319,15 +314,14 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                 {/* Expanded details */}
                 {isExpanded && (
                   <div className="library-row__details">
-                    {/* History tap target */}
                     <button
                       className="library-row__history-btn"
                       onClick={() => onExerciseTap(exercise.title)}
                     >
-                      View exercise history →
+                      View exercise history
+                      <ChevronRight size={14} />
                     </button>
 
-                    {/* Set details */}
                     {exercise.sets && exercise.sets.length > 0 && (
                       <div className="library-row__sets">
                         <div className="library-row__sets-label">Sets</div>
@@ -343,15 +337,14 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                       </div>
                     )}
 
-                    {/* Form notes */}
                     <div className="library-row__notes-section">
                       <div className="library-row__section-label">Form Notes</div>
                       {editingNotes === exercise.title ? (
                         <div className="library-row__notes-edit">
                           {exercise.hasConflictedNotes && (
                             <div className="library-row__conflict-warn">
-                              <AlertTriangle size={12} style={{ flexShrink: 0 }} />
-                              Notes differ across workouts — saving will overwrite all instances.
+                              <AlertTriangle size={12} />
+                              Notes differ across workouts - saving will overwrite all instances.
                             </div>
                           )}
                           <textarea
@@ -403,60 +396,11 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                       )}
                     </div>
 
-                    {/* YouTube link */}
                     <div className="library-row__link-section">
-                      <div className="library-row__section-label">YouTube Link</div>
-                      {isEditingLink ? (
-                        <div className="library-row__link-edit">
-                          <input
-                            type="url"
-                            className="input"
-                            placeholder="YouTube URL..."
-                            value={linkDraft}
-                            onChange={(e) => setLinkDraft(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="library-row__actions">
-                            <button
-                              className="btn btn-primary btn-small"
-                              onClick={() => handleSaveLink(exercise.title)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn btn-secondary btn-small"
-                              onClick={() => {
-                                setEditingLink(null);
-                                setLinkDraft('');
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="library-row__link-display">
-                          {link ? (
-                            <a
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="library-row__link-url"
-                            >
-                              <Video size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                              {link}
-                            </a>
-                          ) : (
-                            <span className="text-secondary text-sm">No video linked</span>
-                          )}
-                          <button
-                            className="btn btn-secondary btn-small"
-                            onClick={() => handleStartEditLink(exercise.title)}
-                          >
-                            {link ? 'Edit' : 'Add Link'}
-                          </button>
-                        </div>
-                      )}
+                      <YouTubeLinkInput
+                        url={link}
+                        onSave={(nextUrl) => setYouTubeLink(exercise.title, nextUrl)}
+                      />
                     </div>
                   </div>
                 )}
@@ -466,45 +410,41 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
         )}
       </div>
 
-      {/* Bulk import section — kept as-is, always at bottom */}
       <div className="library-view__bulk-section">
-        <div className="library-view__actions">
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={() => setShowBulkImport(!showBulkImport)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Upload size={14} />
-            Bulk Import YouTube Links
+      <div className="library-view__actions">
+        <button
+          className="btn btn-secondary btn-small library-view__bulk-trigger"
+          onClick={() => setShowBulkImport(!showBulkImport)}
+        >
+          <Upload size={14} />
+          Bulk Import YouTube Links
           </button>
         </div>
 
         {showBulkImport && (
-          <div className="card" style={{ marginBottom: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-              <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Bulk Import</h3>
-              <button className="btn btn-secondary btn-small" onClick={handleBulkClose} style={{ minWidth: '36px', minHeight: '36px', padding: 'var(--space-sm)' }}>
+          <div className="card library-view__bulk-card">
+            <div className="library-view__bulk-head">
+              <div>
+                <h2>Bulk import links</h2>
+                <p>Paste one video per line. Titles are matched to exercises automatically.</p>
+              </div>
+              <button className="btn btn-secondary btn-small library-view__bulk-close" onClick={handleBulkClose} aria-label="Close bulk import">
                 <X size={16} />
               </button>
             </div>
-            <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-sm)' }}>
-              Paste YouTube URLs (one per line). Video titles will be fetched and matched to your exercises automatically.
-            </p>
             <textarea
               className="input"
               rows={6}
               placeholder={`https://youtube.com/watch?v=...\nhttps://youtu.be/...\n\nOr use: Exercise Name | URL`}
               value={bulkText}
               onChange={(e) => { setBulkText(e.target.value); setBulkRows(null); setBulkSaved(false); }}
-              style={{ width: '100%', resize: 'vertical', fontFamily: 'monospace', fontSize: 'var(--font-size-xs)' }}
             />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', alignItems: 'center' }}>
+            <div className="library-view__bulk-actions">
               {!bulkRows && (
                 <button
-                  className="btn btn-secondary btn-small"
+                  className="btn btn-secondary btn-small library-view__bulk-match"
                   onClick={handleBulkPreview}
                   disabled={!bulkText.trim() || bulkLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   {bulkLoading && <Loader size={12} className="spin" />}
                   {bulkLoading ? 'Fetching titles...' : 'Match Videos'}
@@ -531,11 +471,11 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                 );
               })()}
               {bulkSaved && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-accent-green)', fontSize: 'var(--font-size-sm)' }}>
+                <span className="library-view__bulk-saved">
                   <Check size={14} /> Saved {bulkSaved.saved} link{bulkSaved.saved !== 1 ? 's' : ''}
                   {bulkSaved.skipped > 0 && (
-                    <span style={{ color: 'var(--color-text-secondary)' }}>
-                      — {bulkSaved.skipped} unmatched skipped
+                    <span>
+                      - {bulkSaved.skipped} unmatched skipped
                     </span>
                   )}
                 </span>
@@ -552,64 +492,57 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
               });
 
               return (
-              <div style={{ marginTop: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <div className="library-view__bulk-results">
                 {bulkRows.map((r, i) => {
                   const isDuplicate = r.matchedExercise && exerciseCounts[r.matchedExercise]?.length > 1;
                   const hasExisting = r.matchedExercise && preImportLinks && preImportLinks[r.matchedExercise];
                   const hasWarning = isDuplicate || hasExisting;
+                  const resultClass = hasWarning ? 'library-view__bulk-result--warning' : r.matchedExercise ? 'library-view__bulk-result--matched' : 'library-view__bulk-result--warning';
 
                   return (
                   <div
                     key={i}
-                    style={{
-                      fontSize: 'var(--font-size-xs)',
-                      padding: 'var(--space-sm)',
-                      borderRadius: '6px',
-                      background: hasWarning ? 'rgba(255,204,0,0.08)' : r.matchedExercise ? 'rgba(48,209,88,0.08)' : 'rgba(255,204,0,0.08)',
-                      border: '1px solid',
-                      borderColor: hasWarning ? 'rgba(255,204,0,0.3)' : r.matchedExercise ? 'rgba(48,209,88,0.2)' : 'rgba(255,204,0,0.2)',
-                    }}
+                    className={`library-view__bulk-result ${resultClass}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <div className="library-view__bulk-result-title">
                       {hasWarning ? (
-                        <AlertTriangle size={12} style={{ color: 'var(--color-accent-yellow)', flexShrink: 0 }} />
+                        <AlertTriangle size={12} />
                       ) : r.matchedExercise ? (
-                        <Check size={12} style={{ color: 'var(--color-accent-green)', flexShrink: 0 }} />
+                        <Check size={12} />
                       ) : (
-                        <AlertTriangle size={12} style={{ color: 'var(--color-accent-yellow)', flexShrink: 0 }} />
+                        <AlertTriangle size={12} />
                       )}
-                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span>
                         {r.videoTitle || 'Could not fetch title'}
                       </span>
                     </div>
                     {isDuplicate && (
-                      <div style={{ fontSize: '11px', color: 'var(--color-accent-yellow)', marginBottom: '4px' }}>
-                        Duplicate — multiple videos matched to "{r.matchedExercise}". Only the last one will be saved.
+                      <div className="library-view__bulk-warning">
+                        Duplicate - multiple videos matched to "{r.matchedExercise}". Only the last one will be saved.
                       </div>
                     )}
                     {hasExisting && !isDuplicate && (
-                      <div style={{ fontSize: '11px', color: 'var(--color-accent-yellow)', marginBottom: '4px' }}>
+                      <div className="library-view__bulk-warning">
                         Will overwrite existing:{' '}
-                        <span style={{ opacity: 0.75, wordBreak: 'break-all' }}>
+                        <span>
                           {preImportLinks[r.matchedExercise]}
                         </span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span className="text-secondary" style={{ fontSize: '11px', flexShrink: 0 }}>Match:</span>
+                    <div className="library-view__bulk-match-row">
+                      <span>Match</span>
                       <select
                         className="input"
                         value={r.matchedExercise || ''}
                         onChange={(e) => handleBulkMatchChange(i, e.target.value)}
-                        style={{ flex: 1 }}
                       >
-                        <option value="">— Select exercise —</option>
+                        <option value="">- Select exercise -</option>
                         {exerciseNames.map((name) => (
                           <option key={name} value={name}>{name}</option>
                         ))}
                       </select>
                     </div>
-                    <div className="text-secondary" style={{ fontSize: '10px', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="library-view__bulk-url">
                       {r.url}
                     </div>
                   </div>
