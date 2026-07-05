@@ -97,11 +97,14 @@ export default function TrainingView({
   })() : null;
 
   const nextWorkout = !workout ? findNextWorkout(schedule, currentDate) : null;
+  const dateHasCompletedLog = completedDates.has(currentDate);
   const quickStartBlockedReason = workoutTitle
     ? isCompleted
       ? 'This day already has a completed workout. Schedule this template for another day.'
       : 'This day already has a planned workout. Schedule this template for another day.'
-    : '';
+    : dateHasCompletedLog
+      ? 'This day already has a completed workout. Schedule this template for another day.'
+      : '';
 
   const handleStartWorkout = () => {
     if (workoutTitle) {
