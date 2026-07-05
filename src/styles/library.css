@@ -643,3 +643,23 @@
   padding: var(--space-md);
 }
 
+
+/* ========== YouTubeLinkInput (moved from components.css) ========== */
+.youtube-link-input {
+  padding: var(--space-md);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.youtube-link-input input {
+  margin-bottom: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .library-card__notes-toggle {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+}

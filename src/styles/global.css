@@ -285,6 +285,11 @@ button {
   transform: none;
 }
 
+.btn--large {
+  padding: var(--space-lg) var(--space-xl);
+  font-size: var(--font-size-lg);
+}
+
 .btn-primary {
   background: var(--accent);
   color: var(--on-accent);

@@ -1169,3 +1169,151 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   margin-bottom: 4px;
 }
+
+/* ========== BlockSection (moved from components.css) ========== */
+.block-section {
+  padding: var(--space-md) var(--space-lg);
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.block-section__label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ========== Superset grouping (moved from components.css) ========== */
+.superset-group {
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
+  overflow: hidden;
+}
+
+.superset-group__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.superset-group__exercises .exercise-row:last-child,
+.superset-group__exercises .active-workout-view__exercise:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+/* ========== ExerciseRow (moved from components.css) ========== */
+.exercise-row {
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.exercise-row__toggle {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.exercise-row__badge {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--color-border);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.exercise-row__toggle:hover .exercise-row__badge {
+  background-color: rgba(75, 123, 255, 0.15);
+  color: var(--color-accent-blue);
+}
+
+.exercise-row__toggle:hover .exercise-row__title {
+  color: var(--color-accent-blue);
+}
+
+.exercise-row__info {
+  flex: 1;
+}
+
+.exercise-row__title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  transition: color var(--transition);
+}
+
+.exercise-row__sets {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-blue);
+}
+
+.exercise-row__expand-icon {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+}
+
+.exercise-row__details {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.exercise-row__notes-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.exercise-row__notes-edit textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.exercise-row__video {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.exercise-row__video iframe {
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 768px) {
+  .exercise-row {
+    padding: var(--space-lg) var(--space-lg);
+  }
+
+  .exercise-row__toggle {
+    padding: var(--space-sm) 0;
+  }
+}
