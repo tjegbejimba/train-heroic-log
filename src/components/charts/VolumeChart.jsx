@@ -1,13 +1,17 @@
 import { useState } from 'react';
 
 const WIDTH = 360;
-const HEIGHT = 180;
-const PAD = { top: 12, right: 12, bottom: 28, left: 48 };
+const HEIGHT = 182;
+const PAD = { top: 16, right: 14, bottom: 30, left: 48 };
 
 function formatVolume(v) {
   if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
   if (v >= 1000) return `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
   return String(Math.round(v));
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 export default function VolumeChart({ data }) {
@@ -53,61 +57,116 @@ export default function VolumeChart({ data }) {
     xLabels.push({ i: data.length - 1, label: formatWeek(data[data.length - 1].weekStart) });
   }
 
+  const activePoint = activeIdx !== null ? data[activeIdx] : null;
+  const tooltipText = activePoint ? `${formatVolume(activePoint.volume)} ${activePoint.unit}` : '';
+  const tooltipW = tooltipText.length * 7 + 14;
+  const tooltipX = activeIdx !== null
+    ? clamp(xOf(activeIdx), PAD.left + tooltipW / 2, WIDTH - PAD.right - tooltipW / 2)
+    : 0;
+  const tooltipY = activeIdx !== null
+    ? Math.max(12, yOf(activePoint.volume) - 28)
+    : 0;
+
   return (
     <svg
       className="stats-chart stats-chart--volume"
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label="Volume trend by week"
     >
+      <title>Volume trend by week</title>
+
       {yTicks.map(val => (
         <g key={val}>
           <line
-            x1={PAD.left} y1={yOf(val)}
-            x2={WIDTH - PAD.right} y2={yOf(val)}
-            stroke="var(--color-border)" strokeWidth="0.5"
+            x1={PAD.left}
+            y1={yOf(val)}
+            x2={WIDTH - PAD.right}
+            y2={yOf(val)}
+            stroke="var(--border-subtle)"
+            strokeWidth="1"
           />
           <text
-            x={PAD.left - 6} y={yOf(val) + 4}
-            textAnchor="end" fill="var(--color-text-secondary)"
+            x={PAD.left - 7}
+            y={yOf(val) + 4}
+            textAnchor="end"
+            fill="var(--text-muted)"
             fontSize="10"
-          >{formatVolume(val)}</text>
+            fontFamily="var(--font-mono)"
+          >
+            {formatVolume(val)}
+          </text>
         </g>
       ))}
 
-      <polygon points={areaPoints} fill="var(--color-accent-blue)" opacity="0.15" />
+      <polygon className="stats-chart__area" points={areaPoints} fill="var(--accent-subtle)" />
       <polyline
+        className="stats-chart__line"
         points={linePoints}
-        fill="none" stroke="var(--color-accent-blue)" strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
 
       {data.map((d, i) => (
         <circle
-          key={i}
-          cx={xOf(i)} cy={yOf(d.volume)} r={activeIdx === i ? 5 : 3}
-          fill="var(--color-accent-blue)"
+          key={d.weekStart}
+          className="stats-chart__point"
+          cx={xOf(i)}
+          cy={yOf(d.volume)}
+          r={activeIdx === i ? 5 : 3.5}
+          fill={activeIdx === i ? 'var(--accent-hover)' : 'var(--accent)'}
+          stroke="var(--surface-elevated)"
+          strokeWidth="2"
+          tabIndex={0}
+          role="img"
+          aria-label={`${formatWeek(d.weekStart)} volume ${formatVolume(d.volume)} ${d.unit}`}
           onPointerEnter={() => setActiveIdx(i)}
           onPointerLeave={() => setActiveIdx(null)}
-          style={{ cursor: 'pointer' }}
+          onFocus={() => setActiveIdx(i)}
+          onBlur={() => setActiveIdx(null)}
         />
       ))}
 
-      {activeIdx !== null && (
-        <text
-          x={xOf(activeIdx)}
-          y={yOf(data[activeIdx].volume) - 10}
-          textAnchor="middle" fill="var(--color-text-primary)"
-          fontSize="11" fontWeight="600"
-        >{formatVolume(data[activeIdx].volume)} {data[activeIdx].unit}</text>
+      {activePoint && (
+        <g transform={`translate(${tooltipX}, ${tooltipY})`} pointerEvents="none">
+          <rect
+            x={-tooltipW / 2}
+            y="-14"
+            width={tooltipW}
+            height="20"
+            rx="7"
+            fill="var(--surface-elevated)"
+            stroke="var(--accent-line)"
+          />
+          <text
+            y="0"
+            textAnchor="middle"
+            fill="var(--text)"
+            fontSize="11"
+            fontFamily="var(--font-mono)"
+            fontWeight="650"
+          >
+            {tooltipText}
+          </text>
+        </g>
       )}
 
       {xLabels.map(({ i, label }) => (
         <text
           key={i}
-          x={xOf(i)} y={HEIGHT - 4}
-          textAnchor="middle" fill="var(--color-text-secondary)"
+          x={xOf(i)}
+          y={HEIGHT - 6}
+          textAnchor="middle"
+          fill="var(--text-muted)"
           fontSize="10"
-        >{label}</text>
+          fontFamily="var(--font-mono)"
+        >
+          {label}
+        </text>
       ))}
     </svg>
   );

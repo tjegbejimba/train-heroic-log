@@ -1,6 +1,7 @@
-const CELL = 14;
-const GAP = 2;
-const LABEL_W = 20;
+const CELL = 12;
+const GAP = 3;
+const LABEL_W = 22;
+const MONTH_H = 15;
 
 export default function CalendarHeatmap({ dates, range }) {
   const end = range ? new Date(range.end + 'T12:00:00') : new Date();
@@ -10,10 +11,8 @@ export default function CalendarHeatmap({ dates, range }) {
     return d;
   })();
 
-  // Build weeks grid
   const weeks = [];
   const cursor = new Date(start);
-  // Align to Monday
   const dayOfWeek = cursor.getDay();
   cursor.setDate(cursor.getDate() - ((dayOfWeek + 6) % 7));
 
@@ -33,41 +32,81 @@ export default function CalendarHeatmap({ dates, range }) {
   }
 
   const width = LABEL_W + weeks.length * (CELL + GAP);
-  const height = 7 * (CELL + GAP) + 4;
-
+  const height = MONTH_H + 7 * (CELL + GAP) + 2;
   const dayLabels = ['M', '', 'W', '', 'F', '', ''];
+
+  const monthLabels = weeks
+    .map((week, col) => {
+      const firstInRange = week.find((day) => day.inRange);
+      if (!firstInRange) return null;
+      const d = new Date(firstInRange.date + 'T12:00:00');
+      if (d.getDate() > 7 && col !== 0) return null;
+      return {
+        col,
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+      };
+    })
+    .filter(Boolean);
 
   return (
     <svg
       className="stats-chart stats-chart--heatmap"
       viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMinYMid meet"
+      role="img"
+      aria-label="Workout activity calendar"
     >
+      <title>Workout activity calendar</title>
+
+      {monthLabels.map(({ col, label }) => (
+        <text
+          key={`${label}-${col}`}
+          x={LABEL_W + col * (CELL + GAP)}
+          y={9}
+          fill="var(--text-muted)"
+          fontSize="9"
+          fontFamily="var(--font-sans)"
+          fontWeight="600"
+        >
+          {label}
+        </text>
+      ))}
+
       {dayLabels.map((label, row) => label ? (
         <text
           key={row}
-          x={LABEL_W - 4}
-          y={row * (CELL + GAP) + CELL / 2 + 4}
+          x={LABEL_W - 5}
+          y={MONTH_H + row * (CELL + GAP) + CELL / 2 + 3}
           textAnchor="end"
-          fill="var(--color-text-secondary)"
+          fill="var(--text-muted)"
           fontSize="9"
-        >{label}</text>
+          fontFamily="var(--font-sans)"
+          fontWeight="600"
+        >
+          {label}
+        </text>
       ) : null)}
 
       {weeks.map((week, col) =>
         week.map((day, row) => {
           if (!day.inRange) return null;
+          const label = `${day.date}: ${day.active ? 'workout completed' : 'no workout'}`;
           return (
             <rect
               key={`${col}-${row}`}
+              className={day.active ? 'stats-chart__heat-cell stats-chart__heat-cell--active' : 'stats-chart__heat-cell'}
               x={LABEL_W + col * (CELL + GAP)}
-              y={row * (CELL + GAP)}
+              y={MONTH_H + row * (CELL + GAP)}
               width={CELL}
               height={CELL}
-              rx={2}
-              fill={day.active ? 'var(--color-accent-green)' : 'var(--color-surface)'}
-              opacity={day.active ? 0.9 : 0.5}
-            />
+              rx={3}
+              fill={day.active ? 'var(--accent)' : 'var(--surface-high)'}
+              stroke={day.active ? 'var(--accent-line)' : 'var(--border-subtle)'}
+              strokeWidth="1"
+              opacity={day.active ? 1 : 0.42}
+            >
+              <title>{label}</title>
+            </rect>
           );
         })
       )}
