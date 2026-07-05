@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -111,27 +112,47 @@ export default function MonthCalendar({
   return (
     <div className="month-calendar">
       <div className="month-calendar__header flex-between">
-        <button className="btn btn-secondary btn-small" onClick={goToPreviousMonth}>
-          ←
+        <button
+          className="month-calendar__nav-btn"
+          onClick={goToPreviousMonth}
+          aria-label="Previous month"
+        >
+          <ChevronLeft size={18} />
         </button>
         <div className="month-calendar__title-wrapper">
           <button
             className="month-calendar__title-btn"
             onClick={() => setShowPicker(!showPicker)}
+            aria-expanded={showPicker}
           >
+            <CalendarDays size={16} aria-hidden="true" />
             <h2 className="month-calendar__title">{getMonthYearDisplay()}</h2>
-            <span className="month-calendar__title-caret">{showPicker ? '▴' : '▾'}</span>
+            <ChevronDown
+              size={16}
+              className={`month-calendar__title-caret ${
+                showPicker ? 'month-calendar__title-caret--open' : ''
+              }`}
+              aria-hidden="true"
+            />
           </button>
 
           {showPicker && (
             <div className="month-picker" ref={pickerRef}>
               <div className="month-picker__year-row">
-                <button className="btn btn-secondary btn-small" onClick={() => jumpToYear(-1)}>
-                  ←
+                <button
+                  className="month-picker__year-btn"
+                  onClick={() => jumpToYear(-1)}
+                  aria-label="Previous year"
+                >
+                  <ChevronLeft size={16} />
                 </button>
                 <span className="month-picker__year">{displayMonth.year}</span>
-                <button className="btn btn-secondary btn-small" onClick={() => jumpToYear(1)}>
-                  →
+                <button
+                  className="month-picker__year-btn"
+                  onClick={() => jumpToYear(1)}
+                  aria-label="Next year"
+                >
+                  <ChevronRight size={16} />
                 </button>
               </div>
               <div className="month-picker__months">
@@ -150,10 +171,14 @@ export default function MonthCalendar({
             </div>
           )}
         </div>
-        <button className="btn btn-secondary btn-small" onClick={goToNextMonth}>
-          →
+        <button
+          className="month-calendar__nav-btn"
+          onClick={goToNextMonth}
+          aria-label="Next month"
+        >
+          <ChevronRight size={18} />
         </button>
-        <button className="btn btn-secondary btn-small" onClick={goToToday}>
+        <button className="month-calendar__today-btn" onClick={goToToday}>
           Today
         </button>
       </div>
@@ -197,11 +222,17 @@ export default function MonthCalendar({
               } ${isToday ? 'month-calendar__day--today' : ''}`}
               onClick={() => onDateChange(dateStr)}
               title={schedule[dateStr] || 'No workout'}
+              aria-current={isSelected ? 'date' : undefined}
             >
               <div className="month-calendar__day-number">{day}</div>
               {hasWorkout && (
                 <div className="month-calendar__day-label">
-                  {isCompleted ? '✓' : isPast ? '✗' : '•'}
+                  <span className="month-calendar__status-mark" aria-hidden="true">
+                    {isCompleted ? '✓' : isPast ? '!' : '•'}
+                  </span>
+                  <span className="month-calendar__status-text">
+                    {isCompleted ? 'Done' : isPast ? 'Missed' : 'Planned'}
+                  </span>
                 </div>
               )}
               {schedule[dateStr] && (
