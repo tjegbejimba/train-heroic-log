@@ -31,7 +31,11 @@ export default function PlateDisplay({ weight, barWeight, unit }) {
         onClick={() => setOpen((v) => !v)}
         aria-label="Plate breakdown"
       >
-        🏋️
+        <span className="plate-display__icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
       </button>
       {open && (
         <span className="plate-display__popover">{text}</span>
