@@ -9,8 +9,10 @@ export default function SessionsChart({ data }) {
   const plotH = HEIGHT - PAD.top - PAD.bottom;
 
   const maxCount = Math.max(...data.map(d => d.count), 1);
-  const barGap = Math.max(4, plotW * 0.12 / data.length);
-  const barW = Math.max(7, (plotW - barGap * (data.length - 1)) / data.length);
+  const barGap = data.length > 1
+    ? Math.min(10, Math.max(2, (plotW * 0.12) / data.length))
+    : 0;
+  const barW = (plotW - barGap * (data.length - 1)) / data.length;
   const radius = Math.min(5, barW / 2);
 
   const formatWeek = (dateStr) => {

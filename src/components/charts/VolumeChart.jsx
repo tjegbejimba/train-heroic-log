@@ -77,8 +77,8 @@ export default function VolumeChart({ data }) {
     >
       <title>Volume trend by week</title>
 
-      {yTicks.map(val => (
-        <g key={val}>
+      {yTicks.map((val, i) => (
+        <g key={`${i}-${val}`}>
           <line
             x1={PAD.left}
             y1={yOf(val)}
