@@ -92,7 +92,6 @@ export default function ActiveWorkoutView({
   const [expandedNotes, setExpandedNotes] = useState({});
   const [editingNote, setEditingNote] = useState(null);
   const { settings } = useSettings();
-  const workoutNoteTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
   const [editBlocks, setEditBlocks] = useState(null);
@@ -290,21 +289,12 @@ export default function ActiveWorkoutView({
   };
 
   const updateWorkoutNote = useCallback((note) => {
-    setCurrentLog((prev) => {
-      const updated = { ...prev, workoutNote: note };
-      if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current);
-      workoutNoteTimerRef.current = setTimeout(() => saveLog(logKey, updated), 500);
-      return updated;
-    });
-  }, [logKey, saveLog]);
-
-  useEffect(() => {
-    return () => { if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current); };
-  }, []);
+    const updated = { ...currentLog, workoutNote: note };
+    setCurrentLog(updated);
+    saveLog(logKey, updated);
+  }, [currentLog, logKey, saveLog]);
 
   const handleCompleteWorkout = () => {
-    // Cancel any pending workout-note debounce so it can't overwrite the completed log
-    if (workoutNoteTimerRef.current) clearTimeout(workoutNoteTimerRef.current);
     const completed = {
       ...currentLog,
       completedAt: new Date().toISOString(),
