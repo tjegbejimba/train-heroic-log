@@ -382,6 +382,10 @@
   font-size: var(--text-sm);
 }
 
+.youtube-link-input__url--plain {
+  color: var(--text-muted);
+}
+
 .youtube-link-input__url span {
   overflow: hidden;
   text-overflow: ellipsis;

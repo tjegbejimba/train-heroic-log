@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Loader, Play, Search, Upload, X } from 'lucide-react';
-import YouTubeLinkInput from '../components/YouTubeLinkInput';
+import YouTubeLinkInput, { isValidYouTubeUrl } from '../components/YouTubeLinkInput';
 
-const YOUTUBE_URL_RE = /https?:\/\/[^\s]*youtu[^\s]*/i;
+const YOUTUBE_URL_RE = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]*/i;
 
 /**
  * Fetch video title from YouTube oEmbed API (no API key needed).
@@ -56,7 +56,7 @@ function findBestMatch(videoTitle, exerciseNames) {
 /**
  * Extract YouTube URLs from pasted text (one per line).
  */
-function extractUrls(text) {
+export function extractUrls(text) {
   return text
     .split('\n')
     .map((l) => l.trim())
@@ -73,7 +73,7 @@ function extractUrls(text) {
       const match = line.match(YOUTUBE_URL_RE);
       return match ? { url: match[0], manualName: null } : { url: line, manualName: null };
     })
-    .filter((e) => YOUTUBE_URL_RE.test(e.url));
+    .filter((e) => isValidYouTubeUrl(e.url));
 }
 
 /** Format set summary: "4x8 @ 135lb" or just "3 sets" */

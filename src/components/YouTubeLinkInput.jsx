@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Check, Link as LinkIcon, Video, X } from 'lucide-react';
 
-function isValidYouTubeUrl(value) {
-  return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(value.trim());
+export function safeYouTubeHref(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(trimmed)) return null;
+  const match = trimmed.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i
+  );
+  return match ? `https://www.youtube.com/watch?v=${match[1]}` : null;
+}
+
+export function isValidYouTubeUrl(value) {
+  return !!safeYouTubeHref(value);
 }
 
 export default function YouTubeLinkInput({ url, onSave }) {
@@ -44,17 +54,25 @@ export default function YouTubeLinkInput({ url, onSave }) {
               <Video size={14} />
               Reference video
             </div>
-            {url ? (
-              <a
-                className="youtube-link-input__url"
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <LinkIcon size={13} />
-                <span>{url}</span>
-              </a>
-            ) : (
+            {url ? (() => {
+              const href = safeYouTubeHref(url);
+              return href ? (
+                <a
+                  className="youtube-link-input__url"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <LinkIcon size={13} />
+                  <span>{url}</span>
+                </a>
+              ) : (
+                <span className="youtube-link-input__url youtube-link-input__url--plain">
+                  <LinkIcon size={13} />
+                  <span>{url}</span>
+                </span>
+              );
+            })() : (
               <p className="youtube-link-input__empty">No video linked yet.</p>
             )}
           </div>
