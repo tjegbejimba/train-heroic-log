@@ -1317,3 +1317,179 @@
     padding: var(--space-sm) 0;
   }
 }
+
+/* ========== Rest Duration Picker ========== */
+.rest-picker__trigger {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.rest-picker__trigger:hover {
+  color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
+
+.rest-picker__badge {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-blue);
+  font-size: var(--font-size-xs);
+}
+
+.rest-picker {
+  margin-bottom: var(--space-sm);
+}
+
+.rest-picker__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.rest-picker__pill {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  transition: all var(--transition);
+}
+
+.rest-picker__pill:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.rest-picker__pill--active {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: white;
+}
+
+.rest-picker__pill--active:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: white;
+}
+
+.rest-picker__custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.rest-picker__custom-input {
+  width: 80px;
+  padding: var(--space-sm) !important;
+  font-size: var(--font-size-sm) !important;
+  text-align: center;
+}
+
+.rest-picker__custom-unit {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ========== Bar Weight Picker ========== */
+.bar-weight-picker__trigger {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.bar-weight-picker__trigger:hover {
+  color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
+
+.bar-weight-picker__badge {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-blue);
+  font-size: var(--font-size-xs);
+}
+
+.bar-weight-picker {
+  margin-bottom: var(--space-sm);
+}
+
+.bar-weight-picker__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.bar-weight-picker__pill {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  transition: all var(--transition);
+}
+
+.bar-weight-picker__pill:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.bar-weight-picker__pill--active {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: white;
+}
+
+.bar-weight-picker__pill--active:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: white;
+}
+
+.bar-weight-picker__custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.bar-weight-picker__custom-input {
+  width: 80px;
+  padding: var(--space-sm) !important;
+  font-size: var(--font-size-sm) !important;
+  text-align: center;
+}
+
+.bar-weight-picker__custom-unit {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
