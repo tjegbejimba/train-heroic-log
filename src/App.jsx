@@ -205,6 +205,13 @@ export default function App() {
     history.pushState({ view, params }, '');
   }, []);
 
+  // Persist the Library's active tab into the current history entry so that
+  // returning via browser Back (e.g. from the template editor) restores it.
+  const handleLibraryTabChange = useCallback((tab) => {
+    const current = history.state && history.state.params ? history.state.params : {};
+    history.replaceState({ view: ROUTE_LIBRARY, params: { ...current, tab } }, '');
+  }, []);
+
   // Handle resume modal
   const handleResumeYes = () => {
     setShowResumeModal(false);
@@ -335,6 +342,7 @@ export default function App() {
           deleteTemplate={handleDeleteTemplate}
           navigate={navigate}
           initialTab={params.tab}
+          onTabChange={handleLibraryTabChange}
         />
       );
       break;

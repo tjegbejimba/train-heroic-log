@@ -94,8 +94,12 @@ function formatSetSummary(exercise) {
   return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, templateList = [], deleteTemplate, navigate, initialTab }) {
-  const [tab, setTab] = useState(initialTab === 'templates' ? 'templates' : 'exercises');
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, templateList = [], deleteTemplate, navigate, initialTab, onTabChange }) {
+  const [tab, setTabState] = useState(initialTab === 'templates' ? 'templates' : 'exercises');
+  const setTab = (next) => {
+    setTabState(next);
+    onTabChange?.(next);
+  };
   const [search, setSearch] = useState('');
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [editingNotes, setEditingNotes] = useState(null);

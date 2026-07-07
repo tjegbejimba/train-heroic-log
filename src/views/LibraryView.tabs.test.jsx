@@ -31,6 +31,7 @@ function renderLibrary(overrides = {}) {
     templateList,
     deleteTemplate: vi.fn(),
     navigate: vi.fn(),
+    onTabChange: vi.fn(),
     ...overrides,
   };
   return { ...render(<LibraryView {...props} />), props };
@@ -73,5 +74,13 @@ describe('LibraryView tabs', () => {
   it('shows the Templates tab even when there are no workouts/exercises', () => {
     renderLibrary({ workouts: {}, initialTab: 'templates' });
     expect(screen.getByText('Push Day')).toBeTruthy();
+  });
+
+  it('notifies onTabChange so the active tab can be persisted to route history', () => {
+    const { props } = renderLibrary();
+    fireEvent.click(screen.getByRole('tab', { name: /templates/i }));
+    expect(props.onTabChange).toHaveBeenCalledWith('templates');
+    fireEvent.click(screen.getByRole('tab', { name: /exercises/i }));
+    expect(props.onTabChange).toHaveBeenCalledWith('exercises');
   });
 });
