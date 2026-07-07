@@ -66,6 +66,7 @@ export default function TemplateListView({
   templateList,
   deleteTemplate,
   navigate,
+  embedded = false,
 }) {
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -85,26 +86,8 @@ export default function TemplateListView({
     }
   };
 
-  return (
-    <div className="view tpl-list-view">
-      <div className="tpl-list__header">
-        <button
-          className="tpl-list__back"
-          onClick={() => navigate(ROUTE_SETTINGS)}
-          aria-label="Back to settings"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="tpl-list__heading">
-          <h1 className="tpl-list__title">Templates</h1>
-          <p>Reusable workouts for planning the week.</p>
-        </div>
-        <span className="tpl-list__count">
-          <Layers3 size={14} />
-          {templateList?.length || 0}
-        </span>
-      </div>
-
+  const body = (
+    <>
       {templateList && templateList.length > 5 && (
         <div className="tpl-list__search">
           <Search size={16} className="tpl-list__search-icon" />
@@ -170,6 +153,31 @@ export default function TemplateListView({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div className="view tpl-list-view">
+      <div className="tpl-list__header">
+        <button
+          className="tpl-list__back"
+          onClick={() => navigate(ROUTE_SETTINGS)}
+          aria-label="Back to settings"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="tpl-list__heading">
+          <h1 className="tpl-list__title">Templates</h1>
+          <p>Reusable workouts for planning the week.</p>
+        </div>
+        <span className="tpl-list__count">
+          <Layers3 size={14} />
+          {templateList?.length || 0}
+        </span>
+      </div>
+      {body}
     </div>
   );
 }

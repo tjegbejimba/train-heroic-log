@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Loader, Play, Search, Upload, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Layers3, Loader, Play, Search, Upload, X } from 'lucide-react';
 import YouTubeLinkInput, { isValidYouTubeUrl } from '../components/YouTubeLinkInput';
+import TemplateListView from './TemplateListView';
 
 const YOUTUBE_URL_RE = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]*/i;
 
@@ -93,7 +94,8 @@ function formatSetSummary(exercise) {
   return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap }) {
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, templateList = [], deleteTemplate, navigate, initialTab }) {
+  const [tab, setTab] = useState(initialTab === 'templates' ? 'templates' : 'exercises');
   const [search, setSearch] = useState('');
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [editingNotes, setEditingNotes] = useState(null);
@@ -218,40 +220,64 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
     setPreImportLinks(null);
   };
 
-  if (Object.keys(workouts).length === 0) {
-    return (
-      <div className="view library-view">
-        <div className="library-view__header">
-          <div className="library-view__header-icon" aria-hidden="true">
-            <BookOpen size={26} />
-          </div>
-          <h1>Exercise Library</h1>
-          <p className="text-secondary text-sm">Import a workout to populate your exercise list, form cues, and reference videos.</p>
-        </div>
-        <div className="empty-state">
-          <div className="empty-state-icon"><BookOpen size={48} /></div>
-          <h3>No exercises yet</h3>
-          <p className="text-secondary">Import a workout to populate your library</p>
-        </div>
-      </div>
-    );
-  }
+  const hasWorkouts = Object.keys(workouts).length > 0;
 
   return (
     <div className="view library-view">
       <div className="library-view__header">
         <div>
-          <h1>Exercise Library</h1>
+          <h1>Library</h1>
           <p className="library-view__subtitle">
-            Search, tune form notes, and attach reference videos before the next session.
+            {tab === 'exercises'
+              ? 'Search, tune form notes, and attach reference videos before the next session.'
+              : 'Reusable workouts you can drop onto any day in the planner.'}
           </p>
         </div>
-        <div className="library-view__metric" aria-label={`${exercises.length} exercises`}>
-          <span>{exercises.length}</span>
-          <small>exercises</small>
+        <div
+          className="library-view__metric"
+          aria-label={tab === 'exercises' ? `${exercises.length} exercises` : `${templateList.length} templates`}
+        >
+          <span>{tab === 'exercises' ? exercises.length : templateList.length}</span>
+          <small>{tab === 'exercises' ? 'exercises' : 'templates'}</small>
         </div>
       </div>
 
+      <div className="library-view__tabs" role="tablist" aria-label="Library sections">
+        <button
+          role="tab"
+          aria-selected={tab === 'exercises'}
+          className={`library-view__tab ${tab === 'exercises' ? 'library-view__tab--active' : ''}`}
+          onClick={() => setTab('exercises')}
+        >
+          <BookOpen size={15} />
+          Exercises
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'templates'}
+          className={`library-view__tab ${tab === 'templates' ? 'library-view__tab--active' : ''}`}
+          onClick={() => setTab('templates')}
+        >
+          <Layers3 size={15} />
+          Templates
+        </button>
+      </div>
+
+      {tab === 'templates' ? (
+        <TemplateListView
+          templateList={templateList}
+          deleteTemplate={deleteTemplate}
+          navigate={navigate}
+          embedded
+        />
+      ) : !hasWorkouts ? (
+        <div className="empty-state">
+          <div className="empty-state-icon"><BookOpen size={48} /></div>
+          <h3>No exercises yet</h3>
+          <p className="text-secondary">Import a workout to populate your library</p>
+        </div>
+      ) : (
+        <>
       <div className="library-view__search-bar">
         <Search size={16} className="library-view__search-icon" />
         <input
@@ -554,6 +580,8 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
