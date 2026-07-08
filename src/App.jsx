@@ -21,7 +21,6 @@ import {
   ROUTE_EDIT_TEMPLATE,
   ROUTE_EXERCISE_HISTORY,
   ROUTE_STATS,
-  ROUTE_TEMPLATES,
   parseLogKey,
 } from './constants';
 
@@ -33,7 +32,6 @@ import LibraryView from './views/LibraryView';
 import WeekPlannerView from './views/WeekPlannerView';
 import SettingsView from './views/SettingsView';
 import TemplateEditorView from './views/TemplateEditorView';
-import TemplateListView from './views/TemplateListView';
 import ExerciseHistoryView from './views/ExerciseHistoryView';
 import StatsView from './views/StatsView';
 import Modal from './components/Modal';
@@ -207,6 +205,13 @@ export default function App() {
     history.pushState({ view, params }, '');
   }, []);
 
+  // Persist the Library's active tab into the current history entry so that
+  // returning via browser Back (e.g. from the template editor) restores it.
+  const handleLibraryTabChange = useCallback((tab) => {
+    const current = history.state && history.state.params ? history.state.params : {};
+    history.replaceState({ view: ROUTE_LIBRARY, params: { ...current, tab } }, '');
+  }, []);
+
   // Handle resume modal
   const handleResumeYes = () => {
     setShowResumeModal(false);
@@ -333,6 +338,11 @@ export default function App() {
           onUpdateExerciseNotes={(exerciseTitle, notes) =>
             applyWrites(applyNoteChange(snap(), exerciseTitle, notes))
           }
+          templateList={templateList}
+          deleteTemplate={handleDeleteTemplate}
+          navigate={navigate}
+          initialTab={params.tab}
+          onTabChange={handleLibraryTabChange}
         />
       );
       break;
@@ -402,16 +412,6 @@ export default function App() {
       );
       break;
 
-    case ROUTE_TEMPLATES:
-      currentView = (
-        <TemplateListView
-          templateList={templateList}
-          deleteTemplate={handleDeleteTemplate}
-          navigate={navigate}
-        />
-      );
-      break;
-
     case ROUTE_EDIT_TEMPLATE: {
       const tpl = templates[params.templateId];
       // Build exercise names list from all workouts
@@ -434,11 +434,11 @@ export default function App() {
               previousName: tpl.name,
             }));
             if (ok) {
-              navigate(ROUTE_TEMPLATES);
+              navigate(ROUTE_LIBRARY, { tab: 'templates' });
               showToast('Template saved!');
             }
           }}
-          onCancel={() => navigate(ROUTE_TEMPLATES)}
+          onCancel={() => navigate(ROUTE_LIBRARY, { tab: 'templates' })}
         />
       ) : (
         <SettingsView

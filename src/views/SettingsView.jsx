@@ -14,13 +14,11 @@ import {
   AlertTriangle,
   Bell,
   CalendarDays,
-  ChevronRight,
   Cloud,
   Database,
   Download,
   FolderOpen,
   HardDrive,
-  Layers3,
   MessageSquare,
   ShieldAlert,
   Timer,
@@ -39,7 +37,6 @@ import {
   LS_WORKOUT_LOGS,
   LS_ACTIVE_SESSION,
   LS_TEMPLATES,
-  ROUTE_TEMPLATES,
 } from '../constants';
 
 export default function SettingsView({
@@ -48,7 +45,6 @@ export default function SettingsView({
   deleteTemplate,
   renameTemplate,
   duplicateTemplate,
-  navigate,
   onClearAllData,
   syncStatus,
   lastSynced,
@@ -304,19 +300,6 @@ export default function SettingsView({
               ))}
             </div>
           </div>
-          <button
-            className="settings-nav-row"
-            onClick={() => navigate(ROUTE_TEMPLATES)}
-          >
-            <span className="settings-nav-row__icon" aria-hidden="true"><Layers3 size={18} /></span>
-            <span className="settings-nav-row__body">
-              <strong>Templates</strong>
-              <small>
-                {templateList ? templateList.length : 0} template{(!templateList || templateList.length !== 1) ? 's' : ''} ready for planning
-              </small>
-            </span>
-            <ChevronRight size={18} className="settings-nav-row__chevron" />
-          </button>
         </section>
 
         <section className="settings-section">
