@@ -95,10 +95,20 @@
   line-height: 1.15;
 }
 
-.settings-section__head p,
+.settings-section__head p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 .settings-section__message,
 .settings-section__hint {
-  margin: 0;
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
+  margin-top: 0;
+  margin-bottom: 0;
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: 1.45;
@@ -114,7 +124,10 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-xs);
-  margin: 0;
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
+  margin-top: 0;
+  margin-bottom: 0;
   color: var(--warning);
   font-size: var(--text-sm);
   font-weight: 650;
@@ -129,6 +142,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  /* Indent to align with heading text (icon 42px + gap 12px) */
+  margin-left: calc(42px + var(--space-md));
   padding: var(--space-md);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -228,6 +243,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-md);
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
   min-height: 52px;
   padding: var(--space-md);
   border: 1px solid var(--border-subtle);
@@ -252,12 +269,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
 }
 
 .settings-view__sync-status {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
   min-height: 48px;
   padding: var(--space-md);
   border: 1px solid var(--border-subtle);
@@ -300,6 +321,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-sm);
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
 }
 
 .settings-view__data-actions .btn {
@@ -308,6 +331,8 @@
 }
 
 .settings-subsection {
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
   padding-top: var(--space-xs);
 }
 
@@ -324,6 +349,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  /* Indent to align with heading text */
+  margin-left: calc(42px + var(--space-md));
 }
 
 .settings-view__storage-top {
@@ -369,6 +396,12 @@
   font-size: var(--text-sm);
   font-weight: 700;
   text-align: center;
+}
+
+/* Indent direct-child buttons and version text to align with heading text */
+.settings-section > .btn,
+.settings-section > button {
+  margin-left: calc(42px + var(--space-md));
 }
 
 .settings-clear-modal__message {
