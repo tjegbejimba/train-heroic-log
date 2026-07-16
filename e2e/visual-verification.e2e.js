@@ -22,7 +22,7 @@ test('captures the core UI journey for human inspection @visual', async ({ page 
   await captureVisualEvidence(page, testInfo, 'weekly planner');
 
   await page.getByRole('button', { name: 'Library' }).click();
-  await expect(page.getByRole('heading', { name: 'Exercise Library' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await expectNoDocumentHorizontalOverflow(page);
   await captureVisualEvidence(page, testInfo, 'exercise library');
 

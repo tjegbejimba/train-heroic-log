@@ -9,12 +9,11 @@ test('imports sample CSV and populates core app surfaces', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Lower Body B/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Library' }).click();
-  await expect(page.getByRole('heading', { name: 'Exercise Library' })).toBeVisible();
-  await expect(page.getByText('15 exercises across 4 workouts')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  await expect(page.getByLabel('15 exercises')).toBeVisible();
   await expect(page.getByRole('button', { name: /Barbell Back Squat/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: /Templates\s+4 templates/ }).click();
-  await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await expect(page.getByLabel('4 templates')).toBeVisible();
   await expect(page.getByRole('button', { name: /Upper Body A/ })).toBeVisible();
 });

@@ -42,8 +42,9 @@ test('keeps key mobile screens within the viewport width', async ({ page }, test
     await expectBottomNavVisible(page);
   }
 
-  await page.getByRole('button', { name: /Templates\s+4 templates/ }).click();
-  await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await expect(page.getByLabel('4 templates')).toBeVisible();
   await expectNoDocumentHorizontalOverflow(page);
   await expectBottomNavVisible(page);
 

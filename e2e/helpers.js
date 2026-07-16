@@ -37,15 +37,15 @@ export async function gotoCleanApp(page) {
 
 export async function importSampleCsv(page) {
   await page.locator('input[type="file"]').setInputFiles(sampleCsvPath);
-  await expect(page.getByRole('heading', { name: 'Import Summary' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ready to import' })).toBeVisible();
   await page.getByRole('button', { name: 'Import Data' }).click();
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
 }
 
 export async function quickStartLowerBodyWorkout(page) {
-  await page.getByRole('button', { name: /Lower Body B/ }).click();
+  await page.getByRole('button', { name: /Preview Lower Body B/ }).click();
   await page.getByRole('button', { name: 'Start Now' }).click();
-  await page.getByRole('button', { name: 'Start Workout' }).click();
+  await expect(page.getByRole('button', { name: 'Finish (0/7 sets)' })).toBeVisible();
 }
 
 export async function completeNextSet(page) {
