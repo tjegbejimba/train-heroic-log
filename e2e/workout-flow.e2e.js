@@ -128,22 +128,9 @@ test('@visual set row layout has non-overlapping grid columns', async ({ page, b
   const completedRow = weightedSetRow;
   await expect(completedRow).toHaveClass(/log-set-row--completed/);
   
-  // Check that adjust buttons and plate display are not visible in completed state
-  const adjustButtons = completedRow.locator('.log-set-row__adjust-btn');
-  const plateDisplay = completedRow.locator('[data-testid="plate-display"], .plate-display');
-  
-  // These should either not exist or not be visible (currently they're just disabled - that's the bug)
-  const adjustCount = await adjustButtons.count();
-  const plateCount = await plateDisplay.count();
-  
-  // Document current behavior: buttons exist but should be hidden when completed
-  // This assertion will FAIL until we fix the component to hide them
-  if (adjustCount > 0) {
-    const firstAdjust = adjustButtons.first();
-    const isVisible = await firstAdjust.isVisible();
-    // Expect adjust buttons to NOT be visible in completed state
-    expect(isVisible).toBe(false);
-  }
+  // Assert that adjustment buttons and plate display are not rendered in completed state
+  await expect(completedRow.locator('.log-set-row__adjust-btn')).toHaveCount(0);
+  await expect(completedRow.locator('.plate-display')).toHaveCount(0);
   
   await captureVisualEvidence(page, testInfo, 'set-row-layout-weighted-completed');
 
