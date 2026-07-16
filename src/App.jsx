@@ -107,6 +107,7 @@ export default function App() {
 
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isInlineEditorActive, setIsInlineEditorActive] = useState(false);
 
   // On startup, pull from server and reload if new data arrived
   useEffect(() => {
@@ -396,6 +397,7 @@ export default function App() {
           onUpdateExerciseNotes={(exerciseTitle, notes) =>
             applyWrites(applyNoteChange(snap(), exerciseTitle, notes))
           }
+          onInlineEditorChange={setIsInlineEditorActive}
           templateList={templateList}
           deleteTemplate={handleDeleteTemplate}
           navigate={navigate}
@@ -482,7 +484,7 @@ export default function App() {
         />
       )}
 
-      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && (
+      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && !isInlineEditorActive && (
         <button
           className="feedback-fab"
           onClick={() => setShowFeedback(true)}
