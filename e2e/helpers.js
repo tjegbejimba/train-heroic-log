@@ -65,6 +65,6 @@ export async function expectNoDocumentHorizontalOverflow(page) {
 
 export async function expectBottomNavVisible(page) {
   for (const label of ['Training', 'Planner', 'History', 'Stats', 'Library', 'Settings']) {
-    await expect(page.getByRole('button', { name: label })).toBeVisible();
+    await expect(page.locator('.navbar__tab', { hasText: label })).toBeVisible();
   }
 }

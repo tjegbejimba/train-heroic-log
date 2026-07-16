@@ -287,6 +287,10 @@
   font-weight: 750;
   line-height: 1.15;
   letter-spacing: -0.03em;
+  resize: none;
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .tpl-editor__name-input:focus {

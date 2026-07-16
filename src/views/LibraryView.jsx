@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Layers3, Loader, Play, Search, Upload, X } from 'lucide-react';
 import YouTubeLinkInput, { isValidYouTubeUrl } from '../components/YouTubeLinkInput';
 import TemplateListView from './TemplateListView';
@@ -94,7 +94,7 @@ function formatSetSummary(exercise) {
   return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
 }
 
-export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, templateList = [], deleteTemplate, navigate, initialTab, onTabChange }) {
+export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, onInlineEditorChange, templateList = [], deleteTemplate, navigate, initialTab, onTabChange }) {
   const [tab, setTabState] = useState(initialTab === 'templates' ? 'templates' : 'exercises');
   const setTab = (next) => {
     setTabState(next);
@@ -103,6 +103,11 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
   const [search, setSearch] = useState('');
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [editingNotes, setEditingNotes] = useState(null);
+  
+  // Notify parent when inline editor state changes
+  useEffect(() => {
+    onInlineEditorChange?.(editingNotes !== null);
+  }, [editingNotes, onInlineEditorChange]);
   const [notesDraft, setNotesDraft] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState('');
@@ -110,6 +115,22 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkSaved, setBulkSaved] = useState(false);
   const [preImportLinks, setPreImportLinks] = useState(null);
+
+  // Ref map to track action rows for scroll behavior
+  const actionRowRefs = useRef({});
+
+  // Scroll action row into view when editing starts (mobile fix for bottom nav overlap)
+  useEffect(() => {
+    if (editingNotes && actionRowRefs.current[editingNotes]) {
+      // Small delay to ensure DOM has updated with the expanded editor
+      setTimeout(() => {
+        actionRowRefs.current[editingNotes]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 50);
+    }
+  }, [editingNotes]);
 
   // Build flat list of exercises with metadata
   const exercises = useMemo(() => {
@@ -385,7 +406,10 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                             onChange={(e) => setNotesDraft(e.target.value)}
                             autoFocus
                           />
-                          <div className="library-row__actions">
+                          <div
+                            className="library-row__actions"
+                            ref={el => actionRowRefs.current[exercise.title] = el}
+                          >
                             <button
                               className="btn btn-primary btn-small"
                               onClick={() => {

@@ -155,19 +155,29 @@ export default function VolumeChart({ data }) {
         </g>
       )}
 
-      {xLabels.map(({ i, label }) => (
-        <text
-          key={i}
-          x={xOf(i)}
-          y={HEIGHT - 6}
-          textAnchor="middle"
-          fill="var(--text-muted)"
-          fontSize="10"
-          fontFamily="var(--font-mono)"
-        >
-          {label}
-        </text>
-      ))}
+      {xLabels.map(({ i, label }) => {
+        // Anchor edge labels inward to prevent overflow at narrow widths
+        // Interior labels remain centered under their data points
+        let anchor = 'middle';
+        if (xLabels.length > 1) {
+          if (i === xLabels[0].i) anchor = 'start';
+          else if (i === xLabels[xLabels.length - 1].i) anchor = 'end';
+        }
+        
+        return (
+          <text
+            key={i}
+            x={xOf(i)}
+            y={HEIGHT - 6}
+            textAnchor={anchor}
+            fill="var(--text-muted)"
+            fontSize="10"
+            fontFamily="var(--font-mono)"
+          >
+            {label}
+          </text>
+        );
+      })}
     </svg>
   );
 }

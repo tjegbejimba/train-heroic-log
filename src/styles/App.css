@@ -18,8 +18,8 @@
 
 .feedback-fab {
   position: fixed;
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-  right: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 8px);
+  left: 12px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -38,4 +38,12 @@
 .feedback-fab:hover,
 .feedback-fab:active {
   opacity: 0.75;
+}
+
+/* Ensure FAB stays above page content including sticky actions */
+@media (max-width: 767px) {
+  .feedback-fab {
+    /* Move FAB significantly higher on mobile to avoid overlapping full-width template cards */
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 180px);
+  }
 }
