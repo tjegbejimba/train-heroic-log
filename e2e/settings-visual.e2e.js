@@ -193,4 +193,65 @@ test.describe('Settings visual states @visual', () => {
     // Capture desktop evidence
     await captureVisualEvidence(page, testInfo, 'settings-heading-alignment');
   });
+
+  test('Backup actions stack on mobile without narrow wrapping', async ({ page }, testInfo) => {
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+    
+    // Navigate to Settings
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    
+    // Scroll to Data portability section
+    const dataSection = page.locator('.settings-section').filter({ has: page.getByRole('heading', { name: 'Data portability' }) });
+    await dataSection.scrollIntoViewIfNeeded();
+    
+    // Find the backup action buttons container (the one with Re-import, Export Backup, Restore)
+    const backupActionsContainer = dataSection.locator('.settings-view__data-actions').last();
+    const backupButtons = backupActionsContainer.locator('button');
+    
+    // Should have exactly 3 backup action buttons
+    await expect(backupButtons).toHaveCount(3);
+    
+    // Get button labels for verification
+    await expect(backupButtons.nth(0)).toContainText('Re-import CSV');
+    await expect(backupButtons.nth(1)).toContainText('Export Backup');
+    await expect(backupButtons.nth(2)).toContainText('Restore from Backup');
+    
+    // All three buttons should be at least 44px tall (WCAG touch target)
+    for (let i = 0; i < 3; i++) {
+      const box = await backupButtons.nth(i).boundingBox();
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    
+    // Get viewport width to determine expected layout
+    const viewportWidth = page.viewportSize().width;
+    const box1 = await backupButtons.nth(0).boundingBox();
+    const box2 = await backupButtons.nth(1).boundingBox();
+    const box3 = await backupButtons.nth(2).boundingBox();
+    const containerBox = await backupActionsContainer.boundingBox();
+    
+    if (viewportWidth <= 430) {
+      // Mobile: buttons should be vertically stacked (no horizontal neighbors)
+      expect(box2.y).toBeGreaterThan(box1.y + box1.height - 1); // Button2 below button1
+      expect(box3.y).toBeGreaterThan(box2.y + box2.height - 1); // Button3 below button2
+      
+      // Each button should be nearly full-width on mobile (not squeezed into columns)
+      for (let i = 0; i < 3; i++) {
+        const buttonBox = await backupButtons.nth(i).boundingBox();
+        expect(buttonBox.width).toBeGreaterThan(containerBox.width * 0.85);
+      }
+    } else {
+      // Desktop: buttons can be multi-column, but not excessively narrow
+      // Allow for grid layouts (2-column or 3-column)
+      for (let i = 0; i < 3; i++) {
+        const buttonBox = await backupButtons.nth(i).boundingBox();
+        // Buttons shouldn't be squeezed below reasonable width (min ~140px for icon+text)
+        expect(buttonBox.width).toBeGreaterThanOrEqual(140);
+      }
+    }
+    
+    // Capture viewport-specific evidence
+    await captureVisualEvidence(page, testInfo, viewportWidth <= 430 ? 'backup-actions-mobile' : 'backup-actions-desktop');
+  });
 });
