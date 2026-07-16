@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { ArrowLeft, ChevronRight, Layers3, Search, Trash2 } from 'lucide-react';
-import { ROUTE_SETTINGS, ROUTE_EDIT_TEMPLATE, ROUTE_TRAINING } from '../constants';
+import { ROUTE_SETTINGS, ROUTE_EDIT_TEMPLATE, ROUTE_IMPORT } from '../constants';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -109,15 +109,15 @@ export default function TemplateListView({
             <p>
               {search
                 ? 'Try a shorter search term.'
-                : 'Templates are created from imported workouts. Import a workout in Training to get started.'}
+                : 'Templates are created from imported workouts. Import a workout to get started.'}
             </p>
             {!search && (
               <button
                 className="btn btn-primary"
-                onClick={() => navigate(ROUTE_TRAINING)}
+                onClick={() => navigate(ROUTE_IMPORT)}
                 style={{ marginTop: '1rem' }}
               >
-                Go to Training
+                Import Workout
               </button>
             )}
           </div>
