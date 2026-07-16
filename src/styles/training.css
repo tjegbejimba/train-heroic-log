@@ -115,13 +115,12 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  scroll-padding-inline: calc(50% - 23px); /* scrollIntoView respects this for centering */
 }
 
 .date-strip__days {
   display: flex;
-  justify-content: space-between;
   gap: var(--space-sm);
-  min-width: 100%;
 }
 
 .date-strip__day {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CalendarDays, MapPin } from 'lucide-react';
 
 const WEEKDAY_FORMAT = { weekday: 'short' };
@@ -12,6 +12,7 @@ export default function DateStrip({
   onViewModeChange,
 }) {
   const scrollContainerRef = useRef(null);
+  const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false);
 
   const parseLocalDate = (dateStr) => {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -25,11 +26,11 @@ export default function DateStrip({
     return `${y}-${m}-${d}`;
   };
 
-  // Generate a week of dates around the current date
+  // Generate dates around the current date (5 dates: -2 to +2)
   const generateWeek = (centerDate) => {
     const center = parseLocalDate(centerDate);
     const week = [];
-    for (let i = -3; i <= 3; i++) {
+    for (let i = -2; i <= 2; i++) {
       const date = new Date(center);
       date.setDate(date.getDate() + i);
       week.push(formatLocalDate(date));
@@ -49,14 +50,27 @@ export default function DateStrip({
     const midButton = container.querySelector(
       `[data-date="${currentDate}"]`
     );
-    if (midButton) {
-      midButton.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
+    if (!midButton) return;
+    
+    // Check for reduced motion preference
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+    
+    // Use instant scroll on initial load or when reduced motion is preferred
+    // This ensures the selected date is centered immediately without clipping
+    const behavior = (!hasInitiallyScrolled || prefersReducedMotion) ? 'instant' : 'smooth';
+    
+    midButton.scrollIntoView({
+      behavior,
+      block: 'nearest',
+      inline: 'center',
+    });
+    
+    if (!hasInitiallyScrolled) {
+      setHasInitiallyScrolled(true);
     }
-  }, [currentDate]);
+  }, [currentDate, hasInitiallyScrolled]);
 
   const goToToday = () => {
     const now = new Date();
