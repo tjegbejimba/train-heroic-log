@@ -25,7 +25,22 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   const [blocks, setBlocks] = useState(() =>
     template.blocks.length > 0 ? template.blocks.map(cloneBlock) : [makeEmptyBlock()]
   );
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
   const nameInputRef = useRef(null);
+
+  // Snapshot initial state for dirty tracking
+  const initialSnapshot = useRef({
+    name: template.name,
+    blocks: JSON.stringify(template.blocks.length > 0 ? template.blocks.map(cloneBlock) : [makeEmptyBlock()])
+  });
+
+  // Compute dirty state
+  const isDirty = useMemo(() => {
+    if (name.trim() !== initialSnapshot.current.name.trim()) return true;
+    const currentBlocks = JSON.stringify(blocks);
+    if (currentBlocks !== initialSnapshot.current.blocks) return true;
+    return false;
+  }, [name, blocks]);
 
   // Exercise search state for picker
   // Refs mirror state so onBlur timeouts always read the current value (avoids stale closures)
@@ -266,6 +281,23 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     }
   }
 
+  function handleCancel() {
+    if (isDirty) {
+      setShowDiscardModal(true);
+    } else {
+      onCancel();
+    }
+  }
+
+  function handleStay() {
+    setShowDiscardModal(false);
+  }
+
+  function handleDiscard() {
+    setShowDiscardModal(false);
+    onCancel();
+  }
+
   const isPickerOpen = (bIdx, eIdx) =>
     activeSearch && activeSearch.blockIdx === bIdx && activeSearch.exIdx === eIdx;
 
@@ -279,9 +311,10 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     <div className="view tpl-editor">
       <div className="tpl-editor__header">
         <div className="tpl-editor__header-top">
-          <button className="btn btn-secondary btn-small" onClick={onCancel}>
+          <button className="btn btn-secondary btn-small" onClick={handleCancel}>
             <X size={14} /> Cancel
           </button>
+          {isDirty && <span className="tpl-editor__unsaved-indicator">Unsaved changes</span>}
           <button className="btn btn-primary btn-small" onClick={handleSave} disabled={!name.trim()}>
             Save Template
           </button>
@@ -540,6 +573,23 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
           <Plus size={14} /> Add Part
         </button>
       </div>
+
+      {showDiscardModal && (
+        <div className="modal-overlay" onClick={handleStay}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal__title">Unsaved changes will be lost</h2>
+            <p className="modal__message">Do you want to stay and keep editing, or discard your changes?</p>
+            <div className="modal__actions">
+              <button className="btn btn-secondary" onClick={handleStay}>
+                Stay
+              </button>
+              <button className="btn btn-danger" onClick={handleDiscard}>
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
