@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { completeNextSet, gotoCleanApp, importSampleCsv, quickStartLowerBodyWorkout } from './helpers';
+import { 
+  captureVisualEvidence,
+  completeNextSet, 
+  expectNoDocumentHorizontalOverflow,
+  gotoCleanApp, 
+  importSampleCsv, 
+  quickStartLowerBodyWorkout 
+} from './helpers';
 
 test('quick-starts and completes a workout session', async ({ page }) => {
   await gotoCleanApp(page);
@@ -27,4 +34,119 @@ test('quick-starts and completes a workout session', async ({ page }) => {
   await expect(page.getByText('Getting Stronger')).toBeVisible();
   await expect(page.getByText('PRs')).toBeVisible();
   await expect(page.getByText('Total Volume (lb)')).toBeVisible();
+});
+
+test('@visual set row layout has non-overlapping grid columns', async ({ page, browserName }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await quickStartLowerBodyWorkout(page);
+
+  // Wait for the active workout view to be fully rendered
+  await expect(page.getByRole('button', { name: 'Finish (0/7 sets)' })).toBeVisible();
+
+  // Get first set row (bodyweight exercise: "3 × BW")
+  const firstSetRow = page.locator('.log-set-row').first();
+  await expect(firstSetRow).toBeVisible();
+
+  // Assert four distinct direct children of the grid container
+  const setNumberCell = firstSetRow.locator('.log-set-row__set-num');
+  const targetCell = firstSetRow.locator('.log-set-row__target-wrap');
+  const inputsCell = firstSetRow.locator('.log-set-row__inputs');
+  const completeCell = firstSetRow.locator('.log-set-row__complete');
+
+  await expect(setNumberCell).toBeVisible();
+  await expect(targetCell).toBeVisible();
+  await expect(inputsCell).toBeVisible();
+  await expect(completeCell).toBeVisible();
+
+  // Get bounding boxes to verify non-overlapping layout
+  const setNumBox = await setNumberCell.boundingBox();
+  const targetBox = await targetCell.boundingBox();
+  const inputsBox = await inputsCell.boundingBox();
+  const completeBox = await completeCell.boundingBox();
+
+  // Set number and target must not overlap (target starts after set number)
+  expect(targetBox.x).toBeGreaterThanOrEqual(setNumBox.x + setNumBox.width - 1);
+
+  // Target and inputs must not overlap (inputs start after target)
+  expect(inputsBox.x).toBeGreaterThanOrEqual(targetBox.x + targetBox.width - 1);
+
+  // Inputs and complete button must not overlap
+  expect(completeBox.x).toBeGreaterThanOrEqual(inputsBox.x + inputsBox.width - 1);
+
+  // Complete button must have 44px minimum touch target (mobile accessibility)
+  expect(completeBox.width).toBeGreaterThanOrEqual(44);
+  expect(completeBox.height).toBeGreaterThanOrEqual(44);
+
+  // Check no horizontal document overflow
+  await expectNoDocumentHorizontalOverflow(page);
+
+  // Capture bodyweight row evidence
+  await captureVisualEvidence(page, testInfo, 'set-row-layout-bodyweight-active');
+
+  // Complete first set and verify completed state
+  await completeNextSet(page);
+  await captureVisualEvidence(page, testInfo, 'set-row-layout-bodyweight-completed');
+
+  // Scroll to second exercise (weighted: "3 × 225 lb")
+  const secondExercise = page.locator('.aw-exercise-card').nth(1);
+  await secondExercise.scrollIntoViewIfNeeded();
+  
+  // Find the first set of the weighted exercise
+  const weightedSetRow = secondExercise.locator('.log-set-row').first();
+  await expect(weightedSetRow).toBeVisible();
+
+  // Verify weighted row has proper layout
+  const weightedSetNum = weightedSetRow.locator('.log-set-row__set-num');
+  const weightedTarget = weightedSetRow.locator('.log-set-row__target-wrap');
+  const weightedInputs = weightedSetRow.locator('.log-set-row__inputs');
+  const weightedComplete = weightedSetRow.locator('.log-set-row__complete');
+
+  const weightedSetNumBox = await weightedSetNum.boundingBox();
+  const weightedTargetBox = await weightedTarget.boundingBox();
+  const weightedInputsBox = await weightedInputs.boundingBox();
+  const weightedCompleteBox = await weightedComplete.boundingBox();
+
+  // Same non-overlap checks for weighted row
+  expect(weightedTargetBox.x).toBeGreaterThanOrEqual(weightedSetNumBox.x + weightedSetNumBox.width - 1);
+  expect(weightedInputsBox.x).toBeGreaterThanOrEqual(weightedTargetBox.x + weightedTargetBox.width - 1);
+  expect(weightedCompleteBox.x).toBeGreaterThanOrEqual(weightedInputsBox.x + weightedInputsBox.width - 1);
+
+  // Capture weighted row evidence
+  await captureVisualEvidence(page, testInfo, 'set-row-layout-weighted-active');
+
+  // Complete the weighted set and skip rest timer to see completed row
+  await page.getByRole('button', { name: 'Mark complete' }).first().click();
+  
+  // Skip rest timer to view completed row
+  const skipRest = page.getByRole('button', { name: 'Skip rest' });
+  if (await skipRest.isVisible({ timeout: 2000 })) {
+    await skipRest.click();
+  }
+  
+  // Verify completed weighted row hides adjustment buttons and plate display
+  const completedRow = weightedSetRow;
+  await expect(completedRow).toHaveClass(/log-set-row--completed/);
+  
+  // Check that adjust buttons and plate display are not visible in completed state
+  const adjustButtons = completedRow.locator('.log-set-row__adjust-btn');
+  const plateDisplay = completedRow.locator('[data-testid="plate-display"], .plate-display');
+  
+  // These should either not exist or not be visible (currently they're just disabled - that's the bug)
+  const adjustCount = await adjustButtons.count();
+  const plateCount = await plateDisplay.count();
+  
+  // Document current behavior: buttons exist but should be hidden when completed
+  // This assertion will FAIL until we fix the component to hide them
+  if (adjustCount > 0) {
+    const firstAdjust = adjustButtons.first();
+    const isVisible = await firstAdjust.isVisible();
+    // Expect adjust buttons to NOT be visible in completed state
+    expect(isVisible).toBe(false);
+  }
+  
+  await captureVisualEvidence(page, testInfo, 'set-row-layout-weighted-completed');
+
+  // Check no horizontal overflow after interactions
+  await expectNoDocumentHorizontalOverflow(page);
 });

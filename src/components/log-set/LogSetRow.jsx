@@ -222,16 +222,20 @@ export default function LogSetRow({
                 />
               ) : (
                 <>
-                  <button
-                    className="log-set-row__adjust-btn"
-                    onClick={() => handleWeightChange(String(parseFloat(localWeight) - 2.5))}
-                    disabled={isCompleted || localWeight === ''}
-                    aria-label="Decrease weight by 2.5"
-                    type="button"
-                    style={localWeight === '' ? { visibility: 'hidden' } : undefined}
-                  >
-                    −2.5
-                  </button>
+                  {!isCompleted && (
+                    <>
+                      <button
+                        className="log-set-row__adjust-btn"
+                        onClick={() => handleWeightChange(String(parseFloat(localWeight) - 2.5))}
+                        disabled={localWeight === ''}
+                        aria-label="Decrease weight by 2.5"
+                        type="button"
+                        style={localWeight === '' ? { visibility: 'hidden' } : undefined}
+                      >
+                        −2.5
+                      </button>
+                    </>
+                  )}
                   <input
                     ref={weightInputRef}
                     type="number"
@@ -250,17 +254,21 @@ export default function LogSetRow({
                     disabled={isCompleted}
                     className="log-set-row__input"
                   />
-                  <button
-                    className="log-set-row__adjust-btn"
-                    onClick={() => handleWeightChange(String(parseFloat(localWeight) + 2.5))}
-                    disabled={isCompleted || localWeight === ''}
-                    aria-label="Increase weight by 2.5"
-                    type="button"
-                    style={localWeight === '' ? { visibility: 'hidden' } : undefined}
-                  >
-                    +2.5
-                  </button>
-                  <PlateDisplay weight={localWeight} barWeight={barWeight} unit={set.unit} />
+                  {!isCompleted && (
+                    <>
+                      <button
+                        className="log-set-row__adjust-btn"
+                        onClick={() => handleWeightChange(String(parseFloat(localWeight) + 2.5))}
+                        disabled={localWeight === ''}
+                        aria-label="Increase weight by 2.5"
+                        type="button"
+                        style={localWeight === '' ? { visibility: 'hidden' } : undefined}
+                      >
+                        +2.5
+                      </button>
+                      <PlateDisplay weight={localWeight} barWeight={barWeight} unit={set.unit} />
+                    </>
+                  )}
                 </>
               )}
             </div>
