@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:unit": "vitest --run",
+    "test:e2e": "node scripts/run-playwright.js",
+    "test:e2e:visual": "node scripts/run-playwright.js --visual",
+    "test:ci": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "@fontsource-variable/geist-mono": "^5.2.8",
@@ -17,6 +21,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.2.0",

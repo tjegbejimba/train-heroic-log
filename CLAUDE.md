@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Always use TDD (test-driven development) when implementing code.** Use the `/tdd` skill for the red-green-refactor loop: write a failing test first, implement just enough to make it pass, then refactor. This applies to new features, bug fixes, and refactors alike.
 
+**Visually verify every user-visible change.** Follow the project-local `visual-verification` skill in `.agents/skills/visual-verification/SKILL.md`. Run the affected Playwright journey, generate desktop/mobile evidence with `npm run test:e2e:visual`, and open the relevant PNGs before declaring the work complete.
+
 ## Commands
 
 ```bash
@@ -13,6 +15,10 @@ npm run dev       # Start Vite dev server (http://localhost:5173)
 npm run build     # Build production bundle to dist/
 npm run preview   # Preview production build locally
 npm run test      # Run all Vitest unit tests
+npm run test:unit # Run Vitest unit tests once
+npm run test:e2e        # Run Playwright end-to-end tests on a collision-free port
+npm run test:e2e:visual # Capture desktop/mobile screenshots for human/agent inspection
+npm run test:ci         # Run unit + Playwright tests (CI/deploy gate)
 ```
 
 Run a single test file:

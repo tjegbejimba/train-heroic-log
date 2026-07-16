@@ -95,10 +95,14 @@ After first load, the app works completely offline thanks to the service worker.
 ### Run Tests
 
 ```bash
-npm run test
+npm run test            # Vitest watch mode
+npm run test:unit       # Vitest once
+npm run test:e2e        # Run Playwright end-to-end tests
+npm run test:e2e:visual # Capture desktop/mobile evidence in artifacts/visual/
+npm run test:ci         # Unit + Playwright, same gate used before deploy
 ```
 
-Tests are located in `src/**/*.test.js`.
+Unit tests are located in `src/**/*.test.js`. End-to-end tests are located in `e2e/**/*.e2e.js` and run automatically in the deploy workflow before the production build. For UI changes, follow `.agents/skills/visual-verification/SKILL.md`, run the visual command, and inspect the generated desktop and mobile PNGs rather than relying on the test result alone.
 
 ### Format Code
 
