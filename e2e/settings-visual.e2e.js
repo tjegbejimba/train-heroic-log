@@ -142,4 +142,55 @@ test.describe('Settings visual states @visual', () => {
     // Capture focused state
     await captureVisualEvidence(page, testInfo, 'checkbox-focused');
   });
+  
+  test('Section headings align with card content', async ({ page }, testInfo) => {
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+    
+    // Navigate to Settings
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    
+    // Find all settings sections
+    const sections = page.locator('.settings-section');
+    const sectionCount = await sections.count();
+    
+    // Test each section
+    for (let i = 0; i < sectionCount; i++) {
+      const section = sections.nth(i);
+      
+      // Get the section heading (h2 within settings-section__head)
+      const heading = section.locator('.settings-section__head h2');
+      if (await heading.count() === 0) continue;
+      
+      // Get the first content element after the heading
+      // This could be a .settings-control, .settings-view__reminder-row, or other content div
+      const contentElements = section.locator('.settings-control, .settings-view__reminder-row, .settings-view__sync-status, .settings-subsection, .settings-view__storage');
+      if (await contentElements.count() === 0) continue;
+      
+      const firstContent = contentElements.first();
+      
+      // Get bounding boxes
+      const headingBox = await heading.boundingBox();
+      const contentBox = await firstContent.boundingBox();
+      const sectionBox = await section.boundingBox();
+      
+      if (!headingBox || !contentBox || !sectionBox) continue;
+      
+      // The heading's left edge should align with the content's left edge
+      // (both should be inset from the section's left edge by the same amount)
+      const headingLeftInset = headingBox.x - sectionBox.x;
+      const contentLeftInset = contentBox.x - sectionBox.x;
+      
+      // Allow 1px tolerance for rounding
+      expect(Math.abs(headingLeftInset - contentLeftInset)).toBeLessThanOrEqual(1);
+      
+      // Also verify heading doesn't touch the section border (should have some inset)
+      // Settings section has 1px border + should have padding
+      expect(headingLeftInset).toBeGreaterThan(5); // At minimum, some padding
+    }
+    
+    // Capture desktop evidence
+    await captureVisualEvidence(page, testInfo, 'settings-heading-alignment');
+  });
 });
