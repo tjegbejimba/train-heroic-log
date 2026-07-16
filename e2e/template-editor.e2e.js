@@ -28,6 +28,15 @@ test('@visual long template name wraps and keeps actions visible at mobile width
   // Verify the full name was entered
   await expect(nameInput).toHaveValue(longName);
 
+  // Assert the field wrapped/grew (auto-resize worked)
+  const textareaHeight = await nameInput.evaluate((el) => ({
+    clientHeight: el.clientHeight,
+    scrollHeight: el.scrollHeight,
+    minHeight: 52, // from CSS
+  }));
+  expect(textareaHeight.clientHeight).toBeGreaterThan(textareaHeight.minHeight);
+  expect(textareaHeight.clientHeight).toBeGreaterThanOrEqual(textareaHeight.scrollHeight - 2);
+
   // Capture visual evidence showing the long name
   await captureVisualEvidence(page, testInfo, 'template-editor-long-name-mobile');
 
@@ -56,11 +65,18 @@ test('@visual long template name wraps on desktop too', async ({ page }, testInf
 
   await page.waitForTimeout(100);
 
-  // Capture visual evidence
-  await captureVisualEvidence(page, testInfo, 'template-editor-long-name-desktop');
-
   // Verify full value is in the field
   await expect(nameInput).toHaveValue(longName);
+
+  // Assert the field wrapped/grew
+  const textareaHeight = await nameInput.evaluate((el) => ({
+    clientHeight: el.clientHeight,
+    minHeight: 52,
+  }));
+  expect(textareaHeight.clientHeight).toBeGreaterThan(textareaHeight.minHeight);
+
+  // Capture visual evidence
+  await captureVisualEvidence(page, testInfo, 'template-editor-long-name-desktop');
 
   // Actions should be visible
   await expect(page.getByRole('button', { name: /Cancel/ })).toBeVisible();
