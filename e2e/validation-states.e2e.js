@@ -76,31 +76,58 @@ test.describe('Disabled button treatments @visual', () => {
     expect(hoverStyles.background).toBe(baseStyles.background);
     expect(hoverStyles.boxShadow).toBe(baseStyles.boxShadow);
     
-    // Test secondary button disabled styles
+    // Test secondary button disabled styles with real hover
     const secondaryBtn = page.locator('#test-secondary-disabled');
-    const secondaryStyles = await secondaryBtn.evaluate((el) => {
+    const secondaryBase = await secondaryBtn.evaluate((el) => {
       const computed = window.getComputedStyle(el);
       return {
         cursor: computed.cursor,
         opacity: computed.opacity,
+        background: computed.backgroundColor,
+        borderColor: computed.borderColor,
       };
     });
     
-    expect(secondaryStyles.cursor).toBe('not-allowed');
-    expect(parseFloat(secondaryStyles.opacity)).toBeLessThan(1);
+    await secondaryBtn.hover();
     
-    // Test danger button disabled styles
+    const secondaryHover = await secondaryBtn.evaluate((el) => {
+      const computed = window.getComputedStyle(el);
+      return {
+        background: computed.backgroundColor,
+        borderColor: computed.borderColor,
+      };
+    });
+    
+    expect(secondaryBase.cursor).toBe('not-allowed');
+    expect(parseFloat(secondaryBase.opacity)).toBeLessThan(1);
+    // Hover should NOT change background or border when disabled
+    expect(secondaryHover.background).toBe(secondaryBase.background);
+    expect(secondaryHover.borderColor).toBe(secondaryBase.borderColor);
+    
+    // Test danger button disabled styles with real hover
     const dangerBtn = page.locator('#test-danger-disabled');
-    const dangerStyles = await dangerBtn.evaluate((el) => {
+    const dangerBase = await dangerBtn.evaluate((el) => {
       const computed = window.getComputedStyle(el);
       return {
         cursor: computed.cursor,
         opacity: computed.opacity,
+        filter: computed.filter,
       };
     });
     
-    expect(dangerStyles.cursor).toBe('not-allowed');
-    expect(parseFloat(dangerStyles.opacity)).toBeLessThan(1);
+    await dangerBtn.hover();
+    
+    const dangerHover = await dangerBtn.evaluate((el) => {
+      const computed = window.getComputedStyle(el);
+      return {
+        filter: computed.filter,
+      };
+    });
+    
+    expect(dangerBase.cursor).toBe('not-allowed');
+    expect(parseFloat(dangerBase.opacity)).toBeLessThan(1);
+    // Hover should NOT change filter (brightness) when disabled
+    expect(dangerHover.filter).toBe(dangerBase.filter);
     
     await captureVisualEvidence(page, testInfo, 'disabled-buttons-all-variants');
   });
