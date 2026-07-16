@@ -433,9 +433,43 @@ input[type='checkbox'] {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--accent);
   padding: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
+  /* Remove default appearance so we can style checked state explicitly */
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--surface-high);
+  border: 2px solid var(--border);
+  transition: background-color var(--transition), border-color var(--transition);
+  position: relative;
+  flex-shrink: 0;
+}
+
+input[type='checkbox']:hover {
+  border-color: var(--border-strong);
+}
+
+input[type='checkbox']:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Checkmark indicator */
+input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -55%) rotate(45deg);
+  width: 5px;
+  height: 9px;
+  border: solid var(--on-accent);
+  border-width: 0 2px 2px 0;
+}
+
+input[type='checkbox']:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Links */
