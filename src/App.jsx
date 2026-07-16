@@ -482,7 +482,7 @@ export default function App() {
         />
       )}
 
-      {view !== ROUTE_ACTIVE_WORKOUT && (
+      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && (
         <button
           className="feedback-fab"
           onClick={() => setShowFeedback(true)}
