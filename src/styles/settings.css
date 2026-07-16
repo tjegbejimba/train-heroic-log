@@ -319,7 +319,7 @@
 
 .settings-view__data-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-sm);
   /* Indent to align with heading text */
   margin-left: calc(42px + var(--space-md));
