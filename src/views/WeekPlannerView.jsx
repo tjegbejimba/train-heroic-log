@@ -351,24 +351,44 @@ export default function WeekPlannerView({
                     onChange={(e) => setTemplateSearch(e.target.value)}
                   />
                 </label>
-                <div className="template-picker__list">
-                  {templateList
-                    .filter((tpl) =>
-                      tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
-                    )
-                    .map((tpl) => (
-                      <button
-                        key={tpl.id}
-                        className="template-picker__item"
-                        onClick={() => assignTemplate(showPicker, tpl.id)}
-                      >
-                        <span className="template-picker__name">{tpl.name}</span>
-                        <span className="template-picker__meta">
-                          {tpl.blocks.reduce((sum, b) => sum + b.exercises.length, 0)} exercises
-                        </span>
-                      </button>
-                    ))}
-                </div>
+                {(() => {
+                  const filteredTemplates = templateList.filter((tpl) =>
+                    tpl.name.toLowerCase().includes(templateSearch.toLowerCase())
+                  );
+
+                  if (filteredTemplates.length === 0 && templateSearch) {
+                    return (
+                      <div className="empty-state">
+                        <p className="text-secondary">
+                          No templates match &ldquo;{templateSearch}&rdquo;
+                        </p>
+                        <button
+                          className="btn btn-secondary btn-small mt-md"
+                          onClick={() => setTemplateSearch('')}
+                        >
+                          Clear Search
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="template-picker__list">
+                      {filteredTemplates.map((tpl) => (
+                        <button
+                          key={tpl.id}
+                          className="template-picker__item"
+                          onClick={() => assignTemplate(showPicker, tpl.id)}
+                        >
+                          <span className="template-picker__name">{tpl.name}</span>
+                          <span className="template-picker__meta">
+                            {tpl.blocks.reduce((sum, b) => sum + b.exercises.length, 0)} exercises
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </>
             )}
 
