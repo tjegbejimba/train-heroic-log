@@ -205,9 +205,11 @@
 .planner-view__sticky-action {
   position: fixed;
   right: 0;
-  bottom: calc(var(--navbar-height) + var(--space-md));
+  bottom: calc(76px + var(--space-md));
   left: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
+  max-width: var(--app-max-width);
+  margin-inline: auto;
   padding: 0 var(--space-lg);
   pointer-events: none;
 }
