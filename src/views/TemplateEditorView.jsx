@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Layers3, Plus, Trash2, X } from 'lucide-react';
 import RestDurationPicker from '../components/RestDurationPicker';
 import BarWeightPicker from '../components/BarWeightPicker';
@@ -25,6 +25,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   const [blocks, setBlocks] = useState(() =>
     template.blocks.length > 0 ? template.blocks.map(cloneBlock) : [makeEmptyBlock()]
   );
+  const nameInputRef = useRef(null);
 
   // Exercise search state for picker
   // Refs mirror state so onBlur timeouts always read the current value (avoids stale closures)
@@ -42,6 +43,15 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     searchQueryRef.current = val;
     setSearchQueryState(val);
   }
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const textarea = nameInputRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  }, [name]);
 
   const filteredExercises = useMemo(() => {
     if (!searchQuery.trim()) return exerciseNames;
@@ -278,13 +288,14 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
         </div>
         <div className="tpl-editor__name-wrap">
           <label htmlFor="template-name">Template name</label>
-          <input
+          <textarea
+            ref={nameInputRef}
             id="template-name"
-            type="text"
             className="input tpl-editor__name-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Template name..."
+            rows={1}
           />
         </div>
         <div className="tpl-editor__summary" aria-label={`${blocks.length} parts, ${exerciseTotal} exercises, ${setTotal} sets`}>
