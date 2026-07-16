@@ -393,6 +393,13 @@
   gap: var(--space-sm);
 }
 
+/* On mobile, ensure actions stay above fixed bottom nav + safe area */
+@media (max-width: 767px) {
+  .library-row__actions {
+    scroll-margin-bottom: calc(76px + env(safe-area-inset-bottom, 0px) + var(--space-md));
+  }
+}
+
 /* ========== YouTubeLinkInput ========== */
 .youtube-link-input {
   padding: var(--space-md);

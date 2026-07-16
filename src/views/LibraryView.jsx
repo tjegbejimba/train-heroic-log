@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Layers3, Loader, Play, Search, Upload, X } from 'lucide-react';
 import YouTubeLinkInput, { isValidYouTubeUrl } from '../components/YouTubeLinkInput';
 import TemplateListView from './TemplateListView';
@@ -115,6 +115,22 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkSaved, setBulkSaved] = useState(false);
   const [preImportLinks, setPreImportLinks] = useState(null);
+
+  // Ref map to track action rows for scroll behavior
+  const actionRowRefs = useRef({});
+
+  // Scroll action row into view when editing starts (mobile fix for bottom nav overlap)
+  useEffect(() => {
+    if (editingNotes && actionRowRefs.current[editingNotes]) {
+      // Small delay to ensure DOM has updated with the expanded editor
+      setTimeout(() => {
+        actionRowRefs.current[editingNotes]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 50);
+    }
+  }, [editingNotes]);
 
   // Build flat list of exercises with metadata
   const exercises = useMemo(() => {
@@ -390,7 +406,10 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
                             onChange={(e) => setNotesDraft(e.target.value)}
                             autoFocus
                           />
-                          <div className="library-row__actions">
+                          <div
+                            className="library-row__actions"
+                            ref={el => actionRowRefs.current[exercise.title] = el}
+                          >
                             <button
                               className="btn btn-primary btn-small"
                               onClick={() => {
