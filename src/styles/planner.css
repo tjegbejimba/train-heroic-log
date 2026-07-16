@@ -201,6 +201,27 @@
   min-width: 88px;
 }
 
+/* Sticky Apply Plan */
+.planner-view__sticky-action {
+  position: fixed;
+  right: 0;
+  bottom: calc(76px + var(--space-md));
+  left: 0;
+  z-index: var(--z-sticky);
+  max-width: var(--app-max-width);
+  margin-inline: auto;
+  padding: 0 var(--space-lg);
+  pointer-events: none;
+}
+
+.planner-view__sticky-action .btn {
+  width: 100%;
+  min-height: 54px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
 .planner-view__actions {
   display: flex;
   flex-direction: column;
@@ -385,6 +406,10 @@
   .planner-view__nav,
   .planner-view__grid,
   .planner-view__actions {
+    padding-inline: var(--space-md);
+  }
+
+  .planner-view__sticky-action {
     padding-inline: var(--space-md);
   }
 

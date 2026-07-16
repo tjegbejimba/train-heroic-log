@@ -283,12 +283,16 @@ export default function WeekPlannerView({
         })}
       </div>
 
-      <div className="planner-view__actions">
-        {hasDraftChanges && (
+      {/* Sticky Apply Plan (visible when unsaved changes exist) */}
+      {hasDraftChanges && (
+        <div className="planner-view__sticky-action">
           <button className="btn btn-primary w-full" onClick={applyPlan}>
             Apply Plan
           </button>
-        )}
+        </div>
+      )}
+
+      <div className="planner-view__actions">
         <div className="planner-view__secondary-actions">
           <button
             className="btn btn-secondary btn-small"
