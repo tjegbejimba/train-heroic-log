@@ -223,6 +223,99 @@ describe('applyTemplateChange — syncBlocks', () => {
   });
 });
 
+// ─── Template ⇄ Workout target consistency ──────────────
+//
+// Regression coverage for keeping prescribed-set targets consistent between a
+// Template and its materialized Workout in *both* directions, exercised through
+// the production lifecycle authority (`applyTemplateChange`).
+
+describe('applyTemplateChange — target consistency (Template ⇄ Workout)', () => {
+  const blocksWithTarget = (reps, weight) => [
+    { exercises: [{ title: 'Bench', sets: [{ reps, weight, unit: 'lb', repsUnit: 'reps' }] }] },
+  ];
+
+  const makeSnap = () => ({
+    templates: {
+      tpl_1: { id: 'tpl_1', name: 'Upper A', blocks: blocksWithTarget(8, 135) },
+    },
+    workouts: {
+      'Upper A': { title: 'Upper A', blocks: blocksWithTarget(8, 135) },
+    },
+    schedule: {},
+    logs: {},
+  });
+
+  it('Template → Workout: saving an edited target updates the materialized workout', () => {
+    const snap = makeSnap();
+    const editedTemplate = { ...snap.templates.tpl_1, blocks: blocksWithTarget(10, 155) };
+
+    const result = applyTemplateChange(snap, { type: 'save', template: editedTemplate });
+
+    // Template holds the new target...
+    expect(result.templates.tpl_1.blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 10, weight: 155 });
+    // ...and the materialized workout is kept consistent with it.
+    expect(result.workouts).toBeDefined();
+    expect(result.workouts['Upper A'].blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 10, weight: 155 });
+  });
+
+  it('Template → Workout: rename carries the edited target onto the renamed workout', () => {
+    const snap = makeSnap();
+    const editedTemplate = { ...snap.templates.tpl_1, name: 'Upper B', blocks: blocksWithTarget(12, 145) };
+
+    const result = applyTemplateChange(snap, {
+      type: 'save',
+      template: editedTemplate,
+      previousName: 'Upper A',
+    });
+
+    expect(result.workouts['Upper A']).toBeUndefined();
+    expect(result.workouts['Upper B'].title).toBe('Upper B');
+    expect(result.workouts['Upper B'].blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 12, weight: 145 });
+  });
+
+  it('Template → Workout: save without a materialized workout omits the workouts write', () => {
+    const snap = makeSnap();
+    delete snap.workouts['Upper A'];
+    const editedTemplate = { ...snap.templates.tpl_1, blocks: blocksWithTarget(10, 155) };
+
+    const result = applyTemplateChange(snap, { type: 'save', template: editedTemplate });
+
+    expect(result.workouts).toBeUndefined();
+  });
+
+  it('Template → Workout: rename refreshes a stale workout already under the new name', () => {
+    // Old key absent, but a stale materialized workout already exists under the
+    // new name (e.g. a prior schedule materialized it). Its targets must refresh.
+    const snap = makeSnap();
+    delete snap.workouts['Upper A'];
+    snap.workouts['Upper B'] = { title: 'Upper B', blocks: blocksWithTarget(8, 135) };
+    const editedTemplate = { ...snap.templates.tpl_1, name: 'Upper B', blocks: blocksWithTarget(12, 145) };
+
+    const result = applyTemplateChange(snap, {
+      type: 'save',
+      template: editedTemplate,
+      previousName: 'Upper A',
+    });
+
+    expect(result.workouts['Upper B'].title).toBe('Upper B');
+    expect(result.workouts['Upper B'].blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 12, weight: 145 });
+  });
+
+  it('Session → Template: confirming an edited target updates the matching template', () => {
+    const snap = makeSnap();
+    const confirmedBlocks = blocksWithTarget(6, 185);
+
+    const result = applyTemplateChange(snap, {
+      type: 'syncBlocks',
+      workoutTitle: 'Upper A',
+      blocks: confirmedBlocks,
+    });
+
+    expect(result.workouts['Upper A'].blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 6, weight: 185 });
+    expect(result.templates.tpl_1.blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 6, weight: 185 });
+  });
+});
+
 // ─── applyScheduleChange ────────────────────────────────
 
 describe('applyScheduleChange', () => {
