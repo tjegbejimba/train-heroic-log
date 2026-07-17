@@ -40,6 +40,26 @@ function findTemplateByName(templates, name) {
   return Object.values(templates).find((t) => t.name === name);
 }
 
+// A completed Log is keyed `YYYY-MM-DD::WorkoutTitle`. Workout titles may
+// themselves contain `::`, so match on the exact title after the first
+// separator rather than a naive suffix check.
+function isWorkoutLogged(logs, workoutTitle) {
+  return Object.keys(logs).some((k) => {
+    const idx = k.indexOf('::');
+    return idx !== -1 && k.slice(idx + 2) === workoutTitle;
+  });
+}
+
+// Local calendar date (YYYY-MM-DD) — mirrors App.jsx's currentDate derivation so
+// schedule comparisons use the user's day, not UTC.
+function localTodayISO() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // ─── Public API ─────────────────────────────────────────
 
 /**
@@ -49,22 +69,32 @@ export function applyTemplateChange(snap, change) {
   const { type } = change;
 
   if (type === 'delete') {
-    const { templateId } = change;
+    const { templateId, today } = change;
     const tpl = snap.templates[templateId];
     if (!tpl) return { error: 'Template not found' };
+
+    const referenceDate = today || localTodayISO();
 
     const newTemplates = { ...snap.templates };
     delete newTemplates[templateId];
 
+    // The template is gone, so drop its *past* schedule entries. Future entries
+    // stay — the user still plans to train that Workout, so it must survive.
     const newSchedule = { ...snap.schedule };
+    let hasFutureSchedule = false;
     Object.entries(newSchedule).forEach(([date, title]) => {
-      if (title === tpl.name) delete newSchedule[date];
+      if (title !== tpl.name) return;
+      if (date >= referenceDate) hasFutureSchedule = true;
+      else delete newSchedule[date];
     });
 
     const result = { templates: newTemplates, schedule: newSchedule };
+
+    // Remove the materialized Workout only when nothing meaningful references it:
+    // no completed Log (History) and no future Schedule (upcoming plan).
     if (snap.workouts[tpl.name]) {
-      const referencedByLog = Object.keys(snap.logs).some((k) => k.endsWith(`::${tpl.name}`));
-      if (!referencedByLog) {
+      const referencedByLog = isWorkoutLogged(snap.logs, tpl.name);
+      if (!referencedByLog && !hasFutureSchedule) {
         const newWorkouts = { ...snap.workouts };
         delete newWorkouts[tpl.name];
         result.workouts = newWorkouts;
