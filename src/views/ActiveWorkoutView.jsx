@@ -15,6 +15,7 @@ import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
 import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData } from '../session/session';
 
 function findNextActiveWorkoutSet(workout, currentLog) {
   if (!workout?.blocks || !currentLog?.exercises) return null;
@@ -64,18 +65,7 @@ export default function ActiveWorkoutView({
 
   const [currentLog, setCurrentLog] = useState(() => {
     if (log) return log;
-
-    // Create new log skeleton
-    return {
-      logKey,
-      workoutTitle,
-      date,
-      completedAt: null,
-      startedAt: new Date().toISOString(),
-      exercises: {},
-      exerciseNotes: {},
-      workoutNote: '',
-    };
+    return buildInitialSessionLog({ logKey, workout });
   });
 
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -201,32 +191,16 @@ export default function ActiveWorkoutView({
   // Initialize exercise logs
   useEffect(() => {
     if (!workout) return;
-    // Skip if exercises already have actual logged data (crash recovery)
-    if (currentLog.exercises && Object.keys(currentLog.exercises).length > 0) {
-      const hasLoggedData = Object.values(currentLog.exercises).some((sets) =>
-        Array.isArray(sets) && sets.some((s) =>
-          s.completed || (s.actualReps !== undefined && s.actualReps !== '') || (s.actualWeight !== undefined && s.actualWeight !== '')
-        )
-      );
-      if (hasLoggedData) return;
+    // Skip re-initialization if the Log already holds recovered performance data.
+    if (
+      currentLog.exercises &&
+      Object.keys(currentLog.exercises).length > 0 &&
+      hasLoggedData(currentLog)
+    ) {
+      return;
     }
 
-    const newExercises = {};
-    workout.blocks.forEach((block) => {
-      block.exercises.forEach((exercise) => {
-        newExercises[exercise.title] = exercise.sets.map((_, setIdx) => ({
-          setIndex: setIdx,
-          targetReps: exercise.sets[setIdx].reps,
-          targetWeight: exercise.sets[setIdx].weight,
-          unit: exercise.sets[setIdx].unit || exercise.unit || 'lb',
-          actualReps: '',
-          actualWeight: '',
-          completed: false,
-        }));
-      });
-    });
-
-    const updated = { ...currentLog, exercises: newExercises };
+    const updated = { ...currentLog, exercises: buildSessionExercises(workout) };
     setCurrentLog(updated);
     saveLog(logKey, updated);
   }, []);

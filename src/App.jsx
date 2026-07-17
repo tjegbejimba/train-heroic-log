@@ -23,6 +23,7 @@ import {
   ROUTE_STATS,
   parseLogKey,
 } from './constants';
+import { evaluateSessionRecovery } from './session/session';
 
 import ImportView from './views/ImportView';
 import TrainingView from './views/TrainingView';
@@ -147,38 +148,21 @@ export default function App() {
   // Check for crash recovery on mount
   useEffect(() => {
     if (session && Object.keys(workouts).length > 0) {
-      try {
-        const { date, workoutTitle } = parseLogKey(session.logKey);
-
-        // Discard sessions older than 7 days
-        const sessionDate = new Date(date + 'T00:00:00');
-        const diffDays = (Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (isNaN(diffDays) || diffDays > 7) {
-          clearSession();
-          return;
+      const { date, workoutTitle } = (() => {
+        try {
+          return parseLogKey(session.logKey);
+        } catch {
+          return {};
         }
-
-        // Don't offer resume if the log is already completed
-        const existingLog = getLog(session.logKey);
-        if (existingLog && existingLog.completedAt) {
-          clearSession();
-          return;
-        }
-
-        const w = workouts[workoutTitle];
-        const isValid =
-          w &&
-          Array.isArray(w.blocks) &&
-          w.blocks.length > 0 &&
-          w.blocks.some((b) => Array.isArray(b.exercises) && b.exercises.length > 0);
-        if (isValid) {
-          setShowResumeModal(true);
-        } else {
-          // Workout was deleted or is malformed — discard the orphaned session
-          clearSession();
-        }
-      } catch {
-        // logKey is unparseable — discard
+      })();
+      const decision = evaluateSessionRecovery({
+        session,
+        workout: workoutTitle ? workouts[workoutTitle] : undefined,
+        existingLog: date ? getLog(session.logKey) : null,
+      });
+      if (decision.action === 'resume') {
+        setShowResumeModal(true);
+      } else {
         clearSession();
       }
     }
