@@ -12,41 +12,7 @@ import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
 import { buildSummary, findPRs } from '../utils/workoutSummary';
-import { resolveRestDuration } from '../utils/resolveRestDuration';
-import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
-import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
-import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit } from '../session/session';
-
-function findNextActiveWorkoutSet(workout, currentLog) {
-  if (!workout?.blocks || !currentLog?.exercises) return null;
-
-  for (const block of workout.blocks) {
-    if (block.exercises.length > 1) {
-      const maxSets = Math.max(
-        ...block.exercises.map((exercise) => currentLog.exercises[exercise.title]?.length ?? 0)
-      );
-
-      for (let setIdx = 0; setIdx < maxSets; setIdx++) {
-        for (const exercise of block.exercises) {
-          const loggedSet = currentLog.exercises[exercise.title]?.[setIdx];
-          if (loggedSet && !loggedSet.completed) {
-            return { exerciseTitle: exercise.title, setIndex: setIdx };
-          }
-        }
-      }
-      continue;
-    }
-
-    for (const exercise of block.exercises) {
-      const loggedSets = currentLog.exercises[exercise.title];
-      if (!loggedSets) continue;
-      const setIndex = loggedSets.findIndex((set) => !set.completed);
-      if (setIndex !== -1) return { exerciseTitle: exercise.title, setIndex };
-    }
-  }
-
-  return null;
-}
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -67,6 +33,20 @@ export default function ActiveWorkoutView({
     if (log) return log;
     return buildInitialSessionLog({ logKey, workout });
   });
+
+  // Mirror of the latest committed Log. Reading from this ref (instead of the
+  // `currentLog` closure) lets rapid sequential edits chain off the freshest Log
+  // so no in-flight edit is overwritten by a stale snapshot.
+  const currentLogRef = useRef(currentLog);
+  useEffect(() => { currentLogRef.current = currentLog; }, [currentLog]);
+
+  // Single commit path: update the ref synchronously, schedule the state update,
+  // and persist immediately for crash recovery.
+  const commitLog = useCallback((next) => {
+    currentLogRef.current = next;
+    setCurrentLog(next);
+    saveLog(logKey, next);
+  }, [logKey, saveLog]);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -114,12 +94,12 @@ export default function ActiveWorkoutView({
 
   const scrollToNextSet = useCallback(() => {
     if (userScrolledDuringRest.current) return;
-    const next = findNextActiveWorkoutSet(workout, currentLog);
+    const next = findNextSet(workout, currentLogRef.current);
     if (!next) return;
     const escaped = CSS.escape(`${next.exerciseTitle}::${next.setIndex}`);
     const el = document.querySelector(`[data-set-id="${escaped}"]`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [workout, currentLog]);
+  }, [workout]);
 
   const toggleEditMode = () => {
     if (editMode) {
@@ -201,74 +181,51 @@ export default function ActiveWorkoutView({
     }
 
     const updated = { ...currentLog, exercises: buildSessionExercises(workout) };
-    setCurrentLog(updated);
-    saveLog(logKey, updated);
+    commitLog(updated);
   }, []);
 
-  // Save log on every change (crash recovery)
+  // Save log on every change (crash recovery). All rest-eligibility and next-Set
+  // decisions run through the Session module; the view only performs effects.
   const updateExerciseSet = (exerciseTitle, setIndex, newSetData) => {
-    const wasCompleted = currentLog.exercises[exerciseTitle]?.[setIndex]?.completed;
+    const prev = currentLogRef.current;
+    const wasCompleted = prev.exercises[exerciseTitle]?.[setIndex]?.completed;
 
-    const updated = {
-      ...currentLog,
-      exercises: {
-        ...currentLog.exercises,
-        [exerciseTitle]: [
-          ...currentLog.exercises[exerciseTitle].slice(0, setIndex),
-          newSetData,
-          ...currentLog.exercises[exerciseTitle].slice(setIndex + 1),
-        ],
-      },
-    };
-    setCurrentLog(updated);
-    saveLog(logKey, updated);
+    const updated = logSet(prev, { exerciseTitle, setIndex, setData: newSetData });
+    commitLog(updated);
 
-    // Track current exercise context for manual timer
-    for (const block of workout.blocks) {
-      const found = block.exercises.find((ex) => ex.title === exerciseTitle);
-      if (found) { currentExerciseRef.current = found; break; }
-    }
+    // Track current exercise context for the manual timer.
+    const context = findExerciseByTitle(workout, exerciseTitle);
+    if (context) currentExerciseRef.current = context.exercise;
 
-    // Auto-start rest timer (superset round-aware, with re-fire prevention)
-    if (shouldStartRestTimer(exerciseTitle, setIndex, wasCompleted, newSetData.completed, firedRestTimerSets.current)) {
-      // Look up the exercise, its block, and its position within the block.
-      // In a superset, rest only fires after the last movement of the round.
-      let exercise = null;
-      let isSuperset = false;
-      let isLastInSuperset = true;
-      for (const block of workout.blocks) {
-        const idx = block.exercises.findIndex((ex) => ex.title === exerciseTitle);
-        if (idx !== -1) {
-          exercise = block.exercises[idx];
-          isSuperset = block.exercises.length > 1;
-          isLastInSuperset = idx === block.exercises.length - 1;
-          break;
-        }
-      }
-      const duration = resolveRestDuration(exercise || {}, isSuperset, settings.restDuration, isLastInSuperset);
-      if (duration != null) {
-        restTimerKey.current += 1;
-        setRestTimerDuration(duration);
-        setRestTimerActive(true);
-      }
+    // The Session module owns rest eligibility (re-fire prevention, superset
+    // round rule) and duration precedence; the view just starts the timer.
+    const rest = evaluateRest({
+      workout,
+      exerciseTitle,
+      setIndex,
+      wasCompleted,
+      isNowCompleted: newSetData.completed,
+      firedSets: firedRestTimerSets.current,
+      globalDefault: settings.restDuration,
+    });
+    if (rest.shouldStart) {
+      restTimerKey.current += 1;
+      setRestTimerDuration(rest.duration);
+      setRestTimerActive(true);
     }
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
-    const updated = applySessionIntent(currentLog, setExerciseNoteIntent(exerciseTitle, note));
-    setCurrentLog(updated);
-    saveLog(logKey, updated);
+    commitLog(applySessionIntent(currentLogRef.current, setExerciseNoteIntent(exerciseTitle, note)));
   };
 
   const updateWorkoutNote = useCallback((note) => {
-    const updated = applySessionIntent(currentLog, setWorkoutNoteIntent(note));
-    setCurrentLog(updated);
-    saveLog(logKey, updated);
-  }, [currentLog, logKey, saveLog]);
+    commitLog(applySessionIntent(currentLogRef.current, setWorkoutNoteIntent(note)));
+  }, [commitLog]);
 
   const handleCompleteWorkout = () => {
     const completed = {
-      ...currentLog,
+      ...currentLogRef.current,
       completedAt: new Date().toISOString(),
     };
     saveLog(logKey, completed);
@@ -311,7 +268,7 @@ export default function ActiveWorkoutView({
   const totalSets = allSets.length;
   const allDone = totalSets > 0 && completedSets === totalSets;
   const progressPct = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
-  const nextIncompleteSet = findNextActiveWorkoutSet(workout, currentLog);
+  const nextIncompleteSet = findNextSet(workout, currentLog);
 
   return (
     <div className="view active-workout-view">
@@ -321,7 +278,7 @@ export default function ActiveWorkoutView({
         onCancel={() => setShowCancelModal(true)}
         onTimerOpen={() => {
           restTimerKey.current += 1;
-          setRestTimerDuration(resolveManualTimerDuration(currentExerciseRef.current, settings.restDuration));
+          setRestTimerDuration(resolveManualRest(currentExerciseRef.current, settings.restDuration));
           setRestTimerActive(true);
         }}
         isEditMode={editMode}
