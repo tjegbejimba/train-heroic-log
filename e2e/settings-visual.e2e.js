@@ -1,6 +1,43 @@
 import { test, expect } from '@playwright/test';
 import { gotoCleanApp, importSampleCsv, captureVisualEvidence } from './helpers.js';
 
+test.describe('Settings clear behavior @visual', () => {
+  test('Clear all durable data does not resurrect it after the reload', async ({ page }, testInfo) => {
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+
+    // Data is present: an imported workout is offered on the Training screen.
+    await expect(page.getByRole('button', { name: /Preview Upper Body A/ })).toBeVisible();
+
+    // Settings → Clear Data, leave every section checked (a full clear).
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await page.getByRole('button', { name: 'Clear Data...' }).click();
+    await expect(page.getByRole('heading', { name: 'Clear Data' })).toBeVisible();
+
+    const selectAll = page.locator('.settings-clear-modal__check--all input[type="checkbox"]');
+    await expect(selectAll).toBeChecked();
+
+    // Confirm the clear. This commits + replicates deletions through the
+    // authority, then coordinates a single reload.
+    await page.getByRole('button', { name: /^Delete/ }).click();
+
+    // After the reload the app returns to the import screen — the cleared
+    // workouts are gone and did not come back on startup.
+    await expect(page.getByRole('heading', { name: 'Import TrainHeroic CSV' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Preview Upper Body A/ })).toHaveCount(0);
+
+    // The durable localStorage sections are empty after the clear+reload.
+    const remaining = await page.evaluate(() =>
+      ['th_workouts', 'th_schedule', 'th_logs', 'th_templates', 'th_yt_links', 'th_active']
+        .filter((k) => localStorage.getItem(k) !== null)
+    );
+    expect(remaining).toEqual([]);
+
+    await captureVisualEvidence(page, testInfo, 'clear-all-returns-to-import');
+  });
+});
+
 test.describe('Settings visual states @visual', () => {
   test('Clear Data dialog shows visible checked states', async ({ page }, testInfo) => {
     await gotoCleanApp(page);

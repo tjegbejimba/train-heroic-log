@@ -43,13 +43,3 @@ export function removeLS(key) {
     return false;
   }
 }
-
-export function clearLS() {
-  try {
-    localStorage.clear();
-    return true;
-  } catch (e) {
-    console.error('Error clearing localStorage:', e);
-    return false;
-  }
-}

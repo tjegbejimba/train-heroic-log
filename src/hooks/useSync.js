@@ -3,7 +3,6 @@ import {
   checkReplicationHealth,
   pullReplication,
   pushAllReplication,
-  clearReplication,
 } from '../storage/authority';
 import { getSyncedKeys } from '../storage/registry';
 
@@ -57,10 +56,5 @@ export function useSync() {
     return ok;
   }, []);
 
-  // Clear all data on server
-  const clearServer = useCallback(async () => {
-    return clearReplication(ALL_KEYS);
-  }, []);
-
-  return { syncStatus, lastSynced, pullSync, pushSync, clearServer };
+  return { syncStatus, lastSynced, pullSync, pushSync };
 }
