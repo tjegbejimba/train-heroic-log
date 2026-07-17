@@ -27,9 +27,8 @@ import {
 import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
-import { writeLS } from '../storage/index';
 import { buildBackup, BACKUP_KEYS } from '../storage/backup';
-import { flushPendingPushes } from '../storage/sync';
+import { writeByKey, flushReplication } from '../storage/authority';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -222,9 +221,9 @@ export default function SettingsView({
     if (!pendingRestore) return;
     const { data, keys } = pendingRestore;
     keys.forEach((key) => {
-      writeLS(key, data[key]); // write to LS + queue sync push
+      writeByKey(key, data[key]); // commit locally + queue replication via the authority
     });
-    await flushPendingPushes(); // push to server before reload
+    await flushReplication(); // push to server before reload
     sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
     setPendingRestore(null);
     showToast(`Restored ${keys.length} data section${keys.length !== 1 ? 's' : ''}!`);

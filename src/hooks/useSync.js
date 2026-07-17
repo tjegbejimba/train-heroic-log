@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { checkServerHealth, pullFromServer, pushAllToServer, clearServerData } from '../storage/sync';
+import {
+  checkReplicationHealth,
+  pullReplication,
+  pushAllReplication,
+  clearReplication,
+} from '../storage/authority';
 import { getSyncedKeys } from '../storage/registry';
 
 // Every synced durable section, sourced from the shared section registry
@@ -17,7 +22,7 @@ export function useSync() {
 
   // Check server health on mount
   useEffect(() => {
-    checkServerHealth().then((ok) => {
+    checkReplicationHealth().then((ok) => {
       setSyncStatus(ok ? 'online' : 'offline');
     });
   }, []);
@@ -37,7 +42,7 @@ export function useSync() {
   // changed=true means local data was updated and caller should reload state
   const pullSync = useCallback(async () => {
     setSyncStatus('checking');
-    const { ok, changed } = await pullFromServer();
+    const { ok, changed } = await pullReplication();
     setSyncStatus(ok ? 'online' : 'offline');
     if (ok) setLastSynced(new Date().toISOString());
     return { ok, changed };
@@ -46,7 +51,7 @@ export function useSync() {
   // Push all local data to server
   const pushSync = useCallback(async () => {
     setSyncStatus('checking');
-    const ok = await pushAllToServer(ALL_KEYS);
+    const ok = await pushAllReplication(ALL_KEYS);
     setSyncStatus(ok ? 'online' : 'offline');
     if (ok) setLastSynced(new Date().toISOString());
     return ok;
@@ -54,7 +59,7 @@ export function useSync() {
 
   // Clear all data on server
   const clearServer = useCallback(async () => {
-    return clearServerData(ALL_KEYS);
+    return clearReplication(ALL_KEYS);
   }, []);
 
   return { syncStatus, lastSynced, pullSync, pushSync, clearServer };

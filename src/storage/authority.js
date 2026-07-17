@@ -27,7 +27,15 @@
 import { createPersistence } from './persistence';
 import { createBrowserStorageAdapter } from './adapters/browserStorage';
 import { getSectionByKey } from './registry';
-import { pushToServer } from './sync';
+import {
+  pushToServer,
+  flushPendingPushes,
+  retryFailedPushes,
+  pullFromServer,
+  pushAllToServer,
+  clearServerData,
+  checkServerHealth,
+} from './sync';
 
 const QUOTA_ALERT_MESSAGE = 'Storage limit exceeded. Try clearing old workouts.';
 
@@ -143,4 +151,45 @@ export function writeByKey(key, value) {
 /** Remove a durable section by its localStorage key (production singleton). */
 export function removeByKey(key) {
   return getAuthority().removeByKey(key);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Replication lifecycle facade.
+ *
+ * The authority is the single owner of background replication: it fronts the
+ * private sync engine (`storage/sync`) so no production write path imports the
+ * engine's push/retry/flush helpers directly. Each function below is a thin,
+ * behavior-preserving delegate to the engine — the debounce, retry/backoff,
+ * exhaustion, reconnect, and unload/background fallback semantics all live in
+ * the engine and are reached exclusively through these entry points.
+ * -------------------------------------------------------------------------- */
+
+/** Immediately flush all debounced pushes (call before a reload/unload). */
+export function flushReplication() {
+  return flushPendingPushes();
+}
+
+/** Re-push any previously-failed keys, preserving their stored payloads. */
+export function retryReplication() {
+  return retryFailedPushes();
+}
+
+/** Pull server data and merge it into local storage. */
+export function pullReplication() {
+  return pullFromServer();
+}
+
+/** Push every provided key to the server in one bulk request. */
+export function pushAllReplication(keys) {
+  return pushAllToServer(keys);
+}
+
+/** Clear the given keys on the server (bulk null push). */
+export function clearReplication(keys) {
+  return clearServerData(keys);
+}
+
+/** Probe whether the replication server is reachable. */
+export function checkReplicationHealth() {
+  return checkServerHealth();
 }
