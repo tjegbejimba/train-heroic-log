@@ -9,6 +9,7 @@ import { useSync } from './hooks/useSync';
 import { retryReplication, clearByKeys, coordinateSyncReload } from './storage/authority';
 import { useToast } from './components/Toast';
 import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
+import { useTrainingPlanShell } from './hooks/useTrainingPlanShell';
 import {
   ROUTE_IMPORT,
   ROUTE_TRAINING,
@@ -62,15 +63,15 @@ export default function App() {
   const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
 
-  // Orchestration: snapshot builder + write dispatcher
-  const snap = () => ({ templates, workouts, schedule, logs });
-  const applyWrites = (result) => {
-    if (result.error) { showToast(result.error, 'error'); return false; }
-    if (result.templates !== undefined) saveTemplates(result.templates);
-    if (result.workouts !== undefined) saveWorkouts(result.workouts);
-    if (result.schedule !== undefined) saveSchedule(result.schedule);
-    return true;
-  };
+  // Orchestration: the shell owns the latest committed Training Plan snapshot so
+  // back-to-back planning actions build on prior committed writes rather than a
+  // stale render snapshot. snap() reads committed state; applyWrites commits and
+  // advances it (and surfaces rejections as a toast without mutating state).
+  const { snap, applyWrites } = useTrainingPlanShell({
+    state: { templates, workouts, schedule, logs },
+    writers: { saveTemplates, saveWorkouts, saveSchedule },
+    onError: (message) => showToast(message, 'error'),
+  });
 
   const handleDeleteTemplate = (id) =>
     applyWrites(applyTemplateChange(snap(), { type: 'delete', templateId: id }));
