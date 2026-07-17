@@ -25,6 +25,8 @@ export const SESSION_MAX_AGE_DAYS = 7;
 export const SESSION_INTENT = {
   SET_EXERCISE_NOTE: 'session/set-exercise-note',
   SET_WORKOUT_NOTE: 'session/set-workout-note',
+  COMPLETE: 'session/complete',
+  CANCEL: 'session/cancel',
 };
 
 /**
@@ -40,6 +42,27 @@ export function setExerciseNoteIntent(exerciseTitle, note) {
 /** Intention: set the overall Session Workout note on the current Session. */
 export function setWorkoutNoteIntent(note) {
   return { type: SESSION_INTENT.SET_WORKOUT_NOTE, note };
+}
+
+/**
+ * Intention: complete the current Session. Carries the completion timestamp and
+ * any pending Workout note that the athlete typed but the view has not yet
+ * folded into the Log. Completion incorporates that pending note before deriving
+ * the final Log so a last-moment edit is neither lost nor duplicated.
+ *
+ * @param {{ completedAt?: string, workoutNote?: string }} [opts]
+ */
+export function completeSessionIntent({ completedAt, workoutNote } = {}) {
+  return { type: SESSION_INTENT.COMPLETE, completedAt, workoutNote };
+}
+
+/**
+ * Intention: cancel the current Session. Cancellation never stamps a completion
+ * timestamp, so applying it leaves saved progress (Sets and notes) intact and
+ * produces no completed History. Clearing recovery state is the caller's job.
+ */
+export function cancelSessionIntent() {
+  return { type: SESSION_INTENT.CANCEL };
 }
 
 /**
@@ -63,6 +86,23 @@ export function applySessionIntent(log, intent) {
     }
     case SESSION_INTENT.SET_WORKOUT_NOTE:
       return { ...log, workoutNote: intent.note };
+    case SESSION_INTENT.COMPLETE: {
+      // Fold a pending Workout note (when provided) before stamping completion,
+      // so the athlete's final note wins exactly once — never dropped, never
+      // concatenated onto the previously persisted note.
+      const withNote =
+        intent.workoutNote !== undefined
+          ? applySessionIntent(log, setWorkoutNoteIntent(intent.workoutNote))
+          : log;
+      return {
+        ...withNote,
+        completedAt: intent.completedAt || new Date().toISOString(),
+      };
+    }
+    case SESSION_INTENT.CANCEL:
+      // Cancellation leaves the open Log untouched: no completion timestamp, so
+      // saved progress persists but never becomes completed History.
+      return log;
     default:
       return log;
   }

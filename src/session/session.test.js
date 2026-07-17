@@ -9,6 +9,8 @@ import {
   evaluateSessionRecovery,
   setExerciseNoteIntent,
   setWorkoutNoteIntent,
+  completeSessionIntent,
+  cancelSessionIntent,
   applySessionIntent,
   beginTargetEdit,
   editTargetSet,
@@ -332,6 +334,8 @@ describe('Session note intentions', () => {
     it('exposes the Session intent type constants', () => {
       expect(SESSION_INTENT.SET_EXERCISE_NOTE).toBeTruthy();
       expect(SESSION_INTENT.SET_WORKOUT_NOTE).toBeTruthy();
+      expect(SESSION_INTENT.COMPLETE).toBeTruthy();
+      expect(SESSION_INTENT.CANCEL).toBeTruthy();
     });
 
     it('returns the Log unchanged for a null log or unknown intent', () => {
@@ -360,6 +364,122 @@ describe('Session note intentions', () => {
       expect(decision.action).toBe('resume');
       expect(reloaded.exerciseNotes['Back Squat']).toBe('elbow twinge');
       expect(reloaded.workoutNote).toBe('low energy');
+    });
+  });
+});
+
+describe('Session completion & cancellation intentions', () => {
+  const baseLog = () => buildInitialSessionLog({ logKey: '2026-07-17::Upper A', workout });
+  const FIXED_TS = '2026-07-17T18:30:00.000Z';
+
+  describe('completeSessionIntent + applySessionIntent', () => {
+    it('stamps exactly one completion timestamp', () => {
+      const log = baseLog();
+      const completed = applySessionIntent(log, completeSessionIntent({ completedAt: FIXED_TS }));
+      expect(completed.completedAt).toBe(FIXED_TS);
+      // The completed Log carries a single completedAt field, not an array/duplicate.
+      const stamps = Object.keys(completed).filter((k) => k === 'completedAt');
+      expect(stamps).toHaveLength(1);
+    });
+
+    it('generates a completion timestamp when none is supplied', () => {
+      const log = baseLog();
+      const completed = applySessionIntent(log, completeSessionIntent());
+      expect(typeof completed.completedAt).toBe('string');
+      expect(completed.completedAt.length).toBeGreaterThan(0);
+    });
+
+    it('incorporates a pending Workout note before deriving the final Log', () => {
+      // The athlete typed a final note that was never folded into the Log yet.
+      const log = baseLog();
+      expect(log.workoutNote).toBe('');
+      const completed = applySessionIntent(
+        log,
+        completeSessionIntent({ completedAt: FIXED_TS, workoutNote: 'great session' })
+      );
+      expect(completed.workoutNote).toBe('great session');
+      expect(completed.completedAt).toBe(FIXED_TS);
+    });
+
+    it('does not mutate the original Log (immutable intention)', () => {
+      const log = baseLog();
+      const completed = applySessionIntent(
+        log,
+        completeSessionIntent({ completedAt: FIXED_TS, workoutNote: 'x' })
+      );
+      expect(log.completedAt).toBeNull();
+      expect(log.workoutNote).toBe('');
+      expect(completed).not.toBe(log);
+    });
+
+    it('preserves logged Sets and Exercise notes in the final Log', () => {
+      let log = baseLog();
+      log = applySessionIntent(log, setExerciseNoteIntent('Back Squat', 'RPE 9'));
+      log = logSet(log, {
+        exerciseTitle: 'Back Squat',
+        setIndex: 0,
+        setData: { setIndex: 0, targetReps: 5, actualReps: 5, actualWeight: 135, completed: true, unit: 'lb' },
+      });
+      const completed = applySessionIntent(log, completeSessionIntent({ completedAt: FIXED_TS }));
+      expect(completed.exercises['Back Squat'][0].completed).toBe(true);
+      expect(completed.exerciseNotes['Back Squat']).toBe('RPE 9');
+    });
+
+    it('races a pending Workout note with completion: note is neither lost nor duplicated', () => {
+      // Simulate the race: the Log still holds a stale/empty note while the view
+      // holds the athlete's latest keystrokes as a pending note. Completion must
+      // fold the pending note in exactly once — not drop it, not concatenate it.
+      const stale = applySessionIntent(baseLog(), setWorkoutNoteIntent('felt ok'));
+      const pending = 'felt great, big PRs';
+      const completed = applySessionIntent(
+        stale,
+        completeSessionIntent({ completedAt: FIXED_TS, workoutNote: pending })
+      );
+      // Not lost: the final pending value wins.
+      expect(completed.workoutNote).toBe(pending);
+      // Not duplicated: no concatenation of stale + pending.
+      expect(completed.workoutNote).not.toContain('felt ok');
+      // Idempotent re-derivation from the completed Log keeps a single note.
+      const again = applySessionIntent(completed, setWorkoutNoteIntent(completed.workoutNote));
+      expect(again.workoutNote).toBe(pending);
+    });
+
+    it('leaves the Log unchanged when the pending note matches the current note', () => {
+      const log = applySessionIntent(baseLog(), setWorkoutNoteIntent('steady'));
+      const completed = applySessionIntent(
+        log,
+        completeSessionIntent({ completedAt: FIXED_TS, workoutNote: 'steady' })
+      );
+      expect(completed.workoutNote).toBe('steady');
+      expect(completed.completedAt).toBe(FIXED_TS);
+    });
+  });
+
+  describe('cancelSessionIntent + applySessionIntent', () => {
+    it('never stamps a completion timestamp', () => {
+      const log = baseLog();
+      const cancelled = applySessionIntent(log, cancelSessionIntent());
+      expect(cancelled.completedAt).toBeNull();
+    });
+
+    it('preserves in-progress Sets and notes so saved progress is not lost', () => {
+      let log = baseLog();
+      log = applySessionIntent(log, setWorkoutNoteIntent('halfway'));
+      log = logSet(log, {
+        exerciseTitle: 'Back Squat',
+        setIndex: 0,
+        setData: { setIndex: 0, actualReps: 5, actualWeight: 135, completed: true, unit: 'lb' },
+      });
+      const cancelled = applySessionIntent(log, cancelSessionIntent());
+      expect(cancelled.completedAt).toBeNull();
+      expect(cancelled.workoutNote).toBe('halfway');
+      expect(cancelled.exercises['Back Squat'][0].completed).toBe(true);
+    });
+
+    it('does not turn an open Session into completed History', () => {
+      const cancelled = applySessionIntent(baseLog(), cancelSessionIntent());
+      // A completed History entry requires a completedAt; cancellation must not add one.
+      expect(cancelled.completedAt).toBeFalsy();
     });
   });
 });

@@ -36,6 +36,35 @@ test('quick-starts and completes a workout session', async ({ page }) => {
   await expect(page.getByText('Total Volume (lb)')).toBeVisible();
 });
 
+test('@visual keeps a final Session note typed just before completion', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await quickStartLowerBodyWorkout(page);
+
+  for (let i = 0; i < 7; i += 1) {
+    await completeNextSet(page);
+  }
+
+  // Type a final Session note, then immediately complete — the pending note must
+  // be folded into the completed Log (neither lost nor duplicated).
+  const note = 'felt great, big PRs today';
+  const noteInput = page.getByPlaceholder(/How did the session feel/);
+  await noteInput.fill(note);
+  await captureVisualEvidence(page, testInfo, 'session-note-before-completion');
+
+  await page.getByRole('button', { name: 'Complete Workout' }).click();
+  await expect(page.getByRole('heading', { name: 'Workout complete' })).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  // The note survives into completed History exactly once.
+  await page.getByRole('button', { name: 'History' }).click();
+  await page.locator('.history-card__toggle').first().click();
+  await expect(page.getByText('Session note')).toBeVisible();
+  await expect(page.getByText(note)).toBeVisible();
+  await expect(page.getByText(note)).toHaveCount(1);
+  await captureVisualEvidence(page, testInfo, 'session-note-in-history');
+});
+
 test('@visual set row layout has non-overlapping grid columns', async ({ page, browserName }, testInfo) => {
   await gotoCleanApp(page);
   await importSampleCsv(page);
