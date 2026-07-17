@@ -6,8 +6,8 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
-import { flushPendingPushes, retryFailedPushes } from './storage/sync';
-import { removeLS, clearLS } from './storage/index';
+import { flushReplication, retryReplication, removeByKey } from './storage/authority';
+import { clearLS } from './storage/index';
 import { useToast } from './components/Toast';
 import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
 import {
@@ -43,7 +43,7 @@ import { MessageSquare } from 'lucide-react';
 import './styles/App.css';
 
 // Module-level guard: once set, prevents new state writes from being
-// enqueued between flushPendingPushes() completing and the reload firing.
+// enqueued between flushReplication() completing and the reload firing.
 let syncReloadInProgress = false;
 
 async function safeFlushAndReload(sessionStorageEntries = {}) {
@@ -51,7 +51,7 @@ async function safeFlushAndReload(sessionStorageEntries = {}) {
   syncReloadInProgress = true;
   window.stop(); // abort pending async operations to prevent new writes
   Object.entries(sessionStorageEntries).forEach(([k, v]) => sessionStorage.setItem(k, v));
-  await flushPendingPushes();
+  await flushReplication();
   setTimeout(() => window.location.reload(), 0);
 }
 
@@ -120,7 +120,7 @@ export default function App() {
       if (changed) {
         await safeFlushAndReload({ syncReload: '1' });
       } else if (ok) {
-        retryFailedPushes(); // push any previously-failed keys
+        retryReplication(); // push any previously-failed keys
       }
     });
   }, []);
@@ -256,12 +256,12 @@ export default function App() {
     if (syncReloadInProgress) return;
     syncReloadInProgress = true;
     window.stop();
-    await flushPendingPushes();
+    await flushReplication();
     if (!keys) {
       await clearServer();
       clearLS();
     } else {
-      keys.forEach((k) => removeLS(k));
+      keys.forEach((k) => removeByKey(k));
     }
     sessionStorage.setItem('skipSync', '1');
     setTimeout(() => window.location.reload(), 0);
