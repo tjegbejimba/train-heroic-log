@@ -26,20 +26,6 @@ export function useTemplates() {
     saveTemplates({ ...templates, [id]: { ...templates[id], name: newName } });
   }, [templates, saveTemplates]);
 
-  const duplicateTemplate = useCallback((id) => {
-    if (!templates[id]) return;
-    const original = templates[id];
-    const newId = `tpl_${Date.now()}`;
-    const copy = {
-      ...original,
-      id: newId,
-      name: `${original.name} (Copy)`,
-      createdDate: new Date().toISOString(),
-    };
-    saveTemplate(newId, copy);
-    return newId;
-  }, [templates, saveTemplate]);
-
   const createTemplateFromWorkout = useCallback((workout) => {
     const id = `tpl_${Date.now()}`;
     const template = {
@@ -65,7 +51,6 @@ export function useTemplates() {
     saveTemplate,
     deleteTemplate,
     renameTemplate,
-    duplicateTemplate,
     createTemplateFromWorkout,
   };
 }

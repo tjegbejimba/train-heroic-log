@@ -58,7 +58,6 @@ export default function App() {
     templates,
     templateList,
     saveTemplates,
-    duplicateTemplate,
   } = useTemplates();
   const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
@@ -75,6 +74,13 @@ export default function App() {
 
   const handleDeleteTemplate = (id) =>
     applyWrites(applyTemplateChange(snap(), { type: 'delete', templateId: id }));
+
+  // Duplicate is a Training Plan lifecycle intention, not a direct write: the
+  // orchestrator deep-clones the Template and applies the same collision
+  // handling as create/rename. Returns the applyWrites boolean so callers can
+  // suppress a success toast when the copy was rejected.
+  const handleDuplicateTemplate = (id) =>
+    applyWrites(applyTemplateChange(snap(), { type: 'duplicate', templateId: id }));
 
   // Navigation state — after a sync-triggered reload, always land on Training
   const [navState, setNavState] = useState(() => {
@@ -276,7 +282,7 @@ export default function App() {
     templateList,
     deleteTemplate: handleDeleteTemplate,
     renameTemplate: handleRenameTemplate,
-    duplicateTemplate,
+    duplicateTemplate: handleDuplicateTemplate,
     navigate,
     onClearAllData: handleClearAllData,
     syncStatus,

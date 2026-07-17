@@ -152,8 +152,9 @@ export default function SettingsView({
   };
 
   const handleDuplicate = (id) => {
-    duplicateTemplate(id);
-    showToast('Template duplicated');
+    if (duplicateTemplate(id)) {
+      showToast('Template duplicated');
+    }
   };
 
   // Storage usage via quota module
