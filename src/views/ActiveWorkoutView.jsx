@@ -12,7 +12,7 @@ import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
 import { buildSummary, findPRs } from '../utils/workoutSummary';
-import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, completeSessionIntent, cancelSessionIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
 
 export default function ActiveWorkoutView({
   logKey,
@@ -224,10 +224,17 @@ export default function ActiveWorkoutView({
   }, [commitLog]);
 
   const handleCompleteWorkout = () => {
-    const completed = {
-      ...currentLogRef.current,
-      completedAt: new Date().toISOString(),
-    };
+    // Dispatch the completion intention: fold the athlete's final Workout note
+    // (from the freshest committed Log) and stamp exactly one completion time
+    // before deriving the Log that summary and personal-record inputs read.
+    const source = currentLogRef.current;
+    const completed = applySessionIntent(
+      source,
+      completeSessionIntent({
+        completedAt: new Date().toISOString(),
+        workoutNote: source.workoutNote,
+      })
+    );
     saveLog(logKey, completed);
     hapticSuccess();
     setCompletedLog(completed);
@@ -245,6 +252,12 @@ export default function ActiveWorkoutView({
 
   const handleCancelWorkout = () => {
     setShowCancelModal(false);
+    // Dispatch the cancel intention: it never stamps a completion time, so saved
+    // progress persists without becoming completed History. Persist the derived
+    // (unchanged) Log to honour the "progress saved, not completed" contract,
+    // then clear recovery state via the parent.
+    const cancelled = applySessionIntent(currentLogRef.current, cancelSessionIntent());
+    saveLog(logKey, cancelled);
     onCancel();
   };
 
