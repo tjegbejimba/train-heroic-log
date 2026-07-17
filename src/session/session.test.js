@@ -609,10 +609,21 @@ describe('logSet', () => {
     expect(afterSecond.exercises['Bench Press'][1].completed).toBe(true);
   });
 
-  it('returns the input Log unchanged for an unknown Exercise or out-of-range Set', () => {
+  it('appends a Set when setIndex equals the current length (post target-edit)', () => {
+    const log = restLog();
+    const beforeLen = log.exercises['Bench Press'].length;
+    const appended = { setIndex: beforeLen, targetReps: 5, targetWeight: 135, unit: 'lb', actualReps: 5, actualWeight: 135, completed: true };
+    const next = logSet(log, { exerciseTitle: 'Bench Press', setIndex: beforeLen, setData: appended });
+
+    expect(next.exercises['Bench Press']).toHaveLength(beforeLen + 1);
+    expect(next.exercises['Bench Press'][beforeLen]).toMatchObject({ completed: true, actualReps: 5 });
+  });
+
+  it('returns the input Log unchanged for an unknown Exercise or beyond-append Set', () => {
     const log = restLog();
     expect(logSet(log, { exerciseTitle: 'Nope', setIndex: 0, setData: {} })).toBe(log);
     expect(logSet(log, { exerciseTitle: 'Bench Press', setIndex: 9, setData: {} })).toBe(log);
+    expect(logSet(log, { exerciseTitle: 'Bench Press', setIndex: -1, setData: {} })).toBe(log);
     expect(logSet(null, { exerciseTitle: 'Bench Press', setIndex: 0, setData: {} })).toBeNull();
   });
 });

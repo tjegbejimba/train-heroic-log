@@ -302,7 +302,10 @@ export function discardTargetEdit() {
 export function logSet(log, { exerciseTitle, setIndex, setData }) {
   if (!log || !log.exercises) return log;
   const sets = log.exercises[exerciseTitle];
-  if (!Array.isArray(sets) || setIndex < 0 || setIndex >= sets.length) return log;
+  // Allow setIndex === sets.length so a Set added via target-edit mode (which
+  // grows the Workout before the Log is reconciled) can still be appended and
+  // persisted — matching the pre-module inline behaviour.
+  if (!Array.isArray(sets) || setIndex < 0 || setIndex > sets.length) return log;
 
   return {
     ...log,

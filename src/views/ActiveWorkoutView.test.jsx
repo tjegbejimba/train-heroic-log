@@ -154,4 +154,34 @@ describe('ActiveWorkoutView', () => {
     expect(finalLog.exercises['Back Squat'][0].completed).toBe(true);
     expect(finalLog.exercises['Back Squat'][1].completed).toBe(true);
   });
+
+  it('logs a newly added target Set even when the Log has fewer entries than the Workout', () => {
+    // Reproduces the post target-edit state: the Workout gained a Set but the
+    // active Log has not been reconciled, so its Set array is shorter.
+    const shortLog = {
+      logKey,
+      workoutTitle: 'Full-Body Express',
+      date: '2026-07-04',
+      completedAt: null,
+      startedAt: '2026-07-04T12:00:00.000Z',
+      exercises: {
+        'Back Squat': [
+          { setIndex: 0, targetReps: 8, targetWeight: 185, unit: 'lb', actualReps: 8, actualWeight: 185, completed: true },
+        ],
+      },
+      exerciseNotes: {},
+      workoutNote: '',
+    };
+    const { saveLog } = renderActiveWorkout({
+      workouts: { [twoSetWorkout.title]: twoSetWorkout },
+      logs: { [logKey]: shortLog },
+    });
+
+    // The second (added) row has no logged entry yet; completing it must append.
+    fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
+
+    const finalLog = saveLog.mock.calls.at(-1)[1];
+    expect(finalLog.exercises['Back Squat']).toHaveLength(2);
+    expect(finalLog.exercises['Back Squat'][1].completed).toBe(true);
+  });
 });
