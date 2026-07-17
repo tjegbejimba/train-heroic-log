@@ -12,7 +12,7 @@
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: useDataStore() — single useReducer            │
 │  • Owns ALL domain state in one object                  │
-│  • commit(changes) → writeLS per key → dispatch         │
+│  • commit(changes) → writeByKey per key → dispatch      │
 │  • Actions are stable refs (close over dispatch)        │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Pure operations (operations.js)               │
@@ -143,10 +143,10 @@ export function validateSaveAsTemplate(workout, state)
 ### Layer 2: `src/data/useDataStore.js`
 
 Single `useReducer` owns all domain state. A `commit()` function persists
-changed slices via `writeLS` then dispatches to the reducer.
+changed slices via `writeByKey` then dispatches to the reducer.
 
 ```js
-import { readLS, writeLS } from '../storage/index.js';
+import { readByKey, writeByKey } from '../storage/authority.js';
 import * as ops from './operations.js';
 import {
   LS_TEMPLATES, LS_WORKOUTS, LS_SCHEDULE,
@@ -167,12 +167,12 @@ import {
 
 function initState() {
   return {
-    templates:     readLS(LS_TEMPLATES, {}),
-    workouts:      readLS(LS_WORKOUTS, {}),
-    schedule:      readLS(LS_SCHEDULE, {}),
-    logs:          readLS(LS_WORKOUT_LOGS, {}),
-    youtubeLinks:  readLS(LS_YOUTUBE_LINKS, {}),
-    activeSession: readLS(LS_ACTIVE_SESSION, null),
+    templates:     readByKey(LS_TEMPLATES, {}),
+    workouts:      readByKey(LS_WORKOUTS, {}),
+    schedule:      readByKey(LS_SCHEDULE, {}),
+    logs:          readByKey(LS_WORKOUT_LOGS, {}),
+    youtubeLinks:  readByKey(LS_YOUTUBE_LINKS, {}),
+    activeSession: readByKey(LS_ACTIVE_SESSION, null),
   };
 }
 
@@ -209,7 +209,7 @@ export function useDataStore() {
   const commit = useCallback((changes) => {
     for (const [key, value] of Object.entries(changes)) {
       if (key in LS_KEY_MAP) {
-        writeLS(LS_KEY_MAP[key], value);
+        writeByKey(LS_KEY_MAP[key], value);
       }
     }
     dispatch({ type: 'COMMIT', payload: changes });

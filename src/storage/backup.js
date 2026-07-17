@@ -1,6 +1,5 @@
-import { readLS } from './index';
 import { getBackupKeys } from './registry';
-import { writeByKey, coordinateSyncReload } from './authority';
+import { readByKey, writeByKey, coordinateSyncReload } from './authority';
 
 // The sections a full backup must round-trip, sourced from the shared section
 // registry. The in-progress active session scratch (LS_ACTIVE_SESSION /
@@ -21,7 +20,7 @@ export const NO_SECTIONS_MESSAGE = 'No TrainLog data found in that file';
 export function buildBackup() {
   const backup = {};
   for (const key of BACKUP_KEYS) {
-    backup[key] = readLS(key, {});
+    backup[key] = readByKey(key, {});
   }
   return backup;
 }
