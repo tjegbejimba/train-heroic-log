@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   SESSION_MAX_AGE_DAYS,
+  SESSION_INTENT,
   buildSessionExercises,
   buildInitialSessionLog,
   hasLoggedData,
   isValidWorkout,
   evaluateSessionRecovery,
+  setExerciseNoteIntent,
+  setWorkoutNoteIntent,
+  applySessionIntent,
 } from './session.js';
 
 const workout = {
@@ -238,5 +242,112 @@ describe('evaluateSessionRecovery', () => {
 
   it('exposes the default max age constant', () => {
     expect(SESSION_MAX_AGE_DAYS).toBe(7);
+  });
+});
+
+describe('Session note intentions', () => {
+  const baseLog = () => buildInitialSessionLog({ logKey: '2026-07-17::Upper A', workout });
+
+  describe('setExerciseNoteIntent + applySessionIntent', () => {
+    it('scopes an Exercise Session note to that Exercise only', () => {
+      const log = baseLog();
+      const next = applySessionIntent(log, setExerciseNoteIntent('Back Squat', 'RPE 8, felt strong'));
+
+      expect(next.exerciseNotes['Back Squat']).toBe('RPE 8, felt strong');
+      expect(next.exerciseNotes['Pull-Up']).toBeUndefined();
+    });
+
+    it('does not mutate the original Log (immutable intention)', () => {
+      const log = baseLog();
+      const next = applySessionIntent(log, setExerciseNoteIntent('Back Squat', 'hi'));
+
+      expect(log.exerciseNotes['Back Squat']).toBeUndefined();
+      expect(next).not.toBe(log);
+      expect(next.exerciseNotes).not.toBe(log.exerciseNotes);
+    });
+
+    it('leaves prescribed Sets and the Session Workout note untouched', () => {
+      const log = baseLog();
+      log.workoutNote = 'overall note';
+      const next = applySessionIntent(log, setExerciseNoteIntent('Back Squat', 'note'));
+
+      expect(next.workoutNote).toBe('overall note');
+      expect(next.exercises).toEqual(log.exercises);
+    });
+
+    it('updates an existing Exercise note without disturbing sibling notes', () => {
+      const log = baseLog();
+      const withTwo = applySessionIntent(
+        applySessionIntent(log, setExerciseNoteIntent('Back Squat', 'first')),
+        setExerciseNoteIntent('Pull-Up', 'second')
+      );
+      const updated = applySessionIntent(withTwo, setExerciseNoteIntent('Back Squat', 'edited'));
+
+      expect(updated.exerciseNotes['Back Squat']).toBe('edited');
+      expect(updated.exerciseNotes['Pull-Up']).toBe('second');
+    });
+
+    it('ignores an intention with no Exercise title', () => {
+      const log = baseLog();
+      const next = applySessionIntent(log, setExerciseNoteIntent('', 'orphan'));
+      expect(next).toBe(log);
+    });
+  });
+
+  describe('setWorkoutNoteIntent + applySessionIntent', () => {
+    it('persists the Session Workout note on the current Session', () => {
+      const log = baseLog();
+      const next = applySessionIntent(log, setWorkoutNoteIntent('great pump'));
+      expect(next.workoutNote).toBe('great pump');
+    });
+
+    it('does not mutate the original Log', () => {
+      const log = baseLog();
+      const next = applySessionIntent(log, setWorkoutNoteIntent('tired today'));
+      expect(log.workoutNote).toBe('');
+      expect(next).not.toBe(log);
+    });
+
+    it('leaves Exercise Session notes untouched', () => {
+      const log = applySessionIntent(baseLog(), setExerciseNoteIntent('Back Squat', 'ex note'));
+      const next = applySessionIntent(log, setWorkoutNoteIntent('session note'));
+      expect(next.exerciseNotes['Back Squat']).toBe('ex note');
+      expect(next.workoutNote).toBe('session note');
+    });
+  });
+
+  describe('applySessionIntent guards', () => {
+    it('exposes the Session intent type constants', () => {
+      expect(SESSION_INTENT.SET_EXERCISE_NOTE).toBeTruthy();
+      expect(SESSION_INTENT.SET_WORKOUT_NOTE).toBeTruthy();
+    });
+
+    it('returns the Log unchanged for a null log or unknown intent', () => {
+      const log = baseLog();
+      expect(applySessionIntent(null, setWorkoutNoteIntent('x'))).toBeNull();
+      expect(applySessionIntent(log, null)).toBe(log);
+      expect(applySessionIntent(log, { type: 'nope' })).toBe(log);
+    });
+
+    it('survives crash recovery: notes on a persisted Log round-trip through recovery', () => {
+      // A persisted (crashed) Session Log carrying both note types.
+      let recovered = buildInitialSessionLog({ logKey: '2026-07-17::Upper A', workout });
+      recovered = applySessionIntent(recovered, setExerciseNoteIntent('Back Squat', 'elbow twinge'));
+      recovered = applySessionIntent(recovered, setWorkoutNoteIntent('low energy'));
+
+      // Simulate reload: JSON round-trip through localStorage.
+      const reloaded = JSON.parse(JSON.stringify(recovered));
+
+      const decision = evaluateSessionRecovery({
+        session: { logKey: reloaded.logKey, startedAt: reloaded.startedAt },
+        workout,
+        existingLog: reloaded,
+        now: new Date('2026-07-17T12:00:00.000Z').getTime(),
+      });
+
+      expect(decision.action).toBe('resume');
+      expect(reloaded.exerciseNotes['Back Squat']).toBe('elbow twinge');
+      expect(reloaded.workoutNote).toBe('low energy');
+    });
   });
 });
