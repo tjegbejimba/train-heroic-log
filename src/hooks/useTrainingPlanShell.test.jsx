@@ -81,7 +81,18 @@ describe('useTrainingPlanShell — committed Training Plan snapshot', () => {
       shell.applyWrites(applyTemplateChange(shell.snap(), createChange('Lower B', 'idB')));
     });
 
-    expect(result.current.shell.snap().templates).toEqual(expected.templates);
+    // Compare structure without the per-call `createdDate` timestamp, which the
+    // orchestrator stamps from `new Date()` on each invocation and can differ by
+    // a millisecond between the hand-folded expectation and the shell's writes.
+    const stripDates = (templates) =>
+      Object.fromEntries(
+        Object.entries(templates).map(([id, t]) => {
+          const { createdDate, ...rest } = t;
+          return [id, rest];
+        })
+      );
+
+    expect(stripDates(result.current.shell.snap().templates)).toEqual(stripDates(expected.templates));
   });
 
   it('leaves committed state intact when an action is rejected and never exposes a partial snapshot', () => {
