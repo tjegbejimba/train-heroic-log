@@ -15,6 +15,57 @@ import { parseLogKey } from '../constants';
 export const SESSION_MAX_AGE_DAYS = 7;
 
 /**
+ * Named Session intentions. Editing interactions describe *what* changed as one
+ * of these intentions and hand it to {@link applySessionIntent}, which returns a
+ * new Session Log. Views never mutate persisted note state directly.
+ */
+export const SESSION_INTENT = {
+  SET_EXERCISE_NOTE: 'session/set-exercise-note',
+  SET_WORKOUT_NOTE: 'session/set-workout-note',
+};
+
+/**
+ * Intention: set the Session note scoped to a single Exercise. This is distinct
+ * from the Exercise's form notes (`exercise.notes`) and its workout-specific
+ * notes (`exercise.workoutNotes`), which live on the Workout definition, not the
+ * Session Log.
+ */
+export function setExerciseNoteIntent(exerciseTitle, note) {
+  return { type: SESSION_INTENT.SET_EXERCISE_NOTE, exerciseTitle, note };
+}
+
+/** Intention: set the overall Session Workout note on the current Session. */
+export function setWorkoutNoteIntent(note) {
+  return { type: SESSION_INTENT.SET_WORKOUT_NOTE, note };
+}
+
+/**
+ * Apply a Session intention to a Session Log, returning a new Log. Pure and
+ * immutable: the input Log is never mutated, so recovered/persisted state stays
+ * intact. Unknown intentions and null Logs are returned unchanged.
+ */
+export function applySessionIntent(log, intent) {
+  if (!log || !intent) return log;
+
+  switch (intent.type) {
+    case SESSION_INTENT.SET_EXERCISE_NOTE: {
+      if (!intent.exerciseTitle) return log;
+      return {
+        ...log,
+        exerciseNotes: {
+          ...(log.exerciseNotes || {}),
+          [intent.exerciseTitle]: intent.note,
+        },
+      };
+    }
+    case SESSION_INTENT.SET_WORKOUT_NOTE:
+      return { ...log, workoutNote: intent.note };
+    default:
+      return log;
+  }
+}
+
+/**
  * Build the prescribed Set targets map for a Workout: exerciseTitle -> Set[].
  * Each entry mirrors the prescribed reps/weight/unit and starts uncompleted.
  */

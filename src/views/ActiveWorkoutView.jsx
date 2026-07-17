@@ -15,7 +15,7 @@ import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
 import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
-import { buildInitialSessionLog, buildSessionExercises, hasLoggedData } from '../session/session';
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent } from '../session/session';
 
 function findNextActiveWorkoutSet(workout, currentLog) {
   if (!workout?.blocks || !currentLog?.exercises) return null;
@@ -255,19 +255,13 @@ export default function ActiveWorkoutView({
   };
 
   const updateExerciseNote = (exerciseTitle, note) => {
-    const updated = {
-      ...currentLog,
-      exerciseNotes: {
-        ...(currentLog.exerciseNotes || {}),
-        [exerciseTitle]: note,
-      },
-    };
+    const updated = applySessionIntent(currentLog, setExerciseNoteIntent(exerciseTitle, note));
     setCurrentLog(updated);
     saveLog(logKey, updated);
   };
 
   const updateWorkoutNote = useCallback((note) => {
-    const updated = { ...currentLog, workoutNote: note };
+    const updated = applySessionIntent(currentLog, setWorkoutNoteIntent(note));
     setCurrentLog(updated);
     saveLog(logKey, updated);
   }, [currentLog, logKey, saveLog]);

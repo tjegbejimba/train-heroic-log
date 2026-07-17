@@ -7,7 +7,6 @@ import {
   importSampleCsv,
   quickStartLowerBodyWorkout,
 } from './helpers';
-
 // Simulates a crash: an active Session is left in localStorage mid-Workout,
 // then the PWA is reloaded. The Session module drives the resume decision.
 
@@ -66,4 +65,36 @@ test('discarding an unfinished Session clears it and returns to Training', async
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Resume Workout?' })).toHaveCount(0);
+});
+
+test('@visual Exercise and Session Workout notes survive crash recovery and resume', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await quickStartLowerBodyWorkout(page);
+
+  // Log a Set so recovery treats this as a resumable Session.
+  await completeNextSet(page);
+
+  // Add an Exercise-scoped Session note on the first Exercise.
+  await page.getByRole('button', { name: 'Add a note…' }).first().click();
+  const exerciseNoteInput = page.getByPlaceholder('Note (e.g. felt weak, RPE 8, elbow pain)');
+  await exerciseNoteInput.fill('elbow twinge, RPE 8');
+  await exerciseNoteInput.blur();
+
+  // Add the overall Session Workout note.
+  const sessionNoteInput = page.getByPlaceholder(/How did the session feel/);
+  await sessionNoteInput.fill('low energy today');
+  await sessionNoteInput.blur();
+
+  // "Crash" mid-Session, then resume.
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Resume Workout?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Resume' }).click();
+  await expect(page.getByRole('button', { name: 'Finish (1/7 sets)' })).toBeVisible();
+
+  // Both note types are recovered, each on its own field.
+  await expect(page.getByRole('button', { name: /elbow twinge, RPE 8/ })).toBeVisible();
+  await expect(page.getByPlaceholder(/How did the session feel/)).toHaveValue('low energy today');
+
+  await captureVisualEvidence(page, testInfo, 'session-notes-recovered', { fullPage: true });
 });
