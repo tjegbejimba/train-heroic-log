@@ -1,21 +1,10 @@
 import { readLS } from './index';
-import {
-  LS_WORKOUTS,
-  LS_SCHEDULE,
-  LS_YOUTUBE_LINKS,
-  LS_WORKOUT_LOGS,
-  LS_TEMPLATES,
-} from '../constants';
+import { getBackupKeys } from './registry';
 
-// The five sections a full backup must round-trip. The in-progress active
-// session scratch (LS_ACTIVE_SESSION / th_active) is intentionally excluded.
-export const BACKUP_KEYS = [
-  LS_WORKOUTS,
-  LS_SCHEDULE,
-  LS_YOUTUBE_LINKS,
-  LS_WORKOUT_LOGS,
-  LS_TEMPLATES,
-];
+// The sections a full backup must round-trip, sourced from the shared section
+// registry. The in-progress active session scratch (LS_ACTIVE_SESSION /
+// th_active) is registered with `backup: false`, so it is intentionally excluded.
+export const BACKUP_KEYS = getBackupKeys();
 
 /**
  * Build a complete backup snapshot. Every required section is always present —
