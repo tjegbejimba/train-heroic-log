@@ -7,12 +7,28 @@
  * 3. On startup, pull from server and merge (server wins for data you haven't touched locally)
  */
 
-import { readLS, writeLS, removeLS } from './index';
 import { planSectionMerge } from './merge';
 import { createRetryState, recordFailure, dropKey, getFailedEntries, shouldRetry, getBackoffMs } from './retry';
 
 // API base URL — in production, same origin; in dev, point to backend port
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+/**
+ * Read and parse a durable value straight from localStorage.
+ *
+ * The replication engine owns its own low-level read so it no longer depends on
+ * the retired `storage/index` helpers — removing the former circular dependency
+ * between the two modules. Matches the old `readLS(key, null)` contract: absent
+ * or malformed data degrades to `null`.
+ */
+function readRaw(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
@@ -26,7 +42,7 @@ try {
     const parsed = JSON.parse(stored);
     // Migrate from old Set format (array of strings) to new state format
     if (Array.isArray(parsed)) {
-      parsed.forEach((k) => { retryState = recordFailure(retryState, k, readLS(k, null), null); });
+      parsed.forEach((k) => { retryState = recordFailure(retryState, k, readRaw(k), null); });
     } else {
       retryState = createRetryState(parsed);
     }
@@ -94,8 +110,10 @@ export async function pullFromServer() {
           pushToServer(key, plan.value);
           break;
         case 'remove':
-          // Intentional deletion — remove local key if present.
-          removeLS(key);
+          // Intentional deletion — remove local key and replicate the deletion,
+          // matching the old removeLS behavior (localStorage.removeItem + push null).
+          localStorage.removeItem(key);
+          pushToServer(key, null);
           changed = true;
           changedKeys.push(key);
           break;
@@ -209,7 +227,7 @@ export async function flushPendingPushes() {
   if (keys.length === 0) return;
   await Promise.all(keys.map(async (key) => {
     try {
-      const data = readLS(key, null);
+      const data = readRaw(key);
       const res = await fetch(`${API_BASE}/data/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -225,7 +243,7 @@ export async function flushPendingPushes() {
         persistRetryState();
       }
     } catch {
-      const data = readLS(key, null);
+      const data = readRaw(key);
       retryState = recordFailure(retryState, key, data, null);
       persistRetryState();
     }
@@ -277,7 +295,7 @@ export async function pushAllToServer(keys) {
   try {
     const payload = {};
     for (const key of keys) {
-      payload[key] = readLS(key, null);
+      payload[key] = readRaw(key);
     }
     const res = await fetch(`${API_BASE}/data`, {
       method: 'PUT',
@@ -339,7 +357,7 @@ if (typeof window !== 'undefined') {
     }
     for (const key of keys) {
       try {
-        const data = readLS(key, null);
+        const data = readRaw(key);
         const payload = JSON.stringify({ data });
         const url = `${API_BASE}/data/${key}`;
         const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
@@ -347,7 +365,7 @@ if (typeof window !== 'undefined') {
           retryState = recordFailure(retryState, key, data, null);
         }
       } catch {
-        const data = readLS(key, null);
+        const data = readRaw(key);
         retryState = recordFailure(retryState, key, data, null);
       }
     }

@@ -4,12 +4,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mocks — must be set up before importing the module under test
 // ---------------------------------------------------------------------------
 
-// Mock ./index to break circular dependency and control readLS/writeLS/removeLS
-vi.mock('./index', () => ({
-  readLS: vi.fn(),
-  writeLS: vi.fn(),
-  removeLS: vi.fn(),
-}));
+// sync.js no longer imports the retired ./index persistence helpers, so there is
+// no circular dependency to mock away. The engine reads/removes durable data
+// through localStorage directly, which we stub below and assert against.
 
 // Stub browser globals before any import touches them
 const localStorageStore = {};
@@ -62,8 +59,6 @@ import {
   setSyncEnabled,
   hasPendingPushes,
 } from './sync';
-
-import { readLS, writeLS, removeLS } from './index';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,7 +128,7 @@ describe('sync.js', () => {
       const result = await pullFromServer();
 
       expect(result).toEqual({ ok: true, changed: false });
-      expect(writeLS).not.toHaveBeenCalled();
+      expect(localStorage.setItem).not.toHaveBeenCalled();
     });
 
     it('server wins on same-key conflicts (merge)', async () => {
@@ -169,8 +164,8 @@ describe('sync.js', () => {
       // Only th_workouts is touched; the test verifies that pullFromServer
       // only iterates server keys — it never deletes local keys not in server
       expect(result).toEqual({ ok: true, changed: true });
-      // removeLS should NOT have been called for any key
-      expect(removeLS).not.toHaveBeenCalled();
+      // localStorage.removeItem should NOT have been called for any key
+      expect(localStorage.removeItem).not.toHaveBeenCalled();
     });
 
     it('pushes local data to server when server has null data and null updatedAt', async () => {
@@ -184,7 +179,7 @@ describe('sync.js', () => {
 
       expect(result).toEqual({ ok: true, changed: false });
       // Should not write to local, but should trigger a push
-      expect(writeLS).not.toHaveBeenCalled();
+      expect(localStorage.setItem).not.toHaveBeenCalled();
       // pushToServer is called internally — we can verify via the pending push
       // Since pushToServer sets a timeout, we check hasPendingPushes
       expect(hasPendingPushes()).toBe(true);
@@ -199,7 +194,7 @@ describe('sync.js', () => {
       const result = await pullFromServer();
 
       expect(result).toEqual({ ok: true, changed: true });
-      expect(removeLS).toHaveBeenCalledWith('th_workouts');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('th_workouts');
     });
 
     it('server overwrites local for non-object data (arrays)', async () => {
@@ -223,7 +218,7 @@ describe('sync.js', () => {
       const result = await pullFromServer();
 
       expect(result).toEqual({ ok: false, changed: false });
-      expect(writeLS).not.toHaveBeenCalled();
+      expect(localStorage.setItem).not.toHaveBeenCalled();
     });
 
     it('isolates a malformed server section so other sections still sync', async () => {
@@ -273,7 +268,7 @@ describe('sync.js', () => {
       const result = await pullFromServer();
 
       expect(result).toEqual({ ok: true, changed: false });
-      expect(removeLS).not.toHaveBeenCalled();
+      expect(localStorage.removeItem).not.toHaveBeenCalled();
       expect(localStorage.setItem).not.toHaveBeenCalled();
     });
 
@@ -299,8 +294,9 @@ describe('sync.js', () => {
       pushToServer('th_workouts', { some: 'data' });
       expect(hasPendingPushes()).toBe(true);
 
-      // Mock fetch for the flush and readLS for reading current data
-      readLS.mockReturnValue({ some: 'data' });
+      // Set current data in localStorage for the flush to read, and mock fetch
+      localStorage.getItem.mockImplementation((key) => localStorageStore[key] ?? null);
+      localStorageStore['th_workouts'] = JSON.stringify({ some: 'data' });
       mockFetchOk();
 
       // Flush immediately — should fire fetch without advancing timers

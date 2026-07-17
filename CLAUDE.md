@@ -75,7 +75,7 @@ There is no React Router. Navigation is state-based: `App.jsx` holds a `navState
 
 ### Data Layer
 
-Seven custom hooks in `src/hooks/` manage all persistence via `readLS`/`writeLS` helpers in `src/storage/index.js`. Each hook owns one `localStorage` key (defined in `src/constants.js`). All hooks follow the same pattern: read from localStorage on init, expose state + updater functions that write back. `writeLS` automatically triggers a background push to the NAS API via `src/storage/sync.js`.
+Custom hooks in `src/hooks/` manage all persistence through the offline-persistence **authority** (`src/storage/authority.js`) via its `readByKey`/`writeByKey`/`removeByKey` helpers. Each hook owns one `localStorage` key (defined in `src/constants.js`) and is built with `createEntityHook`. All hooks follow the same pattern: read from the authority on init, expose state + updater functions that write back. `writeByKey` commits locally first, then triggers a background push to the NAS API through the shared replication engine (`src/storage/sync.js`), which the authority fronts.
 
 | Hook | Key | Data |
 |------|-----|------|
@@ -108,11 +108,13 @@ When updating `notes` from the Library, `onUpdateExerciseNotes` in App.jsx propa
 
 ### Sync Flow Details
 
-All writes go through `writeLS(key, value)` in `src/storage/index.js`, which:
-1. Writes to localStorage immediately
-2. Calls `pushToServer(key, value)` — **debounced 500ms** per key
+All durable writes go through `writeByKey(key, value)` on the authority (`src/storage/authority.js`), which:
+1. Commits to localStorage immediately (via the persistence seam + browser-storage adapter)
+2. Triggers `pushToServer(key, value)` on the shared replication engine — **debounced 500ms** per key
 
-On app startup, `pullFromServer()` is called and merges server data into localStorage:
+The authority is the single owner of background replication; production code reaches the engine only through the authority's facade (`pullReplication`, `flushReplication`, `retryReplication`, `pushAllReplication`, `clearReplication`, `checkReplicationHealth`, `coordinateSyncReload`). The engine (`src/storage/sync.js`) no longer imports the durable read/write path, so there is no circular dependency.
+
+On app startup, `pullReplication()` (→ `pullFromServer()`) merges server data into localStorage:
 - **Merge strategy: server wins on same-key conflicts**, local-only keys are preserved
 - If `changed=true`, the app flushes pending pushes then reloads (`window.location.reload()`)
 - After a successful pull with no changes, any previously-failed push keys are retried
@@ -126,7 +128,7 @@ On app startup, `pullFromServer()` is called and merges server data into localSt
 
 **Always call `flushPendingPushes()` before `window.location.reload()`** to avoid data loss from writes that haven't left the debounce timer yet. This is done in App.jsx before all sync-triggered reloads.
 
-**Never use `localStorage.setItem` directly** — always use `writeLS` so the sync layer is triggered.
+**Never use `localStorage.setItem` directly** — always use `writeByKey` (the authority) so replication is triggered.
 
 ### Backup / Restore
 
@@ -139,7 +141,7 @@ Export backup (`Settings → Export Backup`) includes:
 
 **Not included:** `th_active` (in-progress session scratch pad — intentionally excluded).
 
-A full backup captures everything needed to restore: templates, exercises, notes (both kinds), YouTube links, and all logged history. Restore (`Settings → Restore from Backup`) uses `writeLS` per key, flushes to server, then sets `skipSync` before reloading so the pull doesn't server-wins merge over the restored data.
+A full backup captures everything needed to restore: templates, exercises, notes (both kinds), YouTube links, and all logged history. Restore (`Settings → Restore from Backup`) persists each section through the authority (`writeByKey`) inside the reload-safe `coordinateSyncReload` coordinator, which flushes to the server and sets `skipSync` before reloading so the pull doesn't server-wins merge over the restored data.
 
 ### App.jsx
 

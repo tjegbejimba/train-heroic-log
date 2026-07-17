@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// buildBackup reads through the storage layer; mock it with a plain store so the
-// test is deterministic and independent of any localStorage polyfill.
-vi.mock('../storage/index', () => {
-  const store = {};
-  return {
-    readLS: (key, fallback) => (key in store ? store[key] : fallback),
-    __store: store,
-  };
+// buildBackup reads durable sections through the persistence authority, which
+// wraps `globalThis.localStorage`. We inject a complete in-memory Storage fake
+// and let the *production* authority read it back — a fake adapter at the
+// storage boundary, not a mock that breaks a circular dependency.
+const lsStore = new Map();
+vi.stubGlobal('localStorage', {
+  getItem: (key) => (lsStore.has(key) ? lsStore.get(key) : null),
+  setItem: (key, value) => { lsStore.set(key, String(value)); },
+  removeItem: (key) => { lsStore.delete(key); },
+  clear: () => { lsStore.clear(); },
+  key: (i) => [...lsStore.keys()][i] ?? null,
+  get length() { return lsStore.size; },
 });
 
 import {
@@ -17,7 +21,6 @@ import {
   restoreBackup,
   NO_SECTIONS_MESSAGE,
 } from './backup';
-import { __store as store } from '../storage/index';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -27,8 +30,13 @@ import {
   LS_ACTIVE_SESSION,
 } from '../constants';
 
+/** Seed a durable section into localStorage as buildBackup will read it. */
+function seed(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 beforeEach(() => {
-  Object.keys(store).forEach((k) => delete store[k]);
+  lsStore.clear();
 });
 
 describe('buildBackup', () => {
@@ -44,8 +52,8 @@ describe('buildBackup', () => {
   });
 
   it('captures existing data while defaulting only the empty sections to {}', () => {
-    store[LS_WORKOUTS] = { 'Upper A': { title: 'Upper A' } };
-    store[LS_SCHEDULE] = { '2026-07-06': 'Upper A' };
+    seed(LS_WORKOUTS, { 'Upper A': { title: 'Upper A' } });
+    seed(LS_SCHEDULE, { '2026-07-06': 'Upper A' });
 
     const backup = buildBackup();
 
@@ -58,7 +66,7 @@ describe('buildBackup', () => {
   });
 
   it('never includes the in-progress active-session scratch key', () => {
-    store[LS_ACTIVE_SESSION] = { inProgress: true };
+    seed(LS_ACTIVE_SESSION, { inProgress: true });
     const backup = buildBackup();
     expect(BACKUP_KEYS).not.toContain(LS_ACTIVE_SESSION);
     expect(backup).not.toHaveProperty(LS_ACTIVE_SESSION);

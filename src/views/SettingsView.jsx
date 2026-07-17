@@ -7,7 +7,7 @@ import {
   saveReminderConfig,
 } from '../storage/push';
 import { downloadICS } from '../utils/ics';
-import { readLS } from '../storage/index';
+import { readByKey } from '../storage/authority';
 import { useSettings } from '../hooks/useSettings';
 import { getQuotaUsage, getQuotaWarning } from '../storage/quota';
 import {
@@ -116,8 +116,8 @@ export default function SettingsView({
   const [exportUntil, setExportUntil] = useState('');
 
   const handleExportCalendar = () => {
-    const schedule = readLS('th_schedule', {});
-    const workouts = readLS('th_workouts', {});
+    const schedule = readByKey(LS_SCHEDULE, {});
+    const workouts = readByKey(LS_WORKOUTS, {});
     const filtered = Object.keys(schedule).filter(
       (d) => d >= today && (!exportUntil || d <= exportUntil)
     );
