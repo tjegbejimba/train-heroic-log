@@ -225,6 +225,45 @@ describe('sync.js', () => {
       expect(result).toEqual({ ok: false, changed: false });
       expect(writeLS).not.toHaveBeenCalled();
     });
+
+    it('isolates a malformed server section so other sections still sync', async () => {
+      // th_bad is unprocessable (null entry — destructuring { data, updatedAt } throws);
+      // th_workouts is a valid section that must still be written.
+      mockFetchJson({
+        th_bad: null,
+        th_workouts: { data: { 'Upper A': { title: 'Upper A' } }, updatedAt: '2024-01-01' },
+      });
+      localStorage.getItem.mockReturnValue(null);
+
+      const result = await pullFromServer();
+
+      // The pull as a whole succeeds and reports the good section as changed.
+      expect(result).toEqual({ ok: true, changed: true });
+      // The good section was written despite the malformed sibling.
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'th_workouts',
+        JSON.stringify({ 'Upper A': { title: 'Upper A' } })
+      );
+    });
+
+    it('does not abort the pull when one section throws mid-loop', async () => {
+      // Two malformed sections surround a valid one; only the valid one is applied.
+      mockFetchJson({
+        th_bad1: null,
+        th_schedule: { data: { '2024-01-01': 'Upper A' }, updatedAt: '2024-01-01' },
+        th_bad2: 42,
+      });
+      localStorage.getItem.mockReturnValue(null);
+
+      const result = await pullFromServer();
+
+      expect(result.ok).toBe(true);
+      expect(result.changed).toBe(true);
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'th_schedule',
+        JSON.stringify({ '2024-01-01': 'Upper A' })
+      );
+    });
   });
 
   // =========================================================================

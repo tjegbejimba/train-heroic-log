@@ -6,7 +6,7 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
-import { flushReplication, retryReplication, removeByKey } from './storage/authority';
+import { retryReplication, removeByKey, coordinateSyncReload } from './storage/authority';
 import { clearLS } from './storage/index';
 import { useToast } from './components/Toast';
 import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
@@ -42,17 +42,10 @@ import { MessageSquare } from 'lucide-react';
 
 import './styles/App.css';
 
-// Module-level guard: once set, prevents new state writes from being
-// enqueued between flushReplication() completing and the reload firing.
-let syncReloadInProgress = false;
-
+// The persistence authority owns the exactly-once, reload-safe sequence
+// (final flush → skip-next-pull → single reload); App just names the flow.
 async function safeFlushAndReload(sessionStorageEntries = {}) {
-  if (syncReloadInProgress) return;
-  syncReloadInProgress = true;
-  window.stop(); // abort pending async operations to prevent new writes
-  Object.entries(sessionStorageEntries).forEach(([k, v]) => sessionStorage.setItem(k, v));
-  await flushReplication();
-  setTimeout(() => window.location.reload(), 0);
+  await coordinateSyncReload({ sessionFlags: sessionStorageEntries });
 }
 
 export default function App() {
@@ -253,18 +246,16 @@ export default function App() {
 
   // Shared clear-all handler (used by SettingsView in two routes)
   const handleClearAllData = useCallback(async (keys) => {
-    if (syncReloadInProgress) return;
-    syncReloadInProgress = true;
-    window.stop();
-    await flushReplication();
-    if (!keys) {
-      await clearServer();
-      clearLS();
-    } else {
-      keys.forEach((k) => removeByKey(k));
-    }
-    sessionStorage.setItem('skipSync', '1');
-    setTimeout(() => window.location.reload(), 0);
+    await coordinateSyncReload({
+      mutate: async () => {
+        if (!keys) {
+          await clearServer();
+          clearLS();
+        } else {
+          keys.forEach((k) => removeByKey(k));
+        }
+      },
+    });
   }, [clearServer]);
 
   const handlePullSync = useCallback(async () => {

@@ -8,7 +8,7 @@
  */
 
 import { readLS, writeLS, removeLS } from './index';
-import { deepMerge } from './merge';
+import { planSectionMerge } from './merge';
 import { createRetryState, recordFailure, dropKey, getFailedEntries, shouldRetry, getBackoffMs } from './retry';
 
 // API base URL — in production, same origin; in dev, point to backend port
@@ -71,56 +71,39 @@ export async function pullFromServer() {
 
     let changed = false;
     const changedKeys = [];
-    for (const [key, { data, updatedAt }] of Object.entries(serverData)) {
-      // Read the raw stored string once — used for efficient change detection
-      // below (avoids re-serializing local and sidesteps key-order false positives)
-      const localRaw = localStorage.getItem(key);
-      let local = null;
-      if (localRaw) {
-        try {
-          local = JSON.parse(localRaw);
-        } catch (e) {
-          console.warn(`Ignoring malformed localStorage value for key "${key}" during sync pull`, e);
-          local = null;
-        }
-      }
+    for (const [key, entry] of Object.entries(serverData)) {
+      // Isolate every section: a malformed or unprocessable entry is skipped so
+      // it can never prevent the remaining sections from syncing.
+      try {
+        // Read the raw stored string once — used for efficient change detection
+        // inside planSectionMerge (avoids re-serializing local and sidesteps
+        // key-order false positives).
+        const localRaw = localStorage.getItem(key);
+        const plan = planSectionMerge(localRaw, entry);
 
-      if (data === null) {
-        if (updatedAt === null) {
-          // Server has no file yet — push local data up so offline writes aren't lost
-          if (local !== null) {
-            pushToServer(key, local);
-          }
-        } else {
-          // Intentional deletion — remove local key if present
-          if (local !== null) {
+        switch (plan.action) {
+          case 'push':
+            // Server has no file yet — push local data up so offline writes aren't lost.
+            pushToServer(key, plan.value);
+            break;
+          case 'remove':
+            // Intentional deletion — remove local key if present.
             removeLS(key);
             changed = true;
             changedKeys.push(key);
-          }
+            break;
+          case 'write':
+            // Write directly to localStorage (bypassing writeLS) so we don't
+            // enqueue a redundant push back to the server for data we just pulled.
+            localStorage.setItem(key, plan.serialized);
+            changed = true;
+            changedKeys.push(key);
+            break;
+          default:
+            break;
         }
-        continue;
-      }
-
-      let merged;
-      if (
-        local !== null &&
-        typeof local === 'object' && !Array.isArray(local) &&
-        typeof data === 'object' && !Array.isArray(data)
-      ) {
-        // Merge maps: deep merge preserves local-only nested fields, server wins at leaf
-        merged = deepMerge(local, data);
-      } else {
-        merged = data;
-      }
-      // One stringify (merged) compared against the already-stored raw string.
-      // Write directly to localStorage (bypassing writeLS) so we don't enqueue
-      // a redundant push back to the server for data we just pulled from it.
-      const mergedStr = JSON.stringify(merged);
-      if (mergedStr !== localRaw) {
-        localStorage.setItem(key, mergedStr);
-        changed = true;
-        changedKeys.push(key);
+      } catch (e) {
+        console.warn(`Ignoring malformed server section "${key}" during sync pull`, e);
       }
     }
     if (changed) {
