@@ -264,6 +264,30 @@ describe('sync.js', () => {
         JSON.stringify({ '2024-01-01': 'Upper A' })
       );
     });
+
+    it('skips a section whose server entry is missing data (never deletes local)', async () => {
+      // A malformed entry lacking `data` must not be read as an intentional deletion.
+      mockFetchJson({ th_workouts: { updatedAt: '2024-01-01' } });
+      localStorage.getItem.mockReturnValue(JSON.stringify({ keep: 1 }));
+
+      const result = await pullFromServer();
+
+      expect(result).toEqual({ ok: true, changed: false });
+      expect(removeLS).not.toHaveBeenCalled();
+      expect(localStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('returns ok=false when persisting a valid server section fails locally (quota)', async () => {
+      // A local write failure is a real pull failure, not a malformed server section:
+      // it must surface as ok:false rather than being silently swallowed.
+      mockFetchJson({ th_workouts: { data: { a: 1 }, updatedAt: '2024-01-01' } });
+      localStorage.getItem.mockReturnValue(null);
+      localStorage.setItem.mockImplementationOnce(() => { throw new Error('QuotaExceededError'); });
+
+      const result = await pullFromServer();
+
+      expect(result).toEqual({ ok: false, changed: false });
+    });
   });
 
   // =========================================================================

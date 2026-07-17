@@ -116,4 +116,20 @@ describe('planSectionMerge', () => {
     expect(plan.action).toBe('write');
     expect(plan.value).toEqual({ a: 1 });
   });
+
+  it('throws for an entry missing the data field so the caller skips it (no deletion)', () => {
+    // A well-formed server entry always carries a `data` key (possibly null); a
+    // missing `data` is malformed and must not be read as an intentional deletion.
+    expect(() => planSectionMerge(JSON.stringify({ keep: 1 }), { updatedAt: '2024-01-01' })).toThrow();
+  });
+
+  it('throws for an entry with explicitly undefined data', () => {
+    expect(() => planSectionMerge(null, { data: undefined, updatedAt: null })).toThrow();
+  });
+
+  it('throws for a non-object server entry', () => {
+    expect(() => planSectionMerge(null, 42)).toThrow();
+    expect(() => planSectionMerge(null, null)).toThrow();
+    expect(() => planSectionMerge(null, [1, 2])).toThrow();
+  });
 });

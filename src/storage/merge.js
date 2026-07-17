@@ -43,9 +43,21 @@ export function deepMerge(local, server) {
  *          | { action: 'push', value: unknown }
  *          | { action: 'remove' }
  *          | { action: 'none' }}
+ * @throws {TypeError} when `serverEntry` is malformed (not an object, or missing
+ *   its `data` field) so the caller can skip the section without touching local data.
  */
 export function planSectionMerge(localRaw, serverEntry) {
+  if (
+    serverEntry === null || typeof serverEntry !== 'object' || Array.isArray(serverEntry)
+  ) {
+    throw new TypeError('planSectionMerge: malformed server entry (not an object)');
+  }
   const { data, updatedAt } = serverEntry;
+  // A well-formed entry always carries a `data` key (possibly null). Missing or
+  // undefined `data` is malformed — never interpret it as a deletion/push.
+  if (data === undefined) {
+    throw new TypeError('planSectionMerge: malformed server entry (missing "data")');
+  }
 
   let local = null;
   if (localRaw !== null && localRaw !== undefined) {
@@ -57,7 +69,7 @@ export function planSectionMerge(localRaw, serverEntry) {
     }
   }
 
-  if (data === null || data === undefined) {
+  if (data === null) {
     if (updatedAt === null || updatedAt === undefined) {
       // Server has no file yet — push local up so offline writes aren't lost.
       return local !== null ? { action: 'push', value: local } : { action: 'none' };

@@ -72,38 +72,42 @@ export async function pullFromServer() {
     let changed = false;
     const changedKeys = [];
     for (const [key, entry] of Object.entries(serverData)) {
-      // Isolate every section: a malformed or unprocessable entry is skipped so
-      // it can never prevent the remaining sections from syncing.
+      // Isolate malformed server sections: a section whose entry can't be planned
+      // is skipped so it can never prevent the remaining sections from syncing.
+      // Local persistence errors (below) are NOT swallowed here — they are real
+      // pull failures and propagate to the outer catch as { ok: false }.
+      let plan;
       try {
         // Read the raw stored string once — used for efficient change detection
         // inside planSectionMerge (avoids re-serializing local and sidesteps
         // key-order false positives).
         const localRaw = localStorage.getItem(key);
-        const plan = planSectionMerge(localRaw, entry);
-
-        switch (plan.action) {
-          case 'push':
-            // Server has no file yet — push local data up so offline writes aren't lost.
-            pushToServer(key, plan.value);
-            break;
-          case 'remove':
-            // Intentional deletion — remove local key if present.
-            removeLS(key);
-            changed = true;
-            changedKeys.push(key);
-            break;
-          case 'write':
-            // Write directly to localStorage (bypassing writeLS) so we don't
-            // enqueue a redundant push back to the server for data we just pulled.
-            localStorage.setItem(key, plan.serialized);
-            changed = true;
-            changedKeys.push(key);
-            break;
-          default:
-            break;
-        }
+        plan = planSectionMerge(localRaw, entry);
       } catch (e) {
         console.warn(`Ignoring malformed server section "${key}" during sync pull`, e);
+        continue;
+      }
+
+      switch (plan.action) {
+        case 'push':
+          // Server has no file yet — push local data up so offline writes aren't lost.
+          pushToServer(key, plan.value);
+          break;
+        case 'remove':
+          // Intentional deletion — remove local key if present.
+          removeLS(key);
+          changed = true;
+          changedKeys.push(key);
+          break;
+        case 'write':
+          // Write directly to localStorage (bypassing writeLS) so we don't enqueue
+          // a redundant push back to the server for data we just pulled.
+          localStorage.setItem(key, plan.serialized);
+          changed = true;
+          changedKeys.push(key);
+          break;
+        default:
+          break;
       }
     }
     if (changed) {
