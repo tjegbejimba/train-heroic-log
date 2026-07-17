@@ -38,6 +38,56 @@ describe('applyTemplateChange — delete', () => {
     const result = applyTemplateChange(baseSnap, { type: 'delete', templateId: 'nonexistent' });
     expect(result.error).toBeDefined();
   });
+
+  it('preserves the materialized workout when a future schedule references it', () => {
+    const snap = {
+      ...baseSnap,
+      schedule: { '2026-06-01': 'Upper A' },
+      logs: {},
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'delete',
+      templateId: 'tpl_1',
+      today: '2026-03-15',
+    });
+    expect(result.templates.tpl_1).toBeUndefined();
+    // Workout kept because a future session still needs it.
+    expect(result.workouts).toBeUndefined();
+    // The future schedule entry survives so the plan stays intact.
+    expect(result.schedule['2026-06-01']).toBe('Upper A');
+  });
+
+  it('removes a materialized workout with only past schedule references', () => {
+    const snap = {
+      ...baseSnap,
+      schedule: { '2026-01-01': 'Upper A' },
+      logs: {},
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'delete',
+      templateId: 'tpl_1',
+      today: '2026-03-15',
+    });
+    expect(result.workouts['Upper A']).toBeUndefined();
+    expect(result.schedule['2026-01-01']).toBeUndefined();
+  });
+
+  it('clears past schedule entries but keeps future ones when preserving via a log', () => {
+    const snap = {
+      ...baseSnap,
+      schedule: { '2026-01-01': 'Upper A', '2026-06-01': 'Upper A' },
+      logs: { '2026-01-01::Upper A': { date: '2026-01-01' } },
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'delete',
+      templateId: 'tpl_1',
+      today: '2026-03-15',
+    });
+    // Workout kept for history (log reference).
+    expect(result.workouts).toBeUndefined();
+    expect(result.schedule['2026-01-01']).toBeUndefined();
+    expect(result.schedule['2026-06-01']).toBe('Upper A');
+  });
 });
 
 // ─── applyTemplateChange: save/rename ───────────────────

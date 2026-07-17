@@ -74,7 +74,7 @@ export default function App() {
   };
 
   const handleDeleteTemplate = (id) =>
-    applyWrites(applyTemplateChange(snap(), { type: 'delete', templateId: id }));
+    applyWrites(applyTemplateChange(snap(), { type: 'delete', templateId: id, today: currentDate }));
 
   // Navigation state — after a sync-triggered reload, always land on Training
   const [navState, setNavState] = useState(() => {
