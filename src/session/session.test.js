@@ -16,6 +16,11 @@ import {
   removeTargetSet,
   confirmTargetEdit,
   discardTargetEdit,
+  logSet,
+  findExerciseByTitle,
+  findNextSet,
+  evaluateRest,
+  resolveManualRest,
 } from './session.js';
 import { applyTemplateChange } from '../orchestrator.js';
 
@@ -543,5 +548,201 @@ describe('target-edit mode', () => {
       const workout = targetWorkout();
       expect(draft).toEqual(workout.blocks);
     });
+  });
+});
+
+// ─── Set performance, next-Set, and rest decisions ─────────
+
+// A Workout with one solo Part and one two-movement superset Part.
+function restWorkout() {
+  return {
+    title: 'Upper A',
+    blocks: [
+      {
+        exercises: [
+          { title: 'Bench Press', unit: 'lb', restDuration: 120, sets: [{ reps: 5, weight: 135 }, { reps: 5, weight: 135 }] },
+        ],
+      },
+      {
+        exercises: [
+          { title: 'Pull-Up', sets: [{ reps: 8, weight: 'BW', unit: 'reps' }] },
+          { title: 'Dip', sets: [{ reps: 10, weight: 0 }] },
+        ],
+      },
+    ],
+  };
+}
+
+function restLog() {
+  return buildInitialSessionLog({ logKey: '2026-07-04::Upper A', workout: restWorkout() });
+}
+
+describe('logSet', () => {
+  it('replaces one Set immutably, persisting actual reps and weight', () => {
+    const log = restLog();
+    const next = logSet(log, {
+      exerciseTitle: 'Bench Press',
+      setIndex: 1,
+      setData: { setIndex: 1, targetReps: 5, targetWeight: 135, unit: 'lb', actualReps: 6, actualWeight: 140, completed: true },
+    });
+
+    expect(next).not.toBe(log);
+    expect(log.exercises['Bench Press'][1].completed).toBe(false); // input untouched
+    expect(next.exercises['Bench Press'][1]).toMatchObject({ actualReps: 6, actualWeight: 140, completed: true });
+    expect(next.exercises['Bench Press'][0]).toBe(log.exercises['Bench Press'][0]); // sibling Set shared
+  });
+
+  it('chains sequential edits without overwriting earlier ones', () => {
+    const log = restLog();
+    const afterFirst = logSet(log, {
+      exerciseTitle: 'Bench Press',
+      setIndex: 0,
+      setData: { ...log.exercises['Bench Press'][0], actualReps: 5, completed: true },
+    });
+    const afterSecond = logSet(afterFirst, {
+      exerciseTitle: 'Bench Press',
+      setIndex: 1,
+      setData: { ...afterFirst.exercises['Bench Press'][1], actualReps: 5, completed: true },
+    });
+
+    expect(afterSecond.exercises['Bench Press'][0].completed).toBe(true);
+    expect(afterSecond.exercises['Bench Press'][1].completed).toBe(true);
+  });
+
+  it('returns the input Log unchanged for an unknown Exercise or out-of-range Set', () => {
+    const log = restLog();
+    expect(logSet(log, { exerciseTitle: 'Nope', setIndex: 0, setData: {} })).toBe(log);
+    expect(logSet(log, { exerciseTitle: 'Bench Press', setIndex: 9, setData: {} })).toBe(log);
+    expect(logSet(null, { exerciseTitle: 'Bench Press', setIndex: 0, setData: {} })).toBeNull();
+  });
+});
+
+describe('findExerciseByTitle', () => {
+  it('locates a solo Exercise with its superset context', () => {
+    const found = findExerciseByTitle(restWorkout(), 'Bench Press');
+    expect(found).toMatchObject({ isSuperset: false, isLastInSuperset: true });
+    expect(found.exercise.title).toBe('Bench Press');
+  });
+
+  it('flags a non-final superset movement as not last in its round', () => {
+    const found = findExerciseByTitle(restWorkout(), 'Pull-Up');
+    expect(found).toMatchObject({ isSuperset: true, isLastInSuperset: false });
+  });
+
+  it('flags the final superset movement as last in its round', () => {
+    const found = findExerciseByTitle(restWorkout(), 'Dip');
+    expect(found).toMatchObject({ isSuperset: true, isLastInSuperset: true });
+  });
+
+  it('returns null when the Exercise is absent', () => {
+    expect(findExerciseByTitle(restWorkout(), 'Nope')).toBeNull();
+  });
+});
+
+describe('findNextSet', () => {
+  it('finds the first incomplete Set in Workout order', () => {
+    const log = restLog();
+    expect(findNextSet(restWorkout(), log)).toEqual({ exerciseTitle: 'Bench Press', setIndex: 0 });
+  });
+
+  it('interleaves superset movements round-by-round', () => {
+    const workout = restWorkout();
+    let log = restLog();
+    // Complete both Bench Press Sets so the next incomplete lands in the superset.
+    log = logSet(log, { exerciseTitle: 'Bench Press', setIndex: 0, setData: { ...log.exercises['Bench Press'][0], completed: true } });
+    log = logSet(log, { exerciseTitle: 'Bench Press', setIndex: 1, setData: { ...log.exercises['Bench Press'][1], completed: true } });
+    // Now complete the first superset movement's only Set.
+    log = logSet(log, { exerciseTitle: 'Pull-Up', setIndex: 0, setData: { ...log.exercises['Pull-Up'][0], completed: true } });
+
+    expect(findNextSet(workout, log)).toEqual({ exerciseTitle: 'Dip', setIndex: 0 });
+  });
+
+  it('returns null once every Set is complete', () => {
+    const workout = restWorkout();
+    let log = restLog();
+    for (const title of ['Bench Press', 'Pull-Up', 'Dip']) {
+      log.exercises[title].forEach((s) => { s.completed = true; });
+    }
+    expect(findNextSet(workout, log)).toBeNull();
+  });
+});
+
+describe('evaluateRest', () => {
+  it('starts rest once for a completed solo Set, using the Exercise override', () => {
+    const firedSets = new Set();
+    const decision = evaluateRest({
+      workout: restWorkout(),
+      exerciseTitle: 'Bench Press',
+      setIndex: 0,
+      wasCompleted: false,
+      isNowCompleted: true,
+      firedSets,
+      globalDefault: 90,
+    });
+    expect(decision).toEqual({ shouldStart: true, duration: 120 });
+  });
+
+  it('does not re-fire when the same Set toggles completed again', () => {
+    const firedSets = new Set();
+    const args = {
+      workout: restWorkout(),
+      exerciseTitle: 'Bench Press',
+      setIndex: 0,
+      wasCompleted: false,
+      isNowCompleted: true,
+      firedSets,
+      globalDefault: 90,
+    };
+    expect(evaluateRest(args).shouldStart).toBe(true);
+    expect(evaluateRest(args).shouldStart).toBe(false);
+  });
+
+  it('does not start rest when a Set becomes incomplete', () => {
+    const decision = evaluateRest({
+      workout: restWorkout(),
+      exerciseTitle: 'Bench Press',
+      setIndex: 0,
+      wasCompleted: true,
+      isNowCompleted: false,
+      firedSets: new Set(),
+      globalDefault: 90,
+    });
+    expect(decision.shouldStart).toBe(false);
+  });
+
+  it('skips rest mid-superset but rests after the final movement', () => {
+    const midRound = evaluateRest({
+      workout: restWorkout(),
+      exerciseTitle: 'Pull-Up',
+      setIndex: 0,
+      wasCompleted: false,
+      isNowCompleted: true,
+      firedSets: new Set(),
+      globalDefault: 90,
+    });
+    expect(midRound).toEqual({ shouldStart: false, duration: null });
+
+    const roundEnd = evaluateRest({
+      workout: restWorkout(),
+      exerciseTitle: 'Dip',
+      setIndex: 0,
+      wasCompleted: false,
+      isNowCompleted: true,
+      firedSets: new Set(),
+      globalDefault: 90,
+    });
+    expect(roundEnd).toEqual({ shouldStart: true, duration: 90 });
+  });
+});
+
+describe('resolveManualRest', () => {
+  it('prefers the current Exercise override over the global default', () => {
+    expect(resolveManualRest({ restDuration: 150 }, 90)).toBe(150);
+  });
+
+  it('falls back to the global default without an Exercise or override', () => {
+    expect(resolveManualRest(null, 90)).toBe(90);
+    expect(resolveManualRest({}, 90)).toBe(90);
+    expect(resolveManualRest({ restDuration: 0 }, 90)).toBe(90);
   });
 });

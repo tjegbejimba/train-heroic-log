@@ -1,4 +1,7 @@
 import { parseLogKey } from '../constants';
+import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
+import { resolveRestDuration } from '../utils/resolveRestDuration';
+import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 
 /**
  * Session logging module — owns the deterministic parts of starting and
@@ -285,4 +288,141 @@ export function confirmTargetEdit(draft, workoutTitle) {
  */
 export function discardTargetEdit() {
   return null;
+}
+
+// ─── Set performance, next-Set, and rest decisions ─────────
+
+/**
+ * Record athlete performance for one prescribed Set, returning a new Session
+ * Log. Pure and immutable: the input Log and every sibling Set are shared by
+ * reference, so sequential edits chain from the latest Log without a stale
+ * snapshot overwriting an earlier one. Unknown Exercises and out-of-range Set
+ * positions return the input Log unchanged.
+ */
+export function logSet(log, { exerciseTitle, setIndex, setData }) {
+  if (!log || !log.exercises) return log;
+  const sets = log.exercises[exerciseTitle];
+  if (!Array.isArray(sets) || setIndex < 0 || setIndex >= sets.length) return log;
+
+  return {
+    ...log,
+    exercises: {
+      ...log.exercises,
+      [exerciseTitle]: [
+        ...sets.slice(0, setIndex),
+        setData,
+        ...sets.slice(setIndex + 1),
+      ],
+    },
+  };
+}
+
+/**
+ * Locate an Exercise within a Workout by title, along with the superset context
+ * a rest decision needs: whether its Part is a superset and whether the movement
+ * is the last of its superset round. Returns null when the Exercise is absent.
+ *
+ * @returns {{ exercise: object, isSuperset: boolean, isLastInSuperset: boolean }|null}
+ */
+export function findExerciseByTitle(workout, exerciseTitle) {
+  if (!workout || !Array.isArray(workout.blocks)) return null;
+  for (const block of workout.blocks) {
+    if (!block || !Array.isArray(block.exercises)) continue;
+    const idx = block.exercises.findIndex((ex) => ex.title === exerciseTitle);
+    if (idx !== -1) {
+      return {
+        exercise: block.exercises[idx],
+        isSuperset: block.exercises.length > 1,
+        isLastInSuperset: idx === block.exercises.length - 1,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Identify the next incomplete Set in performance order. Solo Parts are scanned
+ * Set-by-Set; superset Parts are interleaved round-by-round so the athlete
+ * cycles through every movement before advancing. Returns null when the Session
+ * is fully logged.
+ *
+ * @returns {{ exerciseTitle: string, setIndex: number }|null}
+ */
+export function findNextSet(workout, log) {
+  if (!workout?.blocks || !log?.exercises) return null;
+
+  for (const block of workout.blocks) {
+    if (!block || !Array.isArray(block.exercises)) continue;
+
+    if (block.exercises.length > 1) {
+      const maxSets = Math.max(
+        0,
+        ...block.exercises.map((exercise) => log.exercises[exercise.title]?.length ?? 0)
+      );
+      for (let setIdx = 0; setIdx < maxSets; setIdx++) {
+        for (const exercise of block.exercises) {
+          const loggedSet = log.exercises[exercise.title]?.[setIdx];
+          if (loggedSet && !loggedSet.completed) {
+            return { exerciseTitle: exercise.title, setIndex: setIdx };
+          }
+        }
+      }
+      continue;
+    }
+
+    for (const exercise of block.exercises) {
+      const loggedSets = log.exercises[exercise.title];
+      if (!loggedSets) continue;
+      const setIndex = loggedSets.findIndex((set) => !set.completed);
+      if (setIndex !== -1) return { exerciseTitle: exercise.title, setIndex };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Decide whether a rest timer should start when a Set's completion changes, and
+ * for how long. Owns the whole rest-eligibility policy so the view never decides
+ * it: re-fire prevention (a Set only fires once), the superset rule (rest fires
+ * only after the final movement of a round), and duration precedence
+ * (Exercise override, else global default).
+ *
+ * `firedSets` is a mutable Set of already-fired Set keys, shared with the view so
+ * unchecking then re-checking a Set does not restart rest.
+ *
+ * @returns {{ shouldStart: boolean, duration: number|null }}
+ */
+export function evaluateRest({
+  workout,
+  exerciseTitle,
+  setIndex,
+  wasCompleted,
+  isNowCompleted,
+  firedSets,
+  globalDefault,
+}) {
+  if (!shouldStartRestTimer(exerciseTitle, setIndex, wasCompleted, isNowCompleted, firedSets)) {
+    return { shouldStart: false, duration: null };
+  }
+
+  const context = findExerciseByTitle(workout, exerciseTitle);
+  const exercise = context?.exercise || {};
+  const isSuperset = context?.isSuperset || false;
+  const isLastInSuperset = context ? context.isLastInSuperset : true;
+
+  const duration = resolveRestDuration(exercise, isSuperset, globalDefault, isLastInSuperset);
+  if (duration == null) {
+    return { shouldStart: false, duration: null };
+  }
+  return { shouldStart: true, duration };
+}
+
+/**
+ * Resolve the duration for the manual rest button. Ignores superset status —
+ * the manual timer always honours the current Exercise's override, falling back
+ * to the global default.
+ */
+export function resolveManualRest(exercise, globalDefault) {
+  return resolveManualTimerDuration(exercise, globalDefault);
 }
