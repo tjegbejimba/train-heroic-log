@@ -27,8 +27,7 @@ import {
 import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
-import { buildBackup, BACKUP_KEYS } from '../storage/backup';
-import { writeByKey, coordinateSyncReload } from '../storage/authority';
+import { buildBackup, parseBackup, restoreBackup, NO_SECTIONS_MESSAGE } from '../storage/backup';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -197,20 +196,24 @@ export default function SettingsView({
 
       const reader = new FileReader();
       reader.onload = (ev) => {
+        let data;
         try {
-          const data = JSON.parse(ev.target.result);
-          const keys = BACKUP_KEYS.filter(
-            (key) => data[key] !== undefined && data[key] !== null
-          );
-          if (keys.length === 0) {
-            showToast('No TrainLog data found in that file', 'error');
-            return;
-          }
-          // Restore overwrites existing data — confirm before applying.
-          setPendingRestore({ data, keys });
+          data = JSON.parse(ev.target.result);
         } catch {
           showToast('Invalid backup file', 'error');
+          return;
         }
+        let keys;
+        try {
+          // Validate the backup before any write; unrecognizable files are
+          // rejected here so a restore can never partially apply.
+          ({ keys } = parseBackup(data));
+        } catch {
+          showToast(NO_SECTIONS_MESSAGE, 'error');
+          return;
+        }
+        // Restore overwrites existing data — confirm before applying.
+        setPendingRestore({ data, keys });
       };
       reader.readAsText(file);
     };
@@ -222,16 +225,10 @@ export default function SettingsView({
     const { data, keys } = pendingRestore;
     setPendingRestore(null);
     showToast(`Restored ${keys.length} data section${keys.length !== 1 ? 's' : ''}!`);
-    // Commit + replicate through the authority, then reload once — skipSync keeps
-    // the next startup pull from server-wins-merging over the restored data.
-    await coordinateSyncReload({
-      mutate: () => {
-        keys.forEach((key) => {
-          writeByKey(key, data[key]); // commit locally + queue replication via the authority
-        });
-      },
-      delayMs: 500, // brief delay so the toast shows before reload
-    });
+    // restoreBackup validates, persists through the authority (local + remote),
+    // then reloads once via the shared reload-safe path — skipSync keeps the next
+    // startup pull from server-wins-merging over the restored data.
+    await restoreBackup(data);
   };
 
   const clearDataLabels = {
