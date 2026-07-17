@@ -185,3 +185,99 @@ export function evaluateSessionRecovery({
 
   return { action: 'resume', workoutTitle, date };
 }
+
+// ─── Target-edit mode ───────────────────────────────────
+
+// Editable target fields on a prescribed Set. Editing is limited to the
+// prescription (reps/weight); the Exercise identity and unit stay fixed.
+const EDITABLE_TARGET_FIELDS = new Set(['reps', 'weight']);
+
+// Reference-free copy so a pending draft shares no nested Parts/Exercises/Sets
+// with the source Workout — pending edits stay Session state until confirmed.
+function cloneBlocks(blocks) {
+  if (typeof structuredClone === 'function') return structuredClone(blocks);
+  return JSON.parse(JSON.stringify(blocks));
+}
+
+/**
+ * Open a target-edit draft for a Workout. Returns a deep clone of the Workout's
+ * Parts so edits accumulate in Session state without mutating the persisted
+ * Workout. Returns null for an invalid Workout, so no edit mode opens.
+ */
+export function beginTargetEdit(workout) {
+  if (!isValidWorkout(workout)) return null;
+  return cloneBlocks(workout.blocks);
+}
+
+// Locate the Set array for a draft coordinate, or null when out of range.
+function draftSets(draft, blockIndex, exerciseIndex) {
+  const exercise = draft?.[blockIndex]?.exercises?.[exerciseIndex];
+  return Array.isArray(exercise?.sets) ? exercise.sets : null;
+}
+
+/**
+ * Edit a prescribed target (reps or weight) on a draft Set, returning a new
+ * draft. Non-editable fields and out-of-range coordinates are ignored (the
+ * input draft is returned unchanged).
+ */
+export function editTargetSet(draft, { blockIndex, exerciseIndex, setIndex, field, value }) {
+  if (!draft) return draft;
+  if (!EDITABLE_TARGET_FIELDS.has(field)) return draft;
+  const sets = draftSets(draft, blockIndex, exerciseIndex);
+  if (!sets || setIndex < 0 || setIndex >= sets.length) return draft;
+
+  const next = cloneBlocks(draft);
+  next[blockIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
+  return next;
+}
+
+/**
+ * Append a Set to a draft Exercise, copying the last prescribed Set's targets.
+ * Out-of-range coordinates return the input draft unchanged.
+ */
+export function addTargetSet(draft, { blockIndex, exerciseIndex }) {
+  if (!draft) return draft;
+  const sets = draftSets(draft, blockIndex, exerciseIndex);
+  if (!sets) return draft;
+
+  const next = cloneBlocks(draft);
+  const nextSets = next[blockIndex].exercises[exerciseIndex].sets;
+  const base = nextSets[nextSets.length - 1] || { reps: null, weight: null, unit: 'lb' };
+  nextSets.push({ ...base });
+  return next;
+}
+
+/**
+ * Remove a Set from a draft Exercise, returning a new draft. Refuses to remove
+ * an Exercise's final Set (returns the input draft unchanged), so every
+ * Exercise always keeps at least one prescribed Set.
+ */
+export function removeTargetSet(draft, { blockIndex, exerciseIndex, setIndex }) {
+  if (!draft) return draft;
+  const sets = draftSets(draft, blockIndex, exerciseIndex);
+  if (!sets || setIndex < 0 || setIndex >= sets.length) return draft;
+  if (sets.length <= 1) return draft;
+
+  const next = cloneBlocks(draft);
+  next[blockIndex].exercises[exerciseIndex].sets.splice(setIndex, 1);
+  return next;
+}
+
+/**
+ * Confirm a target-edit draft. Returns a Training Plan lifecycle change
+ * (`syncBlocks`) that, applied via the lifecycle authority (`applyTemplateChange`),
+ * updates the matching Workout and Template. Returns null when there is no
+ * draft to confirm.
+ */
+export function confirmTargetEdit(draft, workoutTitle) {
+  if (!draft) return null;
+  return { type: 'syncBlocks', workoutTitle, blocks: draft };
+}
+
+/**
+ * Discard a target-edit draft. Produces no lifecycle change, so neither the
+ * Workout nor the Template is touched.
+ */
+export function discardTargetEdit() {
+  return null;
+}

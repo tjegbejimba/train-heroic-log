@@ -15,7 +15,7 @@ import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
 import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
-import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent } from '../session/session';
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit } from '../session/session';
 
 function findNextActiveWorkoutSet(workout, currentLog) {
   if (!workout?.blocks || !currentLog?.exercises) return null;
@@ -123,40 +123,32 @@ export default function ActiveWorkoutView({
 
   const toggleEditMode = () => {
     if (editMode) {
-      if (editBlocks && onUpdateWorkout) onUpdateWorkout(editBlocks);
+      const change = confirmTargetEdit(editBlocks, workoutTitle);
+      if (change && onUpdateWorkout) onUpdateWorkout(change.blocks);
       setEditMode(false);
       setEditBlocks(null);
     } else {
-      setEditBlocks(JSON.parse(JSON.stringify(workout.blocks)));
+      const draft = beginTargetEdit(workout);
+      if (!draft) return;
+      setEditBlocks(draft);
       setEditMode(true);
     }
   };
 
   const handleTargetChange = (blockIdx, exIdx, setIdx, field, value) => {
-    setEditBlocks((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      next[blockIdx].exercises[exIdx].sets[setIdx][field] = value;
-      return next;
-    });
+    setEditBlocks((prev) =>
+      editTargetSet(prev, { blockIndex: blockIdx, exerciseIndex: exIdx, setIndex: setIdx, field, value })
+    );
   };
 
   const handleRemoveSet = (blockIdx, exIdx, setIdx) => {
-    setEditBlocks((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      if (next[blockIdx].exercises[exIdx].sets.length <= 1) return prev;
-      next[blockIdx].exercises[exIdx].sets.splice(setIdx, 1);
-      return next;
-    });
+    setEditBlocks((prev) =>
+      removeTargetSet(prev, { blockIndex: blockIdx, exerciseIndex: exIdx, setIndex: setIdx })
+    );
   };
 
   const handleAddSet = (blockIdx, exIdx) => {
-    setEditBlocks((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      const sets = next[blockIdx].exercises[exIdx].sets;
-      const base = sets[sets.length - 1] || { reps: null, weight: null, unit: 'lb' };
-      sets.push({ ...base });
-      return next;
-    });
+    setEditBlocks((prev) => addTargetSet(prev, { blockIndex: blockIdx, exerciseIndex: exIdx }));
   };
 
   // Keep screen awake during active workout
