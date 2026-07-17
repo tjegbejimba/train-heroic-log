@@ -72,7 +72,7 @@ export function createFetchTransportAdapter({
     },
     async push(key, data) {
       try {
-        const res = await doFetch(`${apiBase}/data/${key}`, {
+        const res = await doFetch(`${apiBase}/data/${encodeURIComponent(key)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data }),
