@@ -26,7 +26,7 @@
 
 import { createPersistence } from './persistence';
 import { createBrowserStorageAdapter } from './adapters/browserStorage';
-import { getSectionByKey } from './registry';
+import { getSectionByKey, getAllKeys } from './registry';
 import {
   pushToServer,
   flushPendingPushes,
@@ -111,7 +111,22 @@ export function createAuthority({ storage, transport, notify = defaultNotify }) 
     return persistence.remove(section.id);
   }
 
-  return { persistence, readByKey, writeByKey, removeByKey };
+  /**
+   * Clear durable sections through the authority. With no keys (or an empty
+   * list) this is a registry-driven full clear of every durable section; with a
+   * key list it clears only those sections. Each target is removed locally and
+   * its deletion replicated through the same shared push path a write uses, so
+   * cleared data cannot resurrect on a later pull. Unknown keys are ignored.
+   *
+   * @param {string[]} [keys] - sections to clear; omit/empty for a full clear
+   * @returns {Promise<void>}
+   */
+  async function clearByKeys(keys) {
+    const targets = keys && keys.length ? keys : getAllKeys();
+    await Promise.all(targets.map((key) => removeByKey(key)));
+  }
+
+  return { persistence, readByKey, writeByKey, removeByKey, clearByKeys };
 }
 
 /** Best-effort user alert; a no-op where `alert` is unavailable (SSR/tests). */
@@ -151,6 +166,14 @@ export function writeByKey(key, value) {
 /** Remove a durable section by its localStorage key (production singleton). */
 export function removeByKey(key) {
   return getAuthority().removeByKey(key);
+}
+
+/**
+ * Clear durable sections by localStorage key (production singleton). Omit `keys`
+ * (or pass an empty list) for a registry-driven full clear.
+ */
+export function clearByKeys(keys) {
+  return getAuthority().clearByKeys(keys);
 }
 
 /* -------------------------------------------------------------------------- *

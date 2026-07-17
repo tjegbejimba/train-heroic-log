@@ -5,6 +5,7 @@ import {
   getSectionByKey,
   getSyncedKeys,
   getBackupKeys,
+  getAllKeys,
 } from './registry';
 import {
   LS_WORKOUTS,
@@ -54,6 +55,20 @@ describe('persistence registry', () => {
 
   it('synced keys cover all six sections including the session for crash recovery', () => {
     const keys = getSyncedKeys();
+    expect(keys.sort()).toEqual(
+      [
+        LS_WORKOUTS,
+        LS_SCHEDULE,
+        LS_YOUTUBE_LINKS,
+        LS_WORKOUT_LOGS,
+        LS_TEMPLATES,
+        LS_ACTIVE_SESSION,
+      ].sort()
+    );
+  });
+
+  it('all keys cover every durable section for a registry-driven clear', () => {
+    const keys = getAllKeys();
     expect(keys.sort()).toEqual(
       [
         LS_WORKOUTS,

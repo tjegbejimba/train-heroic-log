@@ -68,3 +68,8 @@ export function getSyncedKeys() {
 export function getBackupKeys() {
   return SECTIONS.filter((s) => s.backup).map((s) => s.key);
 }
+
+/** localStorage keys for every durable section (registry-driven full clear). */
+export function getAllKeys() {
+  return SECTIONS.map((s) => s.key);
+}

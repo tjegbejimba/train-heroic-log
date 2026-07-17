@@ -6,8 +6,7 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
-import { retryReplication, removeByKey, coordinateSyncReload } from './storage/authority';
-import { clearLS } from './storage/index';
+import { retryReplication, clearByKeys, coordinateSyncReload } from './storage/authority';
 import { useToast } from './components/Toast';
 import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
 import {
@@ -61,7 +60,7 @@ export default function App() {
     saveTemplates,
     duplicateTemplate,
   } = useTemplates();
-  const { syncStatus, lastSynced, pullSync, pushSync, clearServer } = useSync();
+  const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
 
   // Orchestration: snapshot builder + write dispatcher
@@ -244,19 +243,16 @@ export default function App() {
     return [...names].sort((a, b) => a.localeCompare(b));
   }, [workouts]);
 
-  // Shared clear-all handler (used by SettingsView in two routes)
+  // Shared clear handler (used by SettingsView in two routes). Both selective
+  // (`keys` set) and full (`keys` omitted) clears run through the authority so
+  // each section is removed locally AND its deletion replicated; the shared
+  // reload coordination flushes those deletions and skips the next pull so
+  // cleared data can't resurrect.
   const handleClearAllData = useCallback(async (keys) => {
     await coordinateSyncReload({
-      mutate: async () => {
-        if (!keys) {
-          await clearServer();
-          clearLS();
-        } else {
-          keys.forEach((k) => removeByKey(k));
-        }
-      },
+      mutate: () => clearByKeys(keys),
     });
-  }, [clearServer]);
+  }, []);
 
   const handlePullSync = useCallback(async () => {
     const { ok, changed } = await pullSync();
