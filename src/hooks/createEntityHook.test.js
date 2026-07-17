@@ -2,19 +2,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-// Mock storage before importing factory
-vi.mock('../storage/index', () => {
+// Mock the persistence authority before importing factory
+vi.mock('../storage/authority', () => {
   const store = {};
   return {
-    readLS: (key, fallback) => store[key] ?? fallback,
-    writeLS: (key, value) => { store[key] = value; },
-    removeLS: (key) => { delete store[key]; },
+    readByKey: (key, fallback) => store[key] ?? fallback,
+    writeByKey: (key, value) => { store[key] = value; return Promise.resolve({ ok: true }); },
+    removeByKey: (key) => { delete store[key]; return Promise.resolve({ ok: true }); },
     __store: store,
   };
 });
 
 import { createEntityHook } from './createEntityHook';
-import { __store as store } from '../storage/index';
+import { __store as store } from '../storage/authority';
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k]);
