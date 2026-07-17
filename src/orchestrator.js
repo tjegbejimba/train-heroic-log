@@ -137,12 +137,15 @@ export function applyTemplateChange(snap, change) {
     // edited target (prescribed set) stays in sync in both directions. On a
     // rename the workout also moves to the new key/title; either way it adopts
     // the Template's blocks. This is the same explicit-save lifecycle path the
-    // active-Session direction uses via `syncBlocks`.
-    const sourceName = snap.workouts[oldName] ? oldName : null;
+    // active-Session direction uses via `syncBlocks`. When the old key is absent
+    // but a stale workout already sits under the new name, refresh that one.
+    const sourceName = snap.workouts[oldName]
+      ? oldName
+      : (snap.workouts[newName] ? newName : null);
     if (sourceName) {
       const newWorkouts = { ...snap.workouts };
       const existing = newWorkouts[sourceName];
-      if (isRename) delete newWorkouts[sourceName];
+      if (isRename && sourceName !== newName) delete newWorkouts[sourceName];
       newWorkouts[newName] = { ...existing, title: newName, blocks: template.blocks };
       result.workouts = newWorkouts;
     }

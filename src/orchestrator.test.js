@@ -283,6 +283,24 @@ describe('applyTemplateChange — target consistency (Template ⇄ Workout)', ()
     expect(result.workouts).toBeUndefined();
   });
 
+  it('Template → Workout: rename refreshes a stale workout already under the new name', () => {
+    // Old key absent, but a stale materialized workout already exists under the
+    // new name (e.g. a prior schedule materialized it). Its targets must refresh.
+    const snap = makeSnap();
+    delete snap.workouts['Upper A'];
+    snap.workouts['Upper B'] = { title: 'Upper B', blocks: blocksWithTarget(8, 135) };
+    const editedTemplate = { ...snap.templates.tpl_1, name: 'Upper B', blocks: blocksWithTarget(12, 145) };
+
+    const result = applyTemplateChange(snap, {
+      type: 'save',
+      template: editedTemplate,
+      previousName: 'Upper A',
+    });
+
+    expect(result.workouts['Upper B'].title).toBe('Upper B');
+    expect(result.workouts['Upper B'].blocks[0].exercises[0].sets[0]).toMatchObject({ reps: 12, weight: 145 });
+  });
+
   it('Session → Template: confirming an edited target updates the matching template', () => {
     const snap = makeSnap();
     const confirmedBlocks = blocksWithTarget(6, 185);
