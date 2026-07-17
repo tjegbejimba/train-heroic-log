@@ -193,3 +193,72 @@ export function clearReplication(keys) {
 export function checkReplicationHealth() {
   return checkServerHealth();
 }
+
+/* -------------------------------------------------------------------------- *
+ * Reload coordination.
+ *
+ * A handful of flows (a sync merge that changed local data, a clear-all, a
+ * backup restore) must commit their changes, force any pending replication to
+ * the server, and then reload the page. Left uncoordinated they race: a second
+ * trigger could reload twice, or a state write could slip in between the final
+ * flush and the reload and be lost.
+ *
+ * `coordinateSyncReload` is the single owner of that sequence. It runs exactly
+ * once per page life, aborts in-flight async work first (so nothing new can
+ * enqueue), runs an optional caller mutation, performs the FINAL flush, marks
+ * the next startup pull to be skipped, then schedules one reload.
+ * -------------------------------------------------------------------------- */
+
+let reloadInProgress = false;
+
+/**
+ * Coordinate the one-and-only sync reload for this page.
+ *
+ * Sequence (exactly once): abort in-flight work → optional `mutate` →
+ * final flush → set `skipSync` (+ caller flags) → schedule a single reload.
+ *
+ * @param {Object} [opts]
+ * @param {() => (void | Promise<void>)} [opts.mutate] - data change to commit under the guard
+ * @param {Record<string, string>} [opts.sessionFlags] - extra sessionStorage flags to set
+ * @param {number} [opts.delayMs=0] - delay before the reload (e.g. to show a toast)
+ * @returns {Promise<boolean>} true if this call owned the reload, false if one was already in progress
+ */
+export async function coordinateSyncReload({ mutate, sessionFlags = {}, delayMs = 0 } = {}) {
+  if (reloadInProgress) return false;
+  reloadInProgress = true;
+
+  // Abort pending async operations so no new local write can enqueue between
+  // the final flush and the reload.
+  if (typeof window !== 'undefined' && typeof window.stop === 'function') {
+    try {
+      window.stop();
+    } catch {
+      /* window.stop unavailable — ignore */
+    }
+  }
+
+  if (typeof mutate === 'function') {
+    await mutate();
+  }
+
+  // The final flush: everything committed above reaches the server before reload.
+  await flushReplication();
+
+  if (typeof sessionStorage !== 'undefined') {
+    // Skip the next startup pull so we don't re-merge what we just reconciled.
+    sessionStorage.setItem('skipSync', '1');
+    for (const [key, value] of Object.entries(sessionFlags)) {
+      sessionStorage.setItem(key, value);
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+    setTimeout(() => window.location.reload(), delayMs);
+  }
+  return true;
+}
+
+/** Test-only: reset the exactly-once reload guard between cases. */
+export function __resetSyncReload() {
+  reloadInProgress = false;
+}

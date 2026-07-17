@@ -28,7 +28,7 @@ import Modal from '../components/Modal';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
 import { buildBackup, BACKUP_KEYS } from '../storage/backup';
-import { writeByKey, flushReplication } from '../storage/authority';
+import { writeByKey, coordinateSyncReload } from '../storage/authority';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -220,14 +220,18 @@ export default function SettingsView({
   const handleConfirmRestore = async () => {
     if (!pendingRestore) return;
     const { data, keys } = pendingRestore;
-    keys.forEach((key) => {
-      writeByKey(key, data[key]); // commit locally + queue replication via the authority
-    });
-    await flushReplication(); // push to server before reload
-    sessionStorage.setItem('skipSync', '1'); // don't let pull overwrite restored data
     setPendingRestore(null);
     showToast(`Restored ${keys.length} data section${keys.length !== 1 ? 's' : ''}!`);
-    setTimeout(() => window.location.reload(), 500); // brief delay so toast shows
+    // Commit + replicate through the authority, then reload once — skipSync keeps
+    // the next startup pull from server-wins-merging over the restored data.
+    await coordinateSyncReload({
+      mutate: () => {
+        keys.forEach((key) => {
+          writeByKey(key, data[key]); // commit locally + queue replication via the authority
+        });
+      },
+      delayMs: 500, // brief delay so the toast shows before reload
+    });
   };
 
   const clearDataLabels = {

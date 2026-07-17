@@ -225,6 +225,69 @@ describe('sync.js', () => {
       expect(result).toEqual({ ok: false, changed: false });
       expect(writeLS).not.toHaveBeenCalled();
     });
+
+    it('isolates a malformed server section so other sections still sync', async () => {
+      // th_bad is unprocessable (null entry — destructuring { data, updatedAt } throws);
+      // th_workouts is a valid section that must still be written.
+      mockFetchJson({
+        th_bad: null,
+        th_workouts: { data: { 'Upper A': { title: 'Upper A' } }, updatedAt: '2024-01-01' },
+      });
+      localStorage.getItem.mockReturnValue(null);
+
+      const result = await pullFromServer();
+
+      // The pull as a whole succeeds and reports the good section as changed.
+      expect(result).toEqual({ ok: true, changed: true });
+      // The good section was written despite the malformed sibling.
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'th_workouts',
+        JSON.stringify({ 'Upper A': { title: 'Upper A' } })
+      );
+    });
+
+    it('does not abort the pull when one section throws mid-loop', async () => {
+      // Two malformed sections surround a valid one; only the valid one is applied.
+      mockFetchJson({
+        th_bad1: null,
+        th_schedule: { data: { '2024-01-01': 'Upper A' }, updatedAt: '2024-01-01' },
+        th_bad2: 42,
+      });
+      localStorage.getItem.mockReturnValue(null);
+
+      const result = await pullFromServer();
+
+      expect(result.ok).toBe(true);
+      expect(result.changed).toBe(true);
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'th_schedule',
+        JSON.stringify({ '2024-01-01': 'Upper A' })
+      );
+    });
+
+    it('skips a section whose server entry is missing data (never deletes local)', async () => {
+      // A malformed entry lacking `data` must not be read as an intentional deletion.
+      mockFetchJson({ th_workouts: { updatedAt: '2024-01-01' } });
+      localStorage.getItem.mockReturnValue(JSON.stringify({ keep: 1 }));
+
+      const result = await pullFromServer();
+
+      expect(result).toEqual({ ok: true, changed: false });
+      expect(removeLS).not.toHaveBeenCalled();
+      expect(localStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('returns ok=false when persisting a valid server section fails locally (quota)', async () => {
+      // A local write failure is a real pull failure, not a malformed server section:
+      // it must surface as ok:false rather than being silently swallowed.
+      mockFetchJson({ th_workouts: { data: { a: 1 }, updatedAt: '2024-01-01' } });
+      localStorage.getItem.mockReturnValue(null);
+      localStorage.setItem.mockImplementationOnce(() => { throw new Error('QuotaExceededError'); });
+
+      const result = await pullFromServer();
+
+      expect(result).toEqual({ ok: false, changed: false });
+    });
   });
 
   // =========================================================================
