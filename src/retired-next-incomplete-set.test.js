@@ -18,9 +18,11 @@ const RETIRED_PATHS = [
   'utils/findNextIncompleteSet.test.js',
 ];
 
-// Import specifiers that would re-couple code to the retired duplicate.
+// Import specifiers that would re-couple code to the retired duplicate. Covers
+// `from '…'`, `require('…')`, dynamic `import('…')`, and bare side-effect
+// `import '…'`, tolerating whitespace before the specifier or call parens.
 const FORBIDDEN_IMPORT_RE =
-  /(?:from|require\(|import\()\s*['"][^'"]*findNextIncompleteSet/;
+  /(?:from|require|import)\s*\(?\s*['"][^'"]*findNextIncompleteSet/;
 
 function collectSourceFiles(dir, acc = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
