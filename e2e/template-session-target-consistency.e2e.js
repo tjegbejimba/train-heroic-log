@@ -62,3 +62,33 @@ test('@visual Session target confirmation propagates back to the Template', asyn
   await expect(templateFirstSetReps).toHaveValue('5');
   await captureVisualEvidence(page, testInfo, 'template-target-reflects-session-confirmation');
 });
+
+test('@visual Discarding Session target edits leaves the Workout and Template unchanged', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  // Start the Workout, enter edit mode, change the first set target, then discard.
+  await startLowerBodyB(page);
+  await expect(page.locator('.log-set-row__target').first()).toHaveText('3 × BW');
+
+  await page.getByRole('button', { name: 'Edit workout' }).click();
+  const firstEditReps = page.locator('.log-set-row__input').first();
+  await firstEditReps.fill('7');
+  await expect(firstEditReps).toHaveValue('7');
+  await captureVisualEvidence(page, testInfo, 'session-target-edit-pending-before-discard');
+
+  await page.getByRole('button', { name: 'Discard' }).click();
+
+  // Back in logging mode, the target reverts to its prescribed value — the
+  // pending edit never reached the Workout.
+  await expect(page.locator('.log-set-row__target').first()).toHaveText('3 × BW');
+  await captureVisualEvidence(page, testInfo, 'session-target-unchanged-after-discard');
+
+  // Leave the session and confirm the matching Template is untouched.
+  await page.getByRole('button', { name: 'Cancel workout' }).click();
+  await page.getByRole('button', { name: 'Cancel Workout', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
+
+  await openLowerBodyBTemplate(page);
+  await expect(page.locator('.tpl-editor__set-input').first()).toHaveValue('3');
+});

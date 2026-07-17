@@ -10,7 +10,14 @@ import {
   setExerciseNoteIntent,
   setWorkoutNoteIntent,
   applySessionIntent,
+  beginTargetEdit,
+  editTargetSet,
+  addTargetSet,
+  removeTargetSet,
+  confirmTargetEdit,
+  discardTargetEdit,
 } from './session.js';
+import { applyTemplateChange } from '../orchestrator.js';
 
 const workout = {
   blocks: [
@@ -348,6 +355,193 @@ describe('Session note intentions', () => {
       expect(decision.action).toBe('resume');
       expect(reloaded.exerciseNotes['Back Squat']).toBe('elbow twinge');
       expect(reloaded.workoutNote).toBe('low energy');
+    });
+  });
+});
+
+describe('target-edit mode', () => {
+  // A Workout whose prescribed Set targets (reps/weight) the athlete may edit
+  // mid-Session before confirming back to the Training Plan.
+  const targetWorkout = () => ({
+    blocks: [
+      {
+        exercises: [
+          {
+            title: 'Back Squat',
+            unit: 'lb',
+            sets: [
+              { reps: 5, weight: 135 },
+              { reps: 5, weight: 155 },
+            ],
+          },
+        ],
+      },
+      {
+        exercises: [
+          { title: 'Pull-Up', sets: [{ reps: 8, weight: 'BW', unit: 'reps' }] },
+          { title: 'Dip', sets: [{ reps: 10, weight: 0 }] },
+        ],
+      },
+    ],
+  });
+
+  describe('beginTargetEdit', () => {
+    it('opens a pending draft that deep-clones the Workout Parts and Sets', () => {
+      const workout = targetWorkout();
+      const draft = beginTargetEdit(workout);
+
+      expect(draft).toEqual(workout.blocks);
+      // Draft is a reference-free copy: mutating it never touches the Workout.
+      draft[0].exercises[0].sets[0].reps = 999;
+      expect(workout.blocks[0].exercises[0].sets[0].reps).toBe(5);
+    });
+
+    it('returns null for an invalid Workout so no edit mode opens', () => {
+      expect(beginTargetEdit(null)).toBeNull();
+      expect(beginTargetEdit({ blocks: [] })).toBeNull();
+      expect(beginTargetEdit({ blocks: [{ exercises: [] }] })).toBeNull();
+    });
+  });
+
+  describe('editTargetSet', () => {
+    it('edits reps on a Set immutably, leaving the prior draft untouched', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      const next = editTargetSet(draft, {
+        blockIndex: 0,
+        exerciseIndex: 0,
+        setIndex: 1,
+        field: 'reps',
+        value: 3,
+      });
+
+      expect(next[0].exercises[0].sets[1].reps).toBe(3);
+      expect(draft[0].exercises[0].sets[1].reps).toBe(5);
+      expect(next).not.toBe(draft);
+    });
+
+    it('edits weight on a Set', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      const next = editTargetSet(draft, {
+        blockIndex: 0,
+        exerciseIndex: 0,
+        setIndex: 0,
+        field: 'weight',
+        value: 185,
+      });
+      expect(next[0].exercises[0].sets[0].weight).toBe(185);
+    });
+
+    it('ignores fields other than reps/weight and out-of-range coordinates', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      expect(
+        editTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex: 0, field: 'title', value: 'x' })
+      ).toBe(draft);
+      expect(
+        editTargetSet(draft, { blockIndex: 9, exerciseIndex: 0, setIndex: 0, field: 'reps', value: 1 })
+      ).toBe(draft);
+      expect(
+        editTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex: 9, field: 'reps', value: 1 })
+      ).toBe(draft);
+      expect(editTargetSet(null, { blockIndex: 0, exerciseIndex: 0, setIndex: 0, field: 'reps', value: 1 })).toBeNull();
+    });
+
+    it('ignores non-integer Set coordinates instead of throwing', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      for (const setIndex of [undefined, null, NaN, 1.5, '0']) {
+        expect(editTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex, field: 'reps', value: 1 })).toBe(draft);
+      }
+    });
+  });
+
+  describe('addTargetSet', () => {
+    it('appends a copy of the last prescribed Set immutably', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      const next = addTargetSet(draft, { blockIndex: 0, exerciseIndex: 0 });
+
+      expect(next[0].exercises[0].sets).toHaveLength(3);
+      expect(next[0].exercises[0].sets[2]).toEqual({ reps: 5, weight: 155 });
+      // Appended Set is a copy, not shared with the source Set.
+      expect(next[0].exercises[0].sets[2]).not.toBe(next[0].exercises[0].sets[1]);
+      expect(draft[0].exercises[0].sets).toHaveLength(2);
+    });
+
+    it('returns the draft unchanged for out-of-range coordinates', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      expect(addTargetSet(draft, { blockIndex: 9, exerciseIndex: 0 })).toBe(draft);
+      expect(addTargetSet(null, { blockIndex: 0, exerciseIndex: 0 })).toBeNull();
+    });
+  });
+
+  describe('removeTargetSet', () => {
+    it('removes the targeted Set immutably', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      const next = removeTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex: 0 });
+
+      expect(next[0].exercises[0].sets).toHaveLength(1);
+      expect(next[0].exercises[0].sets[0]).toEqual({ reps: 5, weight: 155 });
+      expect(draft[0].exercises[0].sets).toHaveLength(2);
+    });
+
+    it("refuses to remove an Exercise's final Set", () => {
+      const draft = beginTargetEdit(targetWorkout());
+      // Pull-Up (block 1, exercise 0) has a single Set — removal must be a no-op.
+      const next = removeTargetSet(draft, { blockIndex: 1, exerciseIndex: 0, setIndex: 0 });
+      expect(next).toBe(draft);
+      expect(next[1].exercises[0].sets).toHaveLength(1);
+    });
+
+    it('ignores non-integer Set coordinates instead of removing the first Set', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      for (const setIndex of [undefined, null, NaN, 1.5, '0']) {
+        const next = removeTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex });
+        expect(next).toBe(draft);
+        expect(next[0].exercises[0].sets).toHaveLength(2);
+      }
+    });
+  });
+
+  describe('confirmTargetEdit', () => {
+    it('routes edited targets through the Training Plan lifecycle authority to Workout and Template', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      const edited = editTargetSet(draft, {
+        blockIndex: 0,
+        exerciseIndex: 0,
+        setIndex: 0,
+        field: 'reps',
+        value: 3,
+      });
+
+      const change = confirmTargetEdit(edited, 'Upper A');
+      expect(change).toEqual({ type: 'syncBlocks', workoutTitle: 'Upper A', blocks: edited });
+
+      // Feed the change to the lifecycle authority and prove both sides update.
+      const snapshot = {
+        workouts: { 'Upper A': { title: 'Upper A', blocks: targetWorkout().blocks } },
+        templates: { t1: { id: 't1', name: 'Upper A', blocks: targetWorkout().blocks } },
+        schedule: {},
+        logs: {},
+      };
+      const result = applyTemplateChange(snapshot, change);
+      expect(result.workouts['Upper A'].blocks[0].exercises[0].sets[0].reps).toBe(3);
+      expect(result.templates.t1.blocks[0].exercises[0].sets[0].reps).toBe(3);
+    });
+
+    it('returns null when there is no draft to confirm', () => {
+      expect(confirmTargetEdit(null, 'Upper A')).toBeNull();
+    });
+  });
+
+  describe('discardTargetEdit', () => {
+    it('yields no change so neither Workout nor Template is touched', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      editTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex: 0, field: 'reps', value: 3 });
+
+      // Discarding produces no lifecycle change...
+      expect(discardTargetEdit()).toBeNull();
+
+      // ...and the source Workout blocks remain exactly as prescribed.
+      const workout = targetWorkout();
+      expect(draft).toEqual(workout.blocks);
     });
   });
 });

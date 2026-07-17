@@ -1482,6 +1482,18 @@
   font-weight: 700;
 }
 
+.aw-edit-banner__discard {
+  margin-left: auto;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--warning);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .w-full {
   width: 100%;
 }
