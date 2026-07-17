@@ -40,6 +40,15 @@ function findTemplateByName(templates, name) {
   return Object.values(templates).find((t) => t.name === name);
 }
 
+// Deep, reference-free copy of a JSON-serializable value so a duplicated
+// Template shares no nested objects (Parts, Exercises, Sets, notes) with its
+// source. `structuredClone` is available in supported browsers and Node ≥17;
+// the JSON round-trip is a defensive fallback for older runtimes.
+function deepClone(value) {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
 // A completed Log is keyed `YYYY-MM-DD::WorkoutTitle`. Workout titles may
 // themselves contain `::`, so match on the exact title after the first
 // separator rather than a naive suffix check.
@@ -167,6 +176,28 @@ export function applyTemplateChange(snap, change) {
       notes: workout.notes || '',
     };
     return { templates: { ...snap.templates, [id]: tpl }, meta: { createdId: id } };
+  }
+
+  if (type === 'duplicate') {
+    const { templateId, makeId } = change;
+    const original = snap.templates[templateId];
+    if (!original) return { error: 'Template not found' };
+
+    // Consistent collision handling: a copy is named "<name> (Copy)". If that
+    // name is already taken, reject with the exact same outcome as create and
+    // rename rather than silently minting a colliding Template.
+    const name = `${original.name} (Copy)`;
+    if (hasNameCollision(snap.templates, name)) {
+      return { error: 'A template with this name already exists' };
+    }
+
+    const id = makeId ? makeId() : `tpl_${Date.now()}`;
+    const copy = deepClone(original);
+    copy.id = id;
+    copy.name = name;
+    copy.createdDate = new Date().toISOString();
+
+    return { templates: { ...snap.templates, [id]: copy }, meta: { createdId: id } };
   }
 
   if (type === 'syncBlocks') {

@@ -202,6 +202,126 @@ describe('applyTemplateChange — create', () => {
   });
 });
 
+// ─── applyTemplateChange: duplicate ─────────────────────
+
+describe('applyTemplateChange — duplicate', () => {
+  const richTemplate = {
+    id: 'tpl_1',
+    name: 'Upper A',
+    createdDate: '2026-01-01T00:00:00.000Z',
+    notes: 'Push day focus',
+    blocks: [
+      {
+        exercises: [
+          {
+            title: 'Bench',
+            notes: 'Keep elbows tight',
+            workoutNotes: '8 reps each set',
+            sets: [{ reps: 8, weight: 135 }, { reps: 8, weight: 135 }],
+          },
+        ],
+      },
+    ],
+  };
+
+  const baseSnap = {
+    templates: { tpl_1: richTemplate },
+    workouts: {},
+    schedule: {},
+    logs: {},
+  };
+
+  it('creates an independent copy named "<name> (Copy)"', () => {
+    const result = applyTemplateChange(baseSnap, {
+      type: 'duplicate',
+      templateId: 'tpl_1',
+      makeId: () => 'tpl_copy',
+    });
+    expect(result.error).toBeUndefined();
+    const copy = result.templates.tpl_copy;
+    expect(copy).toBeDefined();
+    expect(copy.id).toBe('tpl_copy');
+    expect(copy.name).toBe('Upper A (Copy)');
+    // Original is left untouched.
+    expect(result.templates.tpl_1).toBe(richTemplate);
+    expect(result.meta.createdId).toBe('tpl_copy');
+  });
+
+  it('returns an error for a missing template', () => {
+    const result = applyTemplateChange(baseSnap, {
+      type: 'duplicate',
+      templateId: 'nope',
+    });
+    expect(result.error).toBeDefined();
+    expect(result.templates).toBeUndefined();
+  });
+
+  it('deep-clones parts, exercises, sets, and notes (no shared references)', () => {
+    const result = applyTemplateChange(baseSnap, {
+      type: 'duplicate',
+      templateId: 'tpl_1',
+      makeId: () => 'tpl_copy',
+    });
+    const copy = result.templates.tpl_copy;
+    // Structural equality of the training content...
+    expect(copy.blocks).toEqual(richTemplate.blocks);
+    // ...but no shared object references at any depth.
+    expect(copy.blocks).not.toBe(richTemplate.blocks);
+    expect(copy.blocks[0]).not.toBe(richTemplate.blocks[0]);
+    expect(copy.blocks[0].exercises).not.toBe(richTemplate.blocks[0].exercises);
+    expect(copy.blocks[0].exercises[0]).not.toBe(richTemplate.blocks[0].exercises[0]);
+    expect(copy.blocks[0].exercises[0].sets).not.toBe(richTemplate.blocks[0].exercises[0].sets);
+    expect(copy.blocks[0].exercises[0].sets[0]).not.toBe(richTemplate.blocks[0].exercises[0].sets[0]);
+  });
+
+  it('keeps the copy independent after editing it (mutating the clone does not affect the original)', () => {
+    const result = applyTemplateChange(baseSnap, {
+      type: 'duplicate',
+      templateId: 'tpl_1',
+      makeId: () => 'tpl_copy',
+    });
+    const copy = result.templates.tpl_copy;
+    copy.blocks[0].exercises[0].sets[0].weight = 999;
+    copy.blocks[0].exercises[0].notes = 'changed';
+    expect(richTemplate.blocks[0].exercises[0].sets[0].weight).toBe(135);
+    expect(richTemplate.blocks[0].exercises[0].notes).toBe('Keep elbows tight');
+  });
+
+  it('duplicates a copy, producing a valid available nested name', () => {
+    const snap = {
+      ...baseSnap,
+      templates: {
+        tpl_1: richTemplate,
+        tpl_copy: { ...richTemplate, id: 'tpl_copy', name: 'Upper A (Copy)' },
+      },
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'duplicate',
+      templateId: 'tpl_copy',
+      makeId: () => 'tpl_copy2',
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.templates.tpl_copy2.name).toBe('Upper A (Copy) (Copy)');
+  });
+
+  it('rejects on collision with the same outcome as create/rename (case-insensitive)', () => {
+    const snap = {
+      ...baseSnap,
+      templates: {
+        tpl_1: richTemplate,
+        tpl_existing: { id: 'tpl_existing', name: 'upper a (copy)', blocks: [] },
+      },
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'duplicate',
+      templateId: 'tpl_1',
+      makeId: () => 'tpl_copy',
+    });
+    expect(result.error).toMatch(/already exists/i);
+    expect(result.templates).toBeUndefined();
+  });
+});
+
 // ─── applyTemplateChange: syncBlocks ────────────────────
 
 describe('applyTemplateChange — syncBlocks', () => {
