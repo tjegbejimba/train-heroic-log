@@ -88,6 +88,25 @@ describe('applyTemplateChange — delete', () => {
     expect(result.schedule['2026-01-01']).toBeUndefined();
     expect(result.schedule['2026-06-01']).toBe('Upper A');
   });
+
+  it('does not confuse a log for a differently-named workout ending in the title', () => {
+    const snap = {
+      templates: {
+        tpl_s: { id: 'tpl_s', name: 'Special', blocks: [] },
+      },
+      workouts: { Special: { title: 'Special', blocks: [] } },
+      schedule: {},
+      // Log belongs to "Workout::Special", NOT "Special".
+      logs: { '2026-01-01::Workout::Special': { date: '2026-01-01', workoutTitle: 'Workout::Special' } },
+    };
+    const result = applyTemplateChange(snap, {
+      type: 'delete',
+      templateId: 'tpl_s',
+      today: '2026-03-15',
+    });
+    // "Special" is a genuine orphan and must be removed despite the suffix match.
+    expect(result.workouts.Special).toBeUndefined();
+  });
 });
 
 // ─── applyTemplateChange: save/rename ───────────────────

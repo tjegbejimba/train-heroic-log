@@ -40,6 +40,16 @@ function findTemplateByName(templates, name) {
   return Object.values(templates).find((t) => t.name === name);
 }
 
+// A completed Log is keyed `YYYY-MM-DD::WorkoutTitle`. Workout titles may
+// themselves contain `::`, so match on the exact title after the first
+// separator rather than a naive suffix check.
+function isWorkoutLogged(logs, workoutTitle) {
+  return Object.keys(logs).some((k) => {
+    const idx = k.indexOf('::');
+    return idx !== -1 && k.slice(idx + 2) === workoutTitle;
+  });
+}
+
 // Local calendar date (YYYY-MM-DD) — mirrors App.jsx's currentDate derivation so
 // schedule comparisons use the user's day, not UTC.
 function localTodayISO() {
@@ -83,7 +93,7 @@ export function applyTemplateChange(snap, change) {
     // Remove the materialized Workout only when nothing meaningful references it:
     // no completed Log (History) and no future Schedule (upcoming plan).
     if (snap.workouts[tpl.name]) {
-      const referencedByLog = Object.keys(snap.logs).some((k) => k.endsWith(`::${tpl.name}`));
+      const referencedByLog = isWorkoutLogged(snap.logs, tpl.name);
       if (!referencedByLog && !hasFutureSchedule) {
         const newWorkouts = { ...snap.workouts };
         delete newWorkouts[tpl.name];
