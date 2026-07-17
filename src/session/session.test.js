@@ -796,6 +796,28 @@ describe('findNextSet', () => {
     }
     expect(findNextSet(workout, log)).toBeNull();
   });
+
+  it('advances within an Exercise before moving on', () => {
+    const workout = restWorkout();
+    const log = restLog();
+    log.exercises['Bench Press'][0].completed = true;
+    expect(findNextSet(workout, log)).toEqual({ exerciseTitle: 'Bench Press', setIndex: 1 });
+  });
+
+  it('skips Exercises with no logged Sets', () => {
+    const workout = restWorkout();
+    const log = restLog();
+    delete log.exercises['Bench Press'];
+    expect(findNextSet(workout, log)).toEqual({ exerciseTitle: 'Pull-Up', setIndex: 0 });
+  });
+
+  it('returns null when the Workout is missing', () => {
+    expect(findNextSet(null, restLog())).toBeNull();
+  });
+
+  it('returns null when the Log is missing', () => {
+    expect(findNextSet(restWorkout(), null)).toBeNull();
+  });
 });
 
 describe('evaluateRest', () => {
