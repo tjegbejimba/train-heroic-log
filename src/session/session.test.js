@@ -444,6 +444,13 @@ describe('target-edit mode', () => {
       ).toBe(draft);
       expect(editTargetSet(null, { blockIndex: 0, exerciseIndex: 0, setIndex: 0, field: 'reps', value: 1 })).toBeNull();
     });
+
+    it('ignores non-integer Set coordinates instead of throwing', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      for (const setIndex of [undefined, null, NaN, 1.5, '0']) {
+        expect(editTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex, field: 'reps', value: 1 })).toBe(draft);
+      }
+    });
   });
 
   describe('addTargetSet', () => {
@@ -481,6 +488,15 @@ describe('target-edit mode', () => {
       const next = removeTargetSet(draft, { blockIndex: 1, exerciseIndex: 0, setIndex: 0 });
       expect(next).toBe(draft);
       expect(next[1].exercises[0].sets).toHaveLength(1);
+    });
+
+    it('ignores non-integer Set coordinates instead of removing the first Set', () => {
+      const draft = beginTargetEdit(targetWorkout());
+      for (const setIndex of [undefined, null, NaN, 1.5, '0']) {
+        const next = removeTargetSet(draft, { blockIndex: 0, exerciseIndex: 0, setIndex });
+        expect(next).toBe(draft);
+        expect(next[0].exercises[0].sets).toHaveLength(2);
+      }
     });
   });
 

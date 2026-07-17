@@ -15,7 +15,7 @@ import { buildSummary, findPRs } from '../utils/workoutSummary';
 import { resolveRestDuration } from '../utils/resolveRestDuration';
 import { resolveManualTimerDuration } from '../utils/resolveManualTimerDuration';
 import { shouldStartRestTimer } from '../utils/shouldStartRestTimer';
-import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit } from '../session/session';
+import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit } from '../session/session';
 
 function findNextActiveWorkoutSet(workout, currentLog) {
   if (!workout?.blocks || !currentLog?.exercises) return null;
@@ -149,6 +149,14 @@ export default function ActiveWorkoutView({
 
   const handleAddSet = (blockIdx, exIdx) => {
     setEditBlocks((prev) => addTargetSet(prev, { blockIndex: blockIdx, exerciseIndex: exIdx }));
+  };
+
+  const handleDiscardEdits = () => {
+    // Explicit discard: drop the pending draft without touching the Workout or
+    // Template (no onUpdateWorkout call).
+    discardTargetEdit();
+    setEditMode(false);
+    setEditBlocks(null);
   };
 
   // Keep screen awake during active workout
@@ -336,6 +344,13 @@ export default function ActiveWorkoutView({
           <div className="aw-edit-banner">
             <Pencil size={13} />
             <span>Editing targets — tap the pencil again to save</span>
+            <button
+              type="button"
+              className="aw-edit-banner__discard"
+              onClick={handleDiscardEdits}
+            >
+              Discard
+            </button>
           </div>
         )}
 

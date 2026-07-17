@@ -215,6 +215,11 @@ function draftSets(draft, blockIndex, exerciseIndex) {
   return Array.isArray(exercise?.sets) ? exercise.sets : null;
 }
 
+// A valid, in-range Set position: a non-negative integer within the array.
+function isSetPosition(setIndex, sets) {
+  return Number.isInteger(setIndex) && setIndex >= 0 && setIndex < sets.length;
+}
+
 /**
  * Edit a prescribed target (reps or weight) on a draft Set, returning a new
  * draft. Non-editable fields and out-of-range coordinates are ignored (the
@@ -224,7 +229,7 @@ export function editTargetSet(draft, { blockIndex, exerciseIndex, setIndex, fiel
   if (!draft) return draft;
   if (!EDITABLE_TARGET_FIELDS.has(field)) return draft;
   const sets = draftSets(draft, blockIndex, exerciseIndex);
-  if (!sets || setIndex < 0 || setIndex >= sets.length) return draft;
+  if (!sets || !isSetPosition(setIndex, sets)) return draft;
 
   const next = cloneBlocks(draft);
   next[blockIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
@@ -255,7 +260,7 @@ export function addTargetSet(draft, { blockIndex, exerciseIndex }) {
 export function removeTargetSet(draft, { blockIndex, exerciseIndex, setIndex }) {
   if (!draft) return draft;
   const sets = draftSets(draft, blockIndex, exerciseIndex);
-  if (!sets || setIndex < 0 || setIndex >= sets.length) return draft;
+  if (!sets || !isSetPosition(setIndex, sets)) return draft;
   if (sets.length <= 1) return draft;
 
   const next = cloneBlocks(draft);
