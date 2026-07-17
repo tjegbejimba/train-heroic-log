@@ -64,6 +64,11 @@ function localTodayISO() {
 
 /**
  * Template lifecycle: save/rename, delete, create, syncBlocks.
+ *
+ * `save` keeps the materialized Workout consistent with the Template — an
+ * explicit save cascades the Template's blocks (including edited set targets)
+ * onto the matching Workout, mirroring the `syncBlocks` path used when a target
+ * change is confirmed from an active Session.
  */
 export function applyTemplateChange(snap, change) {
   const { type } = change;
@@ -126,14 +131,20 @@ export function applyTemplateChange(snap, change) {
         if (title === oldName) { newSchedule[date] = newName; scheduleChanged = true; }
       });
       if (scheduleChanged) result.schedule = newSchedule;
+    }
 
-      // Cascade to workouts
-      if (snap.workouts[oldName]) {
-        const newWorkouts = { ...snap.workouts };
-        delete newWorkouts[oldName];
-        newWorkouts[newName] = { ...snap.workouts[oldName], title: newName };
-        result.workouts = newWorkouts;
-      }
+    // Keep the materialized Workout consistent with the saved Template so an
+    // edited target (prescribed set) stays in sync in both directions. On a
+    // rename the workout also moves to the new key/title; either way it adopts
+    // the Template's blocks. This is the same explicit-save lifecycle path the
+    // active-Session direction uses via `syncBlocks`.
+    const sourceName = snap.workouts[oldName] ? oldName : null;
+    if (sourceName) {
+      const newWorkouts = { ...snap.workouts };
+      const existing = newWorkouts[sourceName];
+      if (isRename) delete newWorkouts[sourceName];
+      newWorkouts[newName] = { ...existing, title: newName, blocks: template.blocks };
+      result.workouts = newWorkouts;
     }
 
     return result;
