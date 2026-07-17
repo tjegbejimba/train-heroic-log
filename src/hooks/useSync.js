@@ -1,22 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { checkServerHealth, pullFromServer, pushAllToServer, clearServerData } from '../storage/sync';
-import {
-  LS_WORKOUTS,
-  LS_SCHEDULE,
-  LS_YOUTUBE_LINKS,
-  LS_WORKOUT_LOGS,
-  LS_ACTIVE_SESSION,
-  LS_TEMPLATES,
-} from '../constants';
+import { getSyncedKeys } from '../storage/registry';
 
-const ALL_KEYS = [
-  LS_WORKOUTS,
-  LS_SCHEDULE,
-  LS_YOUTUBE_LINKS,
-  LS_WORKOUT_LOGS,
-  LS_ACTIVE_SESSION,
-  LS_TEMPLATES,
-];
+// Every synced durable section, sourced from the shared section registry
+// (includes the recovery active-session key for crash recovery).
+const ALL_KEYS = getSyncedKeys();
 
 /**
  * Hook for managing sync state with the NAS backend.
