@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, ChevronRight, Layers3, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Layers3, Plus, Search, Trash2 } from 'lucide-react';
 import { ROUTE_SETTINGS, ROUTE_EDIT_TEMPLATE, ROUTE_IMPORT } from '../constants';
 
 const SWIPE_THRESHOLD = 80;
@@ -79,6 +79,10 @@ export default function TemplateListView({
     setDeleteTarget(id);
   };
 
+  const handleCreateNew = () => {
+    navigate(ROUTE_EDIT_TEMPLATE, { isNew: true });
+  };
+
   const confirmDelete = () => {
     if (deleteTarget) {
       deleteTemplate(deleteTarget);
@@ -88,6 +92,15 @@ export default function TemplateListView({
 
   const body = (
     <>
+      {templateList && templateList.length > 0 && (
+        <div className="tpl-list__toolbar">
+          <button className="btn btn-primary tpl-list__new-btn" onClick={handleCreateNew}>
+            <Plus size={16} />
+            New Template
+          </button>
+        </div>
+      )}
+
       {templateList && templateList.length > 5 && (
         <div className="tpl-list__search">
           <Search size={16} className="tpl-list__search-icon" />
@@ -109,16 +122,18 @@ export default function TemplateListView({
             <p>
               {search
                 ? 'Try a shorter search term.'
-                : 'Templates are created from imported workouts. Import a workout to get started.'}
+                : 'Build a template from scratch, or import an existing workout to generate one automatically.'}
             </p>
             {!search && (
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate(ROUTE_IMPORT)}
-                style={{ marginTop: '1rem' }}
-              >
-                Import Workout
-              </button>
+              <div className="tpl-list__empty-actions">
+                <button className="btn btn-primary" onClick={handleCreateNew}>
+                  <Plus size={16} />
+                  New Template
+                </button>
+                <button className="btn btn-secondary" onClick={() => navigate(ROUTE_IMPORT)}>
+                  Import Workout
+                </button>
+              </div>
             )}
           </div>
         ) : (

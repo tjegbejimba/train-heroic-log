@@ -407,21 +407,35 @@ export default function App() {
       break;
 
     case ROUTE_EDIT_TEMPLATE: {
-      const tpl = templates[params.templateId];
+      // Creating a new Template reuses the same editor as editing an existing
+      // one: a blank in-memory Template seeds the form, and onSave routes to
+      // the orchestrator's `create` (with name-collision checking) instead of
+      // `save`. This keeps the create/edit UX — and its validation/discard
+      // logic — in exactly one place.
+      const isNew = !!params.isNew;
+      const tpl = isNew
+        ? { name: '', createdDate: new Date().toISOString(), blocks: [], notes: '' }
+        : templates[params.templateId];
 
       currentView = tpl ? (
         <TemplateEditorView
+          key={isNew ? 'new-template' : params.templateId}
           template={tpl}
           exerciseNames={exerciseNames}
           onSave={(updated) => {
-            const ok = applyWrites(applyTemplateChange(snap(), {
-              type: 'save',
-              template: updated,
-              previousName: tpl.name,
-            }));
+            const ok = isNew
+              ? applyWrites(applyTemplateChange(snap(), {
+                  type: 'create',
+                  workout: { title: updated.name, blocks: updated.blocks, notes: updated.notes },
+                }))
+              : applyWrites(applyTemplateChange(snap(), {
+                  type: 'save',
+                  template: updated,
+                  previousName: tpl.name,
+                }));
             if (ok) {
               navigate(ROUTE_LIBRARY, { tab: 'templates' });
-              showToast('Template saved!');
+              showToast(isNew ? 'Template created!' : 'Template saved!');
             }
           }}
           onCancel={() => navigate(ROUTE_LIBRARY, { tab: 'templates' })}
