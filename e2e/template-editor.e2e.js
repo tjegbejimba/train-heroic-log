@@ -211,4 +211,59 @@ test.describe('Template Editor @visual', () => {
     await expect(page.locator('text=Unsaved changes')).toBeVisible();
     await captureVisualEvidence(page, testInfo, 'unsaved-after-set-change');
   });
+
+  test('@visual typing a free-text exercise title and immediately entering reps preserves both, with no artificial wait (issue #88)', async ({ page }, testInfo) => {
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+
+    await page.click('text=Library');
+    await page.click('button[role="tab"]:has-text("Templates")');
+    await page.click('text=Push Day');
+
+    const titleInput = page.locator('.tpl-editor__exercise-picker input').first();
+    const repsInput = page.locator('.tpl-editor__set-input').first();
+
+    // Type a free-text title (not a dropdown selection) and, without waiting
+    // for the deferred blur commit, click straight into the next field and
+    // enter a value. This is the exact "type title -> immediately act" path
+    // from issue #88; no waitForTimeout/blur workaround is used.
+    await titleInput.fill('Zercher Squat');
+    await repsInput.click();
+    await repsInput.fill('12');
+
+    // Both edits must survive the deferred title commit.
+    await expect(repsInput).toHaveValue('12');
+    await expect(titleInput).toHaveValue('Zercher Squat');
+    await captureVisualEvidence(page, testInfo, 'free-text-title-and-reps-preserved');
+
+    // Persist through a full save -> reopen round trip (the template's own
+    // name is unchanged, so reopen it by that name).
+    await page.click('button:has-text("Save Template")');
+    await expect(page.locator('button[role="tab"]:has-text("Templates")')).toBeVisible();
+    await page.click('text=Push Day');
+    await expect(page.locator('.tpl-editor__exercise-picker input').first()).toHaveValue('Zercher Squat');
+    await expect(page.locator('.tpl-editor__set-input').first()).toHaveValue('12');
+    await captureVisualEvidence(page, testInfo, 'free-text-title-and-reps-persisted-after-reopen');
+  });
+
+  test('@visual typing a free-text exercise title and immediately clicking Add Exercise to Part keeps both (issue #88)', async ({ page }, testInfo) => {
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+
+    await page.click('text=Library');
+    await page.click('button[role="tab"]:has-text("Templates")');
+    await page.click('text=Push Day');
+
+    const titleInput = page.locator('.tpl-editor__exercise-picker input').first();
+    const exerciseCountBefore = await page.locator('.tpl-editor__exercise').count();
+
+    await titleInput.fill('Landmine Press');
+    await page.getByRole('button', { name: 'Add Exercise to Part' }).first().click();
+
+    // The click must add the exercise AND the typed title must survive the
+    // deferred commit — neither the click nor the title may be swallowed.
+    await expect(page.locator('.tpl-editor__exercise')).toHaveCount(exerciseCountBefore + 1);
+    await expect(titleInput).toHaveValue('Landmine Press');
+    await captureVisualEvidence(page, testInfo, 'free-text-title-and-added-exercise-preserved');
+  });
 });
