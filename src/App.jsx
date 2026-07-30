@@ -423,6 +423,11 @@ export default function App() {
           template={tpl}
           exerciseNames={exerciseNames}
           onSave={(updated) => {
+            // Rejections (e.g. a duplicate Template name) are surfaced by
+            // applyWrites itself via the shell's onError → error toast, and
+            // leave committed state untouched. So this only gates the success
+            // path: on failure the editor stays open with the user's work
+            // intact so the name can be corrected.
             const ok = isNew
               ? applyWrites(applyTemplateChange(snap(), {
                   type: 'create',

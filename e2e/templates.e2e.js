@@ -70,6 +70,62 @@ test('@visual creating a new template from scratch', async ({ page }, testInfo) 
   await expect(page.getByPlaceholder('Search exercises...')).toHaveValue('Goblet Squat');
 });
 
+test('@visual creating a template with a duplicate name is rejected with visible feedback', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+
+  // Seed an existing template through the same create flow.
+  await page.getByRole('button', { name: /New Template/i }).click();
+  await page.locator('#template-name').fill('Full Body A');
+  await page.getByPlaceholder('Search exercises...').fill('Goblet Squat');
+  await page.locator('#template-name').click();
+  await page.waitForTimeout(250);
+  await page.getByRole('button', { name: 'Save Template' }).click();
+  await expect(page.getByRole('button', { name: /Full Body A/ })).toBeVisible();
+
+  // Let the "Template created!" toast clear so the evidence below can only
+  // show the rejection, not a leftover success message.
+  await expect(page.locator('.toast--success')).toHaveCount(0);
+
+  // Attempt a second template that collides on name.
+  await page.getByRole('button', { name: /New Template/i }).click();
+  await page.locator('#template-name').fill('Full Body A');
+  await page.getByPlaceholder('Search exercises...').fill('Push Up');
+  await page.locator('#template-name').click();
+  await page.waitForTimeout(250);
+  await page.getByRole('button', { name: 'Save Template' }).click();
+
+  // The orchestrator's rejection must reach the user, not fail silently.
+  const errorToast = page.locator('.toast--error', {
+    hasText: 'A template with this name already exists',
+  });
+  await expect(errorToast).toBeVisible();
+
+  // The toast ends on a `forwards` fade-out keyframe, so Playwright's default
+  // `animations: 'disabled'` fast-forwards it to opacity 0 and the evidence
+  // would show an empty frame. Capture with animations live, after the 220ms
+  // fade-in has settled, so the error is legible in the screenshot.
+  await page.waitForTimeout(300);
+  await captureVisualEvidence(page, testInfo, 'template-create-duplicate-name-error', {
+    animations: 'allow',
+  });
+
+  // The editor stays open with the user's work intact so the name can be fixed.
+  await expect(page.locator('.tpl-editor')).toBeVisible();
+  await expect(page.locator('#template-name')).toHaveValue('Full Body A');
+
+  // The existing template is untouched — no overwrite, no second entry.
+  const stored = await page.evaluate(() =>
+    JSON.parse(window.localStorage.getItem('th_templates') || '{}')
+  );
+  const templates = Object.values(stored);
+  expect(templates).toHaveLength(1);
+  expect(templates[0].name).toBe('Full Body A');
+  expect(templates[0].blocks[0].exercises[0].title).toBe('Goblet Squat');
+});
+
 test('@visual populated template list retains current behavior', async ({ page }, testInfo) => {
   await gotoCleanApp(page);
   await importSampleCsv(page);
