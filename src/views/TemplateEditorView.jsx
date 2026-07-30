@@ -118,17 +118,47 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   }
 
   function setExerciseTitle(bIdx, eIdx, title) {
-    const next = [...blocks];
-    next[bIdx] = {
-      ...next[bIdx],
-      exercises: next[bIdx].exercises.map((ex, i) =>
-        i === eIdx ? { ...ex, title } : ex
-      ),
-    };
-    setBlocks(next);
+    // This commit can fire from a deferred onBlur timeout (see the exercise
+    // title input below), so it must merge into whatever state is current
+    // when it runs rather than overwrite a snapshot captured earlier —
+    // otherwise it silently discards any edit made during the delay window.
+    setBlocks((prevBlocks) => {
+      const next = [...prevBlocks];
+      next[bIdx] = {
+        ...next[bIdx],
+        exercises: next[bIdx].exercises.map((ex, i) =>
+          i === eIdx ? { ...ex, title } : ex
+        ),
+      };
+      return next;
+    });
     setActiveSearch(null);
     setSearchQuery('');
   }
+
+  // Merges any not-yet-committed free-text exercise title into `sourceBlocks`
+  // and returns the result. Used to flush the pending onBlur commit
+  // synchronously (e.g. before Save reads `blocks`) instead of waiting for
+  // the 200ms timeout, so a fast Save right after typing can't read stale
+  // state and discard the title.
+  function flushPendingExerciseTitle(sourceBlocks) {
+    const curActive = activeSearchRef.current;
+    if (!curActive) return sourceBlocks;
+    const { blockIdx: bIdx, exIdx: eIdx } = curActive;
+    const curQuery = searchQueryRef.current.trim();
+    const currentTitle = sourceBlocks[bIdx]?.exercises?.[eIdx]?.title;
+    if (!curQuery || curQuery === currentTitle) return sourceBlocks;
+
+    const next = [...sourceBlocks];
+    next[bIdx] = {
+      ...next[bIdx],
+      exercises: next[bIdx].exercises.map((ex, i) =>
+        i === eIdx ? { ...ex, title: curQuery } : ex
+      ),
+    };
+    return next;
+  }
+
 
   function setExerciseNotes(bIdx, eIdx, workoutNotes) {
     const next = [...blocks];
@@ -263,7 +293,14 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   }
 
   function handleSave() {
-    const { cleanBlocks, discardedCount, error } = validateTemplate(name, blocks);
+    const flushedBlocks = flushPendingExerciseTitle(blocks);
+    if (flushedBlocks !== blocks) {
+      setBlocks(flushedBlocks);
+      setActiveSearch(null);
+      setSearchQuery('');
+    }
+
+    const { cleanBlocks, discardedCount, error } = validateTemplate(name, flushedBlocks);
 
     if (error) {
       showToast(error, 'error');
