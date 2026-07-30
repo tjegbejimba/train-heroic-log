@@ -81,6 +81,46 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     expect(screen.getByDisplayValue('Overhead Press')).toBeTruthy();
   });
 
+  it('keeps a newly added set (and the typed title) after clicking + Set', () => {
+    renderEditor();
+
+    const titleInput = screen.getByPlaceholderText('Search exercises...');
+    fireEvent.focus(titleInput);
+    fireEvent.change(titleInput, { target: { value: 'Lateral Raise' } });
+    fireEvent.blur(titleInput);
+
+    // Before the deferred blur commit fires, add a second set to this exercise.
+    const setsBefore = screen.getAllByPlaceholderText('-').length;
+    fireEvent.click(screen.getByText('+ Set'));
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.getAllByPlaceholderText('-').length).toBeGreaterThan(setsBefore);
+    expect(screen.getByDisplayValue('Lateral Raise')).toBeTruthy();
+  });
+
+  it('keeps a newly added part (and the typed title) after clicking Add Part', () => {
+    renderEditor();
+
+    const titleInput = screen.getByPlaceholderText('Search exercises...');
+    fireEvent.focus(titleInput);
+    fireEvent.change(titleInput, { target: { value: 'Front Squat' } });
+    fireEvent.blur(titleInput);
+
+    // Before the deferred blur commit fires, add a second part/block.
+    const titlesBefore = screen.getAllByPlaceholderText('Search exercises...').length;
+    fireEvent.click(screen.getByText('Add Part'));
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.getAllByPlaceholderText('Search exercises...').length).toBeGreaterThan(titlesBefore);
+    expect(screen.getByDisplayValue('Front Squat')).toBeTruthy();
+  });
+
   it('commits a pending free-text title before saving, even if Save is clicked before the deferred commit fires', () => {
     const { onSave } = renderEditor();
 
