@@ -8,7 +8,14 @@ import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
 import { retryReplication, clearByKeys, coordinateSyncReload } from './storage/authority';
 import { useToast } from './components/Toast';
-import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
+import {
+  applyTemplateChange,
+  applyScheduleChange,
+  applyNoteChange,
+  applyImport,
+  applyMergeImport,
+  resolveImportConflict,
+} from './orchestrator';
 import { useTrainingPlanShell } from './hooks/useTrainingPlanShell';
 import {
   ROUTE_IMPORT,
@@ -284,11 +291,25 @@ export default function App() {
     case ROUTE_IMPORT:
       currentView = (
         <ImportView
-          onImport={(workoutMap, scheduleMap) => {
+          onMergeImport={(workoutMap, scheduleMap) => {
+            const result = applyMergeImport(snap(), workoutMap, scheduleMap);
+            applyWrites(result);
+            return result.report;
+          }}
+          onResolveConflict={(report, resolution) => {
+            const result = resolveImportConflict(snap(), report, resolution);
+            return applyWrites(result) ? result.report : report;
+          }}
+          onReplaceImport={(workoutMap, scheduleMap) => {
             applyWrites(applyImport(snap(), workoutMap, scheduleMap));
             navigate(ROUTE_TRAINING);
             const count = Object.keys(workoutMap).length;
-            showToast(`Imported ${count} workout${count !== 1 ? 's' : ''} as templates!`);
+            showToast(`Replaced workout data with ${count} imported template${count !== 1 ? 's' : ''}.`);
+          }}
+          onDone={() => navigate(ROUTE_TRAINING)}
+          existingCounts={{
+            workouts: Object.keys(workouts).length,
+            scheduledDates: Object.keys(schedule).length,
           }}
         />
       );
@@ -481,7 +502,7 @@ export default function App() {
         />
       )}
 
-      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && !isInlineEditorActive && (
+      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_IMPORT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && !isInlineEditorActive && (
         <button
           className="feedback-fab"
           onClick={() => setShowFeedback(true)}
