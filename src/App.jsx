@@ -39,8 +39,6 @@ import Modal from './components/Modal';
 import NavBar from './components/NavBar';
 import ErrorBoundary from './components/ErrorBoundary';
 import FeedbackModal from './components/FeedbackModal';
-import { MessageSquare } from 'lucide-react';
-
 import './styles/App.css';
 
 // The persistence authority owns the exactly-once, reload-safe sequence
@@ -478,17 +476,9 @@ export default function App() {
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}
           syncStatus={syncStatus}
+          onFeedback={() => setShowFeedback(true)}
+          showFeedbackAction={view !== ROUTE_SETTINGS && !isInlineEditorActive}
         />
-      )}
-
-      {view !== ROUTE_ACTIVE_WORKOUT && view !== ROUTE_SETTINGS && view !== ROUTE_EDIT_TEMPLATE && view !== ROUTE_EXERCISE_HISTORY && !isInlineEditorActive && (
-        <button
-          className="feedback-fab"
-          onClick={() => setShowFeedback(true)}
-          aria-label="Send feedback"
-        >
-          <MessageSquare size={15} />
-        </button>
       )}
 
       {showFeedback && (

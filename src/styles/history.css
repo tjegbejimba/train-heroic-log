@@ -1,7 +1,7 @@
 /* ========== History ========== */
 .history-view {
-  gap: var(--space-lg);
-  padding-bottom: var(--space-xl);
+  gap: var(--space-xl);
+  padding-bottom: var(--view-end-space);
 }
 
 .history-view__header {
@@ -417,8 +417,8 @@
   display: grid;
   place-items: center;
   align-self: center;
-  width: 40px;
-  height: 40px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: transparent;
