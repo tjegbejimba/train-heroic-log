@@ -253,7 +253,7 @@
 
 /* ========== Template editor ========== */
 .tpl-editor {
-  padding-bottom: var(--space-xl);
+  padding-bottom: var(--view-end-space);
 }
 
 .tpl-editor__header {
@@ -432,8 +432,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 48px;
+  min-height: 48px;
   padding: var(--space-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -467,8 +467,8 @@
 }
 
 .tpl-editor .btn-icon--small {
-  min-width: 34px;
-  min-height: 34px;
+  min-width: 48px;
+  min-height: 48px;
   padding: var(--space-xs);
 }
 
@@ -603,7 +603,7 @@
 
 .tpl-editor__set-input,
 .tpl-editor__set-unit {
-  min-height: 40px;
+  min-height: var(--touch-target);
   padding: var(--space-sm) !important;
   border-radius: var(--radius-sm);
   font-size: 16px !important;
@@ -640,7 +640,8 @@
   justify-content: center;
   padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border-subtle);
-  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  background: var(--surface-elevated);
+  box-shadow: 0 -12px 28px -18px rgba(0, 0, 0, 0.9);
 }
 
 .tpl-editor__footer .btn {
@@ -656,8 +657,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 48px;
+  min-height: 48px;
   padding: var(--space-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -700,7 +701,7 @@
 .tpl-editor .bar-weight-picker__pill {
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
+  min-height: var(--touch-target);
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -792,6 +793,6 @@
   }
 
   .tpl-editor .btn-icon {
-    min-width: 38px;
+    min-width: 48px;
   }
 }

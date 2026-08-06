@@ -58,7 +58,7 @@
   flex-direction: column;
   gap: var(--space-xl);
   padding: var(--space-lg);
-  padding-bottom: calc(var(--space-2xl) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--view-end-space) + env(safe-area-inset-bottom, 0px));
 }
 
 .training-view__month-header {
@@ -799,8 +799,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: var(--surface-high);

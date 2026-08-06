@@ -16,12 +16,12 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-lg) var(--space-md);
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--view-end-space) + var(--space-xl) + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
 }
 
 .active-workout-view__content--timer {
-  padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--view-end-space) + var(--space-3xl) + env(safe-area-inset-bottom, 0px));
 }
 
 /* =====================================================
@@ -81,6 +81,7 @@
 .session-header__center {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -156,7 +157,7 @@
    ===================================================== */
 
 .aw-block {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-2xl);
 }
 
 .block-section {
@@ -829,7 +830,7 @@
   bottom: 0;
   left: 50%;
   z-index: var(--z-sticky);
-  width: min(100vw, var(--app-max-width));
+  width: min(100%, var(--app-max-width));
   padding: var(--space-md) var(--space-lg);
   padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-subtle);
@@ -895,7 +896,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2xl);
-  width: min(100vw, var(--app-max-width));
+  width: min(100%, var(--app-max-width));
   padding: max(var(--space-xl), env(safe-area-inset-top, 0px)) var(--space-xl) max(var(--space-xl), env(safe-area-inset-bottom, 0px));
   background: color-mix(in oklch, var(--bg) 92%, var(--surface-elevated));
   transform: translateX(-50%);

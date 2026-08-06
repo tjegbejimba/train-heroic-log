@@ -53,3 +53,53 @@ test('keeps key mobile screens within the viewport width', async ({ page }, test
   await expect(page.getByRole('button', { name: /Cancel/ })).toBeVisible();
   await expectNoDocumentHorizontalOverflow(page);
 });
+
+test('keeps primary mobile navigation and planning controls thumb-sized', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chrome', 'Touch target guard runs once on the mobile project.');
+
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  for (const tab of await page.locator('.navbar__tab').all()) {
+    const box = await tab.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(48);
+  }
+
+  await page.getByRole('button', { name: 'Planner' }).click();
+  for (const assignButton of await page.locator('.planner-day__assign').all()) {
+    const box = await assignButton.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(48);
+  }
+
+  await page.getByRole('button', { name: 'Library' }).click();
+  for (const libraryTab of await page.getByRole('tab').all()) {
+    const box = await libraryTab.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(48);
+  }
+});
+
+test('keeps template editing and exercise history controls thumb-sized', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chrome', 'Touch target guard runs once on the mobile project.');
+
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: /Lower Body B/ }).click();
+
+  for (const control of await page.locator('.tpl-editor .btn-icon, .tpl-editor .rest-picker__trigger, .tpl-editor .bar-weight-picker__trigger').all()) {
+    const box = await control.boundingBox();
+    const className = await control.getAttribute('class');
+    expect(box.width, className).toBeGreaterThanOrEqual(47.99);
+    expect(box.height, className).toBeGreaterThanOrEqual(47.99);
+  }
+
+  await page.getByRole('button', { name: /Cancel/ }).click();
+  await page.getByRole('tab', { name: 'Exercises' }).click();
+  await page.locator('.library-row__header').first().click();
+  await page.getByRole('button', { name: 'View exercise history' }).click();
+
+  const backBox = await page.locator('.exercise-history-view__back').boundingBox();
+  expect(backBox.height).toBeGreaterThanOrEqual(48);
+});

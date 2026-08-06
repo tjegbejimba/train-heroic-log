@@ -70,6 +70,7 @@ export default function StatsView({ logs, completedDates }) {
   const isEmpty = Object.keys(completedLogs).length === 0;
   const hasVolume = volumeData.some((week) => week.volume > 0);
   const hasSessions = sessionsData.some((week) => week.count > 0);
+  const volumePointCount = volumeData.filter((week) => week.volume > 0).length;
 
   if (isEmpty) {
     return (
@@ -124,7 +125,11 @@ export default function StatsView({ logs, completedDates }) {
         </div>
 
         <div className="stats-view__strength-layout">
-          <div className="stats-view__chart-panel stats-view__chart-panel--primary">
+          <div
+            className={`stats-view__chart-panel stats-view__chart-panel--primary ${
+              volumePointCount <= 1 ? 'stats-view__chart-panel--sparse' : ''
+            }`}
+          >
             <div className="stats-view__metric-row">
               <span className="stats-view__metric-label">Total Volume ({unit})</span>
               <span className="stats-view__metric-value">{formatVolume(totalVolume)}</span>

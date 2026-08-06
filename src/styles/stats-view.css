@@ -1,8 +1,8 @@
 /* ========== Stats ========== */
 .stats-view {
-  gap: var(--space-lg);
+  gap: var(--space-xl);
   padding: var(--space-xl) var(--space-lg);
-  padding-bottom: var(--space-2xl);
+  padding-bottom: var(--view-end-space);
 }
 
 .stats-view__header {
@@ -98,7 +98,7 @@
 }
 
 .stats-view__pill {
-  min-height: 38px;
+  min-height: var(--touch-target);
   padding: 0 var(--space-sm);
   border: 1px solid transparent;
   border-radius: var(--radius-full);
@@ -422,6 +422,10 @@
 
 .stats-chart--volume {
   max-height: 210px;
+}
+
+.stats-view__chart-panel--sparse .stats-chart--volume {
+  max-height: 140px;
 }
 
 .stats-chart--sessions {

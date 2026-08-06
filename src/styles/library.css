@@ -46,15 +46,18 @@
 }
 
 .library-view__metric {
-  min-width: 74px;
-  min-height: 68px;
+  min-width: 68px;
+  min-height: 56px;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-xl);
+  border-color: var(--border);
+  background: var(--surface-high);
+  color: var(--text);
 }
 
 .library-view__metric span {
   font-family: var(--font-mono);
-  font-size: var(--num-lg);
+  font-size: var(--text-2xl);
   font-weight: 760;
   line-height: 0.95;
   font-feature-settings: 'tnum' 1, 'zero' 1;
@@ -83,7 +86,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  min-height: 40px;
+  min-height: 48px;
   padding: 0 var(--space-sm);
   border: 1px solid transparent;
   border-radius: var(--radius-full);
@@ -165,8 +168,8 @@
 .library-view__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: 0 var(--space-lg) var(--space-xl);
+  gap: var(--space-md);
+  padding: 0 var(--space-lg) var(--view-end-space);
 }
 
 .library-row {
@@ -655,6 +658,7 @@
 }
 
 .exercise-history-view__back {
+  min-height: 48px;
   margin-bottom: var(--space-lg);
 }
 

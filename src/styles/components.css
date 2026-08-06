@@ -18,12 +18,14 @@
 .navbar__tabs {
   display: flex;
   width: 100%;
+  min-height: 0;
   justify-content: space-around;
   align-items: center;
 }
 
 .navbar__tab {
   flex: 1;
+  min-height: var(--touch-target);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -71,6 +73,20 @@
   font-weight: 500;
 }
 
+.feedback-fab {
+  flex: 0 0 var(--touch-target);
+  color: var(--text-muted);
+}
+
+.feedback-fab .navbar__label {
+  display: none;
+}
+
+.feedback-fab:hover,
+.feedback-fab:active {
+  color: var(--text);
+}
+
 /* ========== Modal ========== */
 .modal-overlay {
   position: fixed;
@@ -94,9 +110,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
-  max-width: 400px;
-  width: calc(100% - 32px);
-  max-height: calc(100vh - 64px);
+  width: min(100%, 400px);
+  max-height: calc(100dvh - var(--space-2xl));
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   animation: modalSlideUp var(--transition-slow) ease-out;

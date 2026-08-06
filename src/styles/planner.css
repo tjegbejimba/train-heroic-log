@@ -199,13 +199,14 @@
 .planner-day__assign {
   flex-shrink: 0;
   min-width: 88px;
+  min-height: 48px;
 }
 
 /* Sticky Apply Plan */
 .planner-view__sticky-action {
   position: fixed;
   right: 0;
-  bottom: calc(76px + var(--space-md));
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-md));
   left: 0;
   z-index: var(--z-sticky);
   max-width: var(--app-max-width);
@@ -227,7 +228,7 @@
   flex-direction: column;
   gap: var(--space-md);
   padding: var(--space-lg);
-  padding-bottom: calc(var(--space-2xl) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--view-end-space) + env(safe-area-inset-bottom, 0px));
 }
 
 .planner-view__actions .btn-primary {
@@ -311,8 +312,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: var(--surface-high);

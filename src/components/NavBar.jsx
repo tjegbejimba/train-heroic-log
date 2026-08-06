@@ -1,4 +1,4 @@
-import { Dumbbell, CalendarDays, BarChart2, BookOpen, Settings, TrendingUp } from 'lucide-react';
+import { Dumbbell, CalendarDays, BarChart2, BookOpen, MessageSquare, Settings, TrendingUp } from 'lucide-react';
 import {
   TAB_TRAINING,
   TAB_HISTORY,
@@ -8,7 +8,13 @@ import {
   ROUTE_STATS,
 } from '../constants';
 
-export default function NavBar({ currentTab, onTabChange, syncStatus }) {
+export default function NavBar({
+  currentTab,
+  onTabChange,
+  syncStatus,
+  onFeedback,
+  showFeedbackAction = true,
+}) {
   const tabs = [
     { id: TAB_TRAINING, label: 'Training', Icon: Dumbbell },
     { id: ROUTE_PLANNER, label: 'Planner', Icon: CalendarDays },
@@ -49,6 +55,17 @@ export default function NavBar({ currentTab, onTabChange, syncStatus }) {
             <div className="navbar__label">{tab.label}</div>
           </button>
         ))}
+        {showFeedbackAction && (
+          <button
+            type="button"
+            className="navbar__tab feedback-fab"
+            onClick={onFeedback}
+            aria-label="Send feedback"
+          >
+            <span className="navbar__icon"><MessageSquare size={22} /></span>
+            <span className="navbar__label">Feedback</span>
+          </button>
+        )}
       </div>
     </nav>
   );

@@ -2,7 +2,20 @@ import { test, expect } from '@playwright/test';
 import { gotoCleanApp, importSampleCsv } from './helpers.js';
 
 test.describe('Feedback FAB positioning @visual', () => {
-  test('FAB does not overlap Start Workout button in TrainingView', async ({ page }) => {
+  test('FAB stays inside the centered app column on desktop', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'Desktop column guard runs once on Chromium.');
+
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+
+    const appBox = await page.locator('.app').boundingBox();
+    const fabBox = await page.locator('.feedback-fab').boundingBox();
+
+    expect(fabBox.x).toBeGreaterThanOrEqual(appBox.x);
+    expect(fabBox.x + fabBox.width).toBeLessThanOrEqual(appBox.x + appBox.width);
+  });
+
+  test('feedback action does not overlap Training navigation tabs', async ({ page }) => {
     await gotoCleanApp(page);
     await importSampleCsv(page);
     
@@ -14,31 +27,10 @@ test.describe('Feedback FAB positioning @visual', () => {
     const fab = page.locator('.feedback-fab');
     await expect(fab).toBeVisible();
     
-    // Get all primary action buttons (could be Start Workout or template preview actions)
-    const primaryActions = page.locator('button.btn-primary, button.training-templates__card, button.workout-preview-card__start');
-    const actionCount = await primaryActions.count();
-    
-    // If there are primary actions, verify no overlap with FAB
-    if (actionCount > 0) {
-      const fabBox = await fab.boundingBox();
-      
-      // Check each primary action for overlap
-      for (let i = 0; i < actionCount; i++) {
-        const action = primaryActions.nth(i);
-        const isVisible = await action.isVisible();
-        if (isVisible) {
-          const actionBox = await action.boundingBox();
-          
-          // Two boxes don't overlap if one is completely to the left/right/above/below the other
-          const noOverlap = 
-            actionBox.x + actionBox.width <= fabBox.x ||  // action is left of FAB
-            fabBox.x + fabBox.width <= actionBox.x ||     // FAB is left of action
-            actionBox.y + actionBox.height <= fabBox.y || // action is above FAB
-            fabBox.y + fabBox.height <= actionBox.y;      // FAB is above action
-          
-          expect(noOverlap).toBe(true);
-        }
-      }
+    const fabBox = await fab.boundingBox();
+    for (const tab of await page.locator('.navbar__tab:not(.feedback-fab)').all()) {
+      const tabBox = await tab.boundingBox();
+      expect(tabBox.x + tabBox.width <= fabBox.x || fabBox.x + fabBox.width <= tabBox.x).toBe(true);
     }
   });
   
@@ -55,7 +47,7 @@ test.describe('Feedback FAB positioning @visual', () => {
     await expect(fab).not.toBeVisible();
   });
   
-  test('FAB does not overlap bottom navigation', async ({ page }) => {
+  test('feedback action is contained within bottom navigation', async ({ page }) => {
     await gotoCleanApp(page);
     await importSampleCsv(page);
     
@@ -66,15 +58,16 @@ test.describe('Feedback FAB positioning @visual', () => {
       await page.getByRole('button', { name: viewName }).click();
       
       const fab = page.locator('.feedback-fab');
-      const nav = page.locator('.app__nav, .navbar');
+      const nav = page.locator('.navbar');
       
       if (await fab.isVisible() && await nav.isVisible()) {
         const fabBox = await fab.boundingBox();
         const navBox = await nav.boundingBox();
-        
-        // FAB should be above nav (no vertical overlap)
-        const noOverlap = fabBox.y + fabBox.height <= navBox.y;
-        expect(noOverlap).toBe(true);
+
+        expect(fabBox.x).toBeGreaterThanOrEqual(navBox.x);
+        expect(fabBox.x + fabBox.width).toBeLessThanOrEqual(navBox.x + navBox.width);
+        expect(fabBox.y).toBeGreaterThanOrEqual(navBox.y);
+        expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(navBox.y + navBox.height);
       }
     }
   });
@@ -122,7 +115,7 @@ test.describe('Feedback FAB positioning @visual', () => {
     // This is a regression guard for the App.jsx conditional rendering.
   });
   
-  test('FAB does not overlap Planner action buttons', async ({ page }) => {
+  test('feedback action does not overlap Planner navigation tabs', async ({ page }) => {
     await gotoCleanApp(page);
     await importSampleCsv(page);
     
@@ -133,27 +126,10 @@ test.describe('Feedback FAB positioning @visual', () => {
     const fab = page.locator('.feedback-fab');
     await expect(fab).toBeVisible();
     
-    // Check if there are any action buttons in the planner
-    const actionButtons = page.locator('button.btn-primary, button.btn-secondary');
-    const count = await actionButtons.count();
-    
-    if (count > 0) {
-      const fabBox = await fab.boundingBox();
-      
-      for (let i = 0; i < count; i++) {
-        const action = actionButtons.nth(i);
-        if (await action.isVisible()) {
-          const actionBox = await action.boundingBox();
-          
-          const noOverlap = 
-            actionBox.x + actionBox.width <= fabBox.x ||
-            fabBox.x + fabBox.width <= actionBox.x ||
-            actionBox.y + actionBox.height <= fabBox.y ||
-            fabBox.y + fabBox.height <= actionBox.y;
-          
-          expect(noOverlap).toBe(true);
-        }
-      }
+    const fabBox = await fab.boundingBox();
+    for (const tab of await page.locator('.navbar__tab:not(.feedback-fab)').all()) {
+      const tabBox = await tab.boundingBox();
+      expect(tabBox.x + tabBox.width <= fabBox.x || fabBox.x + fabBox.width <= tabBox.x).toBe(true);
     }
   });
 });

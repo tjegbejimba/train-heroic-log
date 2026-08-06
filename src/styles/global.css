@@ -118,6 +118,9 @@
 
   /* ---------- Layout ---------- */
   --app-max-width: 480px;
+  --touch-target: 48px;
+  --nav-height: 58px;
+  --view-end-space: 80px;
 
   /* ---------- Z-index scale (semantic — never invent 999) ---------- */
   --z-base: 0;
@@ -210,6 +213,7 @@ body {
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
+  scroll-padding-block-end: var(--view-end-space);
 }
 
 .view--full-height {
