@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
+import {
+  applyTemplateChange,
+  applyScheduleChange,
+  applyNoteChange,
+  applyImport,
+  applyMergeImport,
+  resolveImportConflict,
+} from './orchestrator';
 
 // ─── applyTemplateChange: delete ────────────────────────
 
@@ -575,5 +582,428 @@ describe('applyImport', () => {
     const result = applyImport(snap, workoutMap, {});
     const tpl = Object.values(result.templates).find((t) => t.name === 'Upper A');
     expect(tpl.blocks[0].exercises[0].workoutNotes).toBe('8 reps each side');
+  });
+});
+
+// ─── applyMergeImport ───────────────────────────────────
+
+describe('applyMergeImport', () => {
+    it('adds new imported training data without removing existing data', () => {
+      const snap = {
+        templates: {
+          existing: {
+            id: 'existing',
+            name: 'Existing',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5, weight: 100 }] }] }],
+          },
+        },
+        workouts: {
+          Existing: {
+            title: 'Existing',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5, weight: 100 }] }] }],
+          },
+        },
+        schedule: { '2026-08-01': 'Existing' },
+        logs: {},
+      };
+      const workoutMap = {
+        New: {
+          title: 'New',
+          blocks: [{ exercises: [{ title: 'Squat', sets: [{ reps: 3, weight: 225 }] }] }],
+          notes: '',
+        },
+      };
+
+      const result = applyMergeImport(
+        snap,
+        workoutMap,
+        { '2026-08-02': 'New' },
+        { makeId: () => 'new-template' }
+      );
+
+      expect(Object.keys(result.templates)).toEqual(['existing', 'new-template']);
+      expect(Object.keys(result.workouts)).toEqual(['Existing', 'New']);
+      expect(result.schedule).toEqual({
+        '2026-08-01': 'Existing',
+        '2026-08-02': 'New',
+      });
+      expect(result.report.imported).toEqual([
+        { name: 'New', dates: ['2026-08-02'] },
+      ]);
+    });
+
+    it('normalizes names and separates identical templates from definition conflicts', () => {
+      const existingDefinition = {
+        id: 'upper',
+        name: 'Upper Body',
+        notes: 'Control',
+        blocks: [{
+          value: 'A',
+          exercises: [{
+            title: 'Bench',
+            notes: 'Tuck elbows',
+            workoutNotes: 'Local cue',
+            sets: [{ reps: 5, weight: 185, unit: 'lb' }],
+          }],
+        }],
+      };
+      const snap = {
+        templates: { upper: existingDefinition },
+        workouts: { 'Upper Body': { ...existingDefinition, title: 'Upper Body' } },
+        schedule: {},
+        logs: {},
+      };
+      const identical = {
+        title: '  upper   body ',
+        notes: 'Control',
+        blocks: [{
+          value: 'A',
+          exercises: [{
+            title: 'Bench',
+            notes: 'Tuck elbows',
+            sets: [{ reps: 5, weight: 185, unit: 'lb' }],
+          }],
+        }],
+      };
+      const changed = {
+        ...identical,
+        blocks: [{
+          ...identical.blocks[0],
+          exercises: [{
+            ...identical.blocks[0].exercises[0],
+            sets: [{ reps: 8, weight: 165, unit: 'lb' }],
+          }],
+        }],
+      };
+
+      const alreadyPresent = applyMergeImport(snap, { duplicate: identical }, {});
+      expect(alreadyPresent.report.alreadyPresent).toEqual([{ name: 'Upper Body', dates: [] }]);
+      expect(alreadyPresent.report.templateConflicts).toEqual([]);
+
+      const conflicted = applyMergeImport(snap, { changed }, { '2026-08-03': changed.title });
+      expect(conflicted.report.templateConflicts[0]).toMatchObject({
+        id: 'template:Upper Body',
+        existingName: 'Upper Body',
+        importedName: 'upper body',
+        importedDates: ['2026-08-03'],
+        suggestedName: 'upper body (Imported)',
+      });
+      expect(conflicted.schedule['2026-08-03']).toBe('Upper Body');
+    });
+
+    it('treats different exercise titles as different workout definitions', () => {
+      const snap = {
+        templates: {
+          strength: {
+            id: 'strength',
+            name: 'Strength',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5 }] }] }],
+          },
+        },
+        workouts: {},
+        schedule: {},
+        logs: {},
+      };
+      const result = applyMergeImport(snap, {
+        strength: {
+          title: 'Strength',
+          blocks: [{ exercises: [{ title: 'Squat', sets: [{ reps: 5 }] }] }],
+        },
+      }, {});
+
+      expect(result.report.alreadyPresent).toEqual([]);
+      expect(result.report.templateConflicts).toHaveLength(1);
+    });
+
+    it('renames a conflicted import, preserves existing dates, and retargets only newly merged dates', () => {
+      const snap = {
+        templates: {
+          upper: {
+            id: 'upper',
+            name: 'Upper',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5 }] }] }],
+          },
+        },
+        workouts: {
+          Upper: {
+            title: 'Upper',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5 }] }] }],
+          },
+        },
+        schedule: { '2026-08-04': 'Upper' },
+        logs: {},
+      };
+      const importedWorkout = {
+        title: 'upper',
+        blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 8 }] }] }],
+      };
+      const merged = applyMergeImport(
+        snap,
+        { upper: importedWorkout },
+        { '2026-08-04': 'upper', '2026-08-05': 'upper' }
+      );
+
+      const result = resolveImportConflict(
+        {
+          ...snap,
+          templates: merged.templates,
+          workouts: merged.workouts,
+          schedule: merged.schedule,
+        },
+        merged.report,
+        {
+          kind: 'template',
+          id: 'template:Upper',
+          action: 'rename',
+          newName: 'Upper - Coach',
+          makeId: () => 'upper-coach',
+        }
+      );
+
+      expect(result.templates['upper-coach'].name).toBe('Upper - Coach');
+      expect(result.workouts['Upper - Coach'].blocks[0].exercises[0].sets[0].reps).toBe(8);
+      expect(result.schedule['2026-08-04']).toBe('Upper');
+      expect(result.schedule['2026-08-05']).toBe('Upper - Coach');
+      expect(result.report.templateConflicts).toEqual([]);
+    });
+
+    it('protects schedule collisions and completed history until explicitly replaced', () => {
+      const snap = {
+        templates: {},
+        workouts: {},
+        schedule: { '2026-08-06': 'Lower' },
+        logs: {
+          '2026-08-07::Completed Workout': { completed: true },
+        },
+      };
+      const importedWorkout = {
+        title: 'Conditioning',
+        blocks: [{ exercises: [{ title: 'Run', sets: [{ reps: 1 }] }] }],
+      };
+      const merged = applyMergeImport(
+        snap,
+        { conditioning: importedWorkout },
+        {
+          '2026-08-06': 'Conditioning',
+          '2026-08-07': 'Conditioning',
+          '2026-08-08': 'Conditioning',
+        },
+        { makeId: () => 'conditioning' }
+      );
+
+      expect(merged.schedule).toEqual({
+        '2026-08-06': 'Lower',
+        '2026-08-08': 'Conditioning',
+      });
+      expect(merged.report.scheduleConflicts).toEqual([
+        expect.objectContaining({
+          id: 'schedule:2026-08-06',
+          existingTitle: 'Lower',
+          importedTitle: 'Conditioning',
+          completed: false,
+        }),
+        expect.objectContaining({
+          id: 'schedule:2026-08-07',
+          existingTitle: 'Completed Workout',
+          importedTitle: 'Conditioning',
+          completed: true,
+        }),
+      ]);
+
+      const resolved = resolveImportConflict(
+        { ...snap, ...merged },
+        merged.report,
+        { kind: 'schedule', id: 'schedule:2026-08-06', action: 'replace' }
+      );
+      expect(resolved.schedule['2026-08-06']).toBe('Conditioning');
+      expect(resolved.report.scheduleConflicts).toHaveLength(1);
+    });
+
+    it('reviews a completed date even when its logged workout name matches the import', () => {
+      const snap = {
+        templates: {},
+        workouts: {},
+        schedule: {},
+        logs: {
+          '2026-08-09::Conditioning': { completed: true },
+        },
+      };
+      const result = applyMergeImport(
+        snap,
+        {
+          conditioning: {
+            title: 'Conditioning',
+            blocks: [{ exercises: [{ title: 'Run', sets: [{ reps: 1 }] }] }],
+          },
+        },
+        { '2026-08-09': 'Conditioning' },
+        { makeId: () => 'conditioning' }
+      );
+
+      expect(result.schedule['2026-08-09']).toBeUndefined();
+      expect(result.report.imported[0].dates).toEqual([]);
+      expect(result.report.scheduleConflicts[0]).toMatchObject({
+        date: '2026-08-09',
+        completed: true,
+      });
+    });
+
+    it('replaces a conflicting definition while preserving local workout-specific notes', () => {
+      const snap = {
+        templates: {
+          upper: {
+            id: 'upper',
+            name: 'Upper',
+            notes: 'Old',
+            blocks: [{
+              exercises: [{
+                title: 'Bench',
+                workoutNotes: 'Use the blue rack',
+                sets: [{ reps: 5 }],
+              }],
+            }],
+          },
+        },
+        workouts: {},
+        schedule: {},
+        logs: {},
+      };
+      const importedWorkout = {
+        title: 'Upper',
+        notes: 'New',
+        blocks: [{
+          exercises: [{
+            title: 'Bench',
+            notes: 'Trainer cue',
+            sets: [{ reps: 8 }],
+          }],
+        }],
+      };
+      const merged = applyMergeImport(snap, { upper: importedWorkout }, {});
+      const resolved = resolveImportConflict(
+        { ...snap, ...merged },
+        merged.report,
+        { kind: 'template', id: 'template:Upper', action: 'replace' }
+      );
+
+      expect(resolved.templates.upper).toMatchObject({
+        notes: 'New',
+        blocks: [{
+          exercises: [{
+            title: 'Bench',
+            notes: 'Trainer cue',
+            workoutNotes: 'Use the blue rack',
+            sets: [{ reps: 8 }],
+          }],
+        }],
+      });
+      expect(resolved.workouts.Upper.blocks).toEqual(resolved.templates.upper.blocks);
+  });
+
+  it('shares imported coaching notes with matching exercises in existing templates', () => {
+      const snap = {
+        templates: {
+          lower: {
+            id: 'lower',
+            name: 'Lower',
+            blocks: [{ exercises: [{ title: 'Squat', notes: 'Old cue', sets: [] }] }],
+          },
+        },
+        workouts: {
+          Lower: {
+            title: 'Lower',
+            blocks: [{ exercises: [{ title: 'Squat', notes: 'Old cue', sets: [] }] }],
+          },
+        },
+        schedule: {},
+        logs: {},
+      };
+      const result = applyMergeImport(snap, {
+        accessory: {
+          title: 'Accessory',
+          blocks: [{
+            exercises: [{ title: 'Squat', notes: 'Brace before descending', sets: [] }],
+          }],
+        },
+      }, {}, { makeId: () => 'accessory' });
+
+      expect(result.templates.lower.blocks[0].exercises[0].notes).toBe('Brace before descending');
+      expect(result.workouts.Lower.blocks[0].exercises[0].notes).toBe('Brace before descending');
+  });
+
+  it('inherits an existing global coaching note when an import leaves it blank', () => {
+      const snap = {
+        templates: {
+          lower: {
+            id: 'lower',
+            name: 'Lower',
+            blocks: [{ exercises: [{ title: 'Squat', notes: 'Brace hard', sets: [] }] }],
+          },
+        },
+        workouts: {},
+        schedule: {},
+        logs: {},
+      };
+      const result = applyMergeImport(snap, {
+        accessory: {
+          title: 'Accessory',
+          blocks: [{ exercises: [{ title: 'Squat', notes: '', sets: [] }] }],
+        },
+      }, {}, { makeId: () => 'accessory' });
+
+      expect(result.templates.accessory.blocks[0].exercises[0].notes).toBe('Brace hard');
+      expect(result.workouts.Accessory.blocks[0].exercises[0].notes).toBe('Brace hard');
+  });
+
+  it('retargets an already-resolved imported schedule conflict when its template is renamed later', () => {
+      const snap = {
+        templates: {
+          upper: {
+            id: 'upper',
+            name: 'Upper',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5 }] }] }],
+          },
+        },
+        workouts: {
+          Upper: {
+            title: 'Upper',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 5 }] }] }],
+          },
+        },
+        schedule: { '2026-08-11': 'Lower' },
+        logs: {},
+      };
+      const merged = applyMergeImport(
+        snap,
+        {
+          upper: {
+            title: 'Upper',
+            blocks: [{ exercises: [{ title: 'Bench', sets: [{ reps: 8 }] }] }],
+          },
+        },
+        { '2026-08-11': 'Upper' }
+      );
+      const scheduleResolved = resolveImportConflict(
+        { ...snap, ...merged },
+        merged.report,
+        { kind: 'schedule', id: 'schedule:2026-08-11', action: 'replace' }
+      );
+      const renamed = resolveImportConflict(
+        {
+          ...snap,
+          ...merged,
+          schedule: scheduleResolved.schedule,
+        },
+        scheduleResolved.report,
+        {
+          kind: 'template',
+          id: 'template:Upper',
+          action: 'rename',
+          newName: 'Upper (Imported)',
+          makeId: () => 'upper-imported',
+        }
+      );
+
+      expect(renamed.schedule['2026-08-11']).toBe('Upper (Imported)');
   });
 });

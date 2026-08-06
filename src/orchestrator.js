@@ -40,6 +40,144 @@ function findTemplateByName(templates, name) {
   return Object.values(templates).find((t) => t.name === name);
 }
 
+function normalizeImportName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function displayImportName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ');
+}
+
+function findTemplateByNormalizedName(templates, name) {
+  const normalized = normalizeImportName(name);
+  return Object.values(templates).find((template) =>
+    normalizeImportName(template.name) === normalized
+  );
+}
+
+function comparableImportDefinition(value) {
+  if (Array.isArray(value)) {
+    return value.map(comparableImportDefinition);
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.keys(value)
+    .filter((key) =>
+      key !== 'workoutNotes' &&
+      value[key] !== undefined
+    )
+    .sort()
+    .reduce((result, key) => {
+      result[key] = comparableImportDefinition(value[key]);
+      return result;
+    }, {});
+}
+
+function importDefinitionsMatch(existingTemplate, importedWorkout) {
+  return JSON.stringify(comparableImportDefinition({
+    blocks: existingTemplate.blocks,
+    notes: existingTemplate.notes || '',
+  })) === JSON.stringify(comparableImportDefinition({
+    blocks: importedWorkout.blocks,
+    notes: importedWorkout.notes || '',
+  }));
+}
+
+function importedDatesFor(scheduleMap, importedName) {
+  const normalized = normalizeImportName(importedName);
+  return Object.entries(scheduleMap)
+    .filter(([, title]) => normalizeImportName(title) === normalized)
+    .map(([date]) => date)
+    .sort();
+}
+
+function loggedWorkoutForDate(logs, date) {
+  const prefix = `${date}::`;
+  const key = Object.keys(logs).find((logKey) => logKey.startsWith(prefix));
+  return key ? key.slice(prefix.length) : null;
+}
+
+function suggestImportedName(templates, importedName) {
+  const base = `${displayImportName(importedName)} (Imported)`;
+  let suggestion = base;
+  let suffix = 2;
+  while (findTemplateByNormalizedName(templates, suggestion)) {
+    suggestion = `${base} ${suffix}`;
+    suffix++;
+  }
+  return suggestion;
+}
+
+function preserveWorkoutSpecificNotes(existingTemplate, importedWorkout) {
+  const notesByExercise = new Map();
+  existingTemplate.blocks.forEach((block) => {
+    block.exercises.forEach((exercise) => {
+      if (exercise.workoutNotes) {
+        notesByExercise.set(normalizeImportName(exercise.title), exercise.workoutNotes);
+      }
+
+    });
+  });
+
+  return importedWorkout.blocks.map((block) => ({
+    ...deepClone(block),
+    exercises: block.exercises.map((exercise) => {
+      const workoutNotes = notesByExercise.get(normalizeImportName(exercise.title));
+      return workoutNotes ? { ...deepClone(exercise), workoutNotes } : deepClone(exercise);
+    }),
+  }));
+}
+
+function propagateImportedExerciseNotes(collection, importedBlocks) {
+  const importedNotes = new Map();
+  importedBlocks.forEach((block) => {
+    block.exercises.forEach((exercise) => {
+      if (exercise.notes) {
+        importedNotes.set(normalizeImportName(exercise.title), exercise.notes);
+      }
+    });
+  });
+  if (!importedNotes.size) return collection;
+
+  return Object.fromEntries(Object.entries(collection).map(([key, item]) => [
+    key,
+    {
+      ...item,
+      blocks: item.blocks.map((block) => ({
+        ...block,
+        exercises: block.exercises.map((exercise) => {
+          const notes = importedNotes.get(normalizeImportName(exercise.title));
+          return notes ? { ...exercise, notes } : exercise;
+        }),
+      })),
+    },
+  ]));
+}
+
+function inheritExistingExerciseNotes(importedBlocks, templates, workouts) {
+  const existingNotes = new Map();
+  [...Object.values(templates), ...Object.values(workouts)].forEach((item) => {
+    item.blocks.forEach((block) => {
+      block.exercises.forEach((exercise) => {
+        if (exercise.notes) {
+          existingNotes.set(normalizeImportName(exercise.title), exercise.notes);
+        }
+      });
+    });
+  });
+
+  return importedBlocks.map((block) => ({
+    ...block,
+    exercises: block.exercises.map((exercise) => {
+      if (exercise.notes) return exercise;
+      const notes = existingNotes.get(normalizeImportName(exercise.title));
+      return notes ? { ...exercise, notes } : exercise;
+    }),
+  }));
+}
+
 // Deep, reference-free copy of a JSON-serializable value so a duplicated
 // Template shares no nested objects (Parts, Exercises, Sets, notes) with its
 // source. `structuredClone` is available in supported browsers and Node ≥17;
@@ -373,6 +511,7 @@ export function applyImport(snap, workoutMap, scheduleMap, opts = {}) {
         notes: workout.notes || '',
       };
     }
+
     idx++;
   });
 
@@ -381,4 +520,235 @@ export function applyImport(snap, workoutMap, scheduleMap, opts = {}) {
     schedule: scheduleMap,
     templates: updatedTemplates,
   };
+}
+
+export function applyMergeImport(snap, workoutMap, scheduleMap, opts = {}) {
+  const { makeId } = opts;
+  let templates = { ...snap.templates };
+  let workouts = { ...snap.workouts };
+  const schedule = { ...snap.schedule };
+  const imported = [];
+  const alreadyPresent = [];
+  const templateConflicts = [];
+  const scheduleConflicts = [];
+
+  Object.values(workoutMap).forEach((sourceWorkout, index) => {
+    const workout = {
+      ...sourceWorkout,
+      blocks: inheritExistingExerciseNotes(sourceWorkout.blocks, templates, workouts),
+    };
+    const importedName = displayImportName(workout.title);
+    const dates = importedDatesFor(scheduleMap, workout.title);
+    const existingTemplate = findTemplateByNormalizedName(templates, importedName);
+    const targetName = existingTemplate ? existingTemplate.name : importedName;
+
+    let templateConflict = null;
+    let resultRecord = null;
+    if (existingTemplate) {
+      if (importDefinitionsMatch(existingTemplate, workout)) {
+        resultRecord = { name: existingTemplate.name, dates: [] };
+        alreadyPresent.push(resultRecord);
+      } else {
+        templateConflict = {
+          id: `template:${existingTemplate.name}`,
+          existingName: existingTemplate.name,
+          importedName,
+          importedDates: dates,
+          mergedDates: [],
+          retargetDates: [],
+          suggestedName: suggestImportedName(templates, importedName),
+          existingTemplate: deepClone(existingTemplate),
+          importedWorkout: { ...deepClone(workout), title: importedName },
+        };
+        templateConflicts.push(templateConflict);
+      }
+      if (!workouts[existingTemplate.name]) {
+        workouts[existingTemplate.name] = workoutFromTemplate(existingTemplate);
+      }
+    } else {
+      const id = makeId ? makeId(index) : `tpl_${Date.now()}_${index}`;
+      templates[id] = {
+        id,
+        name: importedName,
+        createdDate: new Date().toISOString(),
+        blocks: workout.blocks,
+        notes: workout.notes || '',
+      };
+      workouts[importedName] = { ...workout, title: importedName };
+      resultRecord = { name: importedName, dates: [] };
+      imported.push(resultRecord);
+      templates = propagateImportedExerciseNotes(templates, workout.blocks);
+      workouts = propagateImportedExerciseNotes(workouts, workout.blocks);
+    }
+
+    dates.forEach((date) => {
+      const scheduledTitle = snap.schedule[date];
+      const loggedTitle = loggedWorkoutForDate(snap.logs, date);
+      const scheduleCollision = scheduledTitle &&
+        normalizeImportName(scheduledTitle) !== normalizeImportName(targetName);
+      const completedHistoryConflict = loggedTitle && (
+        !scheduledTitle ||
+        normalizeImportName(loggedTitle) !== normalizeImportName(targetName)
+      );
+      if (scheduleCollision || completedHistoryConflict) {
+        const existingTitle = scheduleCollision ? scheduledTitle : loggedTitle;
+        scheduleConflicts.push({
+          id: `schedule:${date}`,
+          date,
+          existingTitle,
+          importedTitle: targetName,
+          sourceTemplateConflictId: existingTemplate &&
+            !importDefinitionsMatch(existingTemplate, workout)
+            ? `template:${existingTemplate.name}`
+            : null,
+          completed: Boolean(loggedTitle),
+        });
+        return;
+      }
+      schedule[date] = targetName;
+      resultRecord?.dates.push(date);
+      if (templateConflict && !snap.schedule[date]) {
+        templateConflict.retargetDates.push(date);
+      }
+      templateConflict?.mergedDates.push(date);
+    });
+  });
+
+  return {
+    templates,
+    workouts,
+    schedule,
+    report: {
+      imported,
+      alreadyPresent,
+      templateConflicts,
+      scheduleConflicts,
+    },
+  };
+}
+
+export function resolveImportConflict(snap, report, resolution) {
+  const nextReport = deepClone(report);
+
+  if (resolution.kind === 'template') {
+    const conflict = nextReport.templateConflicts.find(({ id }) => id === resolution.id);
+    if (!conflict) return { error: 'Template import conflict not found' };
+
+    let templates = { ...snap.templates };
+    let workouts = { ...snap.workouts };
+    const schedule = { ...snap.schedule };
+    const existingTemplate = findTemplateByNormalizedName(templates, conflict.existingName);
+    if (!existingTemplate) return { error: 'Existing template not found' };
+
+    if (resolution.action === 'keep') {
+      nextReport.alreadyPresent.push({
+        name: conflict.existingName,
+        dates: conflict.mergedDates,
+        resolution: 'Kept existing',
+      });
+    } else if (resolution.action === 'replace') {
+      const blocks = preserveWorkoutSpecificNotes(existingTemplate, conflict.importedWorkout);
+      templates[existingTemplate.id] = {
+        ...existingTemplate,
+        blocks,
+        notes: conflict.importedWorkout.notes || '',
+      };
+      workouts[existingTemplate.name] = {
+        ...deepClone(conflict.importedWorkout),
+        title: existingTemplate.name,
+        blocks,
+      };
+      templates = propagateImportedExerciseNotes(templates, conflict.importedWorkout.blocks);
+      workouts = propagateImportedExerciseNotes(workouts, conflict.importedWorkout.blocks);
+      nextReport.imported.push({
+        name: existingTemplate.name,
+        dates: conflict.mergedDates,
+        resolution: 'Replaced existing',
+      });
+    } else if (resolution.action === 'rename') {
+      const newName = displayImportName(resolution.newName);
+      if (!newName) return { error: 'Enter a name for the imported template' };
+      if (findTemplateByNormalizedName(templates, newName)) {
+        return { error: `A template named "${newName}" already exists` };
+      }
+      const id = resolution.makeId
+        ? resolution.makeId()
+        : `tpl_${Date.now()}_${Object.keys(templates).length}`;
+      templates[id] = {
+        id,
+        name: newName,
+        createdDate: new Date().toISOString(),
+        blocks: deepClone(conflict.importedWorkout.blocks),
+        notes: conflict.importedWorkout.notes || '',
+      };
+      workouts[newName] = {
+        ...deepClone(conflict.importedWorkout),
+        title: newName,
+      };
+      templates = propagateImportedExerciseNotes(templates, conflict.importedWorkout.blocks);
+      workouts = propagateImportedExerciseNotes(workouts, conflict.importedWorkout.blocks);
+      conflict.retargetDates.forEach((date) => {
+        if (schedule[date] === conflict.existingName) {
+          schedule[date] = newName;
+        }
+      });
+      nextReport.imported.forEach((item) => {
+        if (item.sourceTemplateConflictId === conflict.id) {
+          item.name = newName;
+          item.dates.forEach((date) => {
+            if (schedule[date] === conflict.existingName) {
+              schedule[date] = newName;
+            }
+          });
+        }
+      });
+      nextReport.scheduleConflicts = nextReport.scheduleConflicts.map((item) =>
+        item.sourceTemplateConflictId === conflict.id
+          ? { ...item, importedTitle: newName }
+          : item
+      );
+      nextReport.imported.push({
+        name: newName,
+        dates: conflict.mergedDates,
+        resolution: 'Imported with new name',
+      });
+    } else {
+      return { error: 'Unknown template conflict resolution' };
+    }
+
+    nextReport.templateConflicts = nextReport.templateConflicts.filter(
+      ({ id }) => id !== conflict.id
+    );
+    return { templates, workouts, schedule, report: nextReport };
+  }
+
+  if (resolution.kind === 'schedule') {
+    const conflict = nextReport.scheduleConflicts.find(({ id }) => id === resolution.id);
+    if (!conflict) return { error: 'Schedule import conflict not found' };
+
+    const schedule = { ...snap.schedule };
+    if (resolution.action === 'replace') {
+      schedule[conflict.date] = conflict.importedTitle;
+      nextReport.imported.push({
+        name: conflict.importedTitle,
+        dates: [conflict.date],
+        resolution: 'Replaced scheduled workout',
+        sourceTemplateConflictId: conflict.sourceTemplateConflictId,
+      });
+    } else if (resolution.action === 'keep') {
+      nextReport.alreadyPresent.push({
+        name: conflict.existingTitle,
+        dates: [conflict.date],
+        resolution: 'Kept scheduled workout',
+      });
+    } else {
+      return { error: 'Unknown schedule conflict resolution' };
+    }
+    nextReport.scheduleConflicts = nextReport.scheduleConflicts.filter(
+      ({ id }) => id !== conflict.id
+    );
+    return { schedule, report: nextReport };
+  }
+
+  return { error: 'Unknown import conflict type' };
 }
