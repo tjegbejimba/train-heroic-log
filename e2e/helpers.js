@@ -38,7 +38,9 @@ export async function gotoCleanApp(page) {
 export async function importSampleCsv(page) {
   await page.locator('input[type="file"]').setInputFiles(sampleCsvPath);
   await expect(page.getByRole('heading', { name: 'Ready to import' })).toBeVisible();
-  await page.getByRole('button', { name: 'Import Data' }).click();
+  await page.getByRole('button', { name: 'Merge safely' }).click();
+  await expect(page.getByRole('heading', { name: 'Import report' })).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
 }
 

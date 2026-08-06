@@ -8,7 +8,14 @@ import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
 import { retryReplication, clearByKeys, coordinateSyncReload } from './storage/authority';
 import { useToast } from './components/Toast';
-import { applyTemplateChange, applyScheduleChange, applyNoteChange, applyImport } from './orchestrator';
+import {
+  applyTemplateChange,
+  applyScheduleChange,
+  applyNoteChange,
+  applyImport,
+  applyMergeImport,
+  resolveImportConflict,
+} from './orchestrator';
 import { useTrainingPlanShell } from './hooks/useTrainingPlanShell';
 import {
   ROUTE_IMPORT,
@@ -282,11 +289,25 @@ export default function App() {
     case ROUTE_IMPORT:
       currentView = (
         <ImportView
-          onImport={(workoutMap, scheduleMap) => {
+          onMergeImport={(workoutMap, scheduleMap) => {
+            const result = applyMergeImport(snap(), workoutMap, scheduleMap);
+            applyWrites(result);
+            return result.report;
+          }}
+          onResolveConflict={(report, resolution) => {
+            const result = resolveImportConflict(snap(), report, resolution);
+            return applyWrites(result) ? result.report : report;
+          }}
+          onReplaceImport={(workoutMap, scheduleMap) => {
             applyWrites(applyImport(snap(), workoutMap, scheduleMap));
             navigate(ROUTE_TRAINING);
             const count = Object.keys(workoutMap).length;
-            showToast(`Imported ${count} workout${count !== 1 ? 's' : ''} as templates!`);
+            showToast(`Replaced workout data with ${count} imported template${count !== 1 ? 's' : ''}.`);
+          }}
+          onDone={() => navigate(ROUTE_TRAINING)}
+          existingCounts={{
+            workouts: Object.keys(workouts).length,
+            scheduledDates: Object.keys(schedule).length,
           }}
         />
       );
@@ -477,7 +498,7 @@ export default function App() {
           onTabChange={(tab) => navigate(tab)}
           syncStatus={syncStatus}
           onFeedback={() => setShowFeedback(true)}
-          showFeedbackAction={view !== ROUTE_SETTINGS && !isInlineEditorActive}
+          showFeedbackAction={view !== ROUTE_IMPORT && view !== ROUTE_SETTINGS && !isInlineEditorActive}
         />
       )}
 

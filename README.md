@@ -30,7 +30,11 @@ Then open http://localhost:5173 in your browser.
 
 ### 3. Import Your Data
 
-Click the **Import** tab, select your TrainHeroic CSV export, review the summary, and confirm.
+Open **Settings → Re-import CSV** (or **Templates → Import Workout**) and select a
+TrainHeroic CSV export. **Merge safely** is the default: it adds new templates and
+scheduled dates without removing existing data, then reports exact matches and
+name/date conflicts for review. Use **Replace all workouts and schedule** only
+with a complete export; TrainLog shows the affected counts before confirming.
 
 ## Build for Production
 
