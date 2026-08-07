@@ -1112,8 +1112,18 @@
 }
 
 @keyframes rest-timer-skip-pulse {
-  0%, 100% { transform: scale(1); box-shadow: none; }
-  50% { transform: scale(1.06); box-shadow: var(--glow-accent); }
+  0%, 100% {
+    transform: scale(1);
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+  }
+  50% {
+    transform: scale(1.06);
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+  }
 }
 
 /* =====================================================
@@ -1639,6 +1649,8 @@
 
   .rest-timer__skip-btn--pulse {
     animation: none;
-    box-shadow: var(--glow-accent);
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
   }
 }

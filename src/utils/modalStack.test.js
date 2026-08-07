@@ -11,6 +11,7 @@ import {
   registerProtectedNode,
   unregisterProtectedNode,
   getProtectedNodes,
+  getActiveProtectedNodes,
 } from './modalStack';
 
 describe('modalStack registry', () => {
@@ -104,7 +105,7 @@ describe('lockBackground / unlockBackground', () => {
     expect(nav.getAttribute('aria-hidden')).toBe('false');
   });
 
-  it('supports nested modals: relocking with a wider protected set keeps prior protections', () => {
+  it('lockBackground protects exactly the explicit set it is given (a generic primitive capability)', () => {
     const nav = document.createElement('div');
     const modalRootA = document.createElement('div');
     const modalRootB = document.createElement('div');
@@ -113,7 +114,10 @@ describe('lockBackground / unlockBackground', () => {
     lockBackground([modalRootA]);
     expect(modalRootB.hasAttribute('inert')).toBe(true);
 
-    // Second modal opens on top — both modal roots must stay interactive.
+    // Calling the primitive with a wider explicit set protects both — this
+    // is a capability of lockBackground itself; real nested-modal callers
+    // must NOT do this (see getActiveProtectedNodes below), since a covered
+    // overlay must go inert like any other background content.
     lockBackground([modalRootA, modalRootB]);
     expect(modalRootA.hasAttribute('inert')).toBe(false);
     expect(modalRootB.hasAttribute('inert')).toBe(false);
@@ -142,5 +146,46 @@ describe('registerProtectedNode / unregisterProtectedNode / getProtectedNodes', 
 
     unregisterProtectedNode('y');
     expect(getProtectedNodes()).toEqual([]);
+  });
+});
+
+describe('getActiveProtectedNodes', () => {
+  beforeEach(() => {
+    // Reset any stack/registry state left by other describe blocks.
+    while (activeModalCount() > 0) popModal(`leftover-${activeModalCount()}`);
+    unregisterProtectedNode('a');
+    unregisterProtectedNode('b');
+  });
+
+  it('returns only the topmost registered modal\'s node, not every open modal', () => {
+    const nodeA = document.createElement('div');
+    const nodeB = document.createElement('div');
+
+    pushModal('a');
+    registerProtectedNode('a', nodeA);
+    expect(getActiveProtectedNodes()).toEqual([nodeA]);
+
+    // A second (nested) modal opens on top — only its node is now "active";
+    // the first modal's node must NOT be protected anymore, so
+    // background-isolation will correctly mark it inert like any other
+    // covered content.
+    pushModal('b');
+    registerProtectedNode('b', nodeB);
+    expect(getActiveProtectedNodes()).toEqual([nodeB]);
+
+    // Closing the top modal restores the bottom one as the active/protected node.
+    popModal('b');
+    unregisterProtectedNode('b');
+    expect(getActiveProtectedNodes()).toEqual([nodeA]);
+
+    popModal('a');
+    unregisterProtectedNode('a');
+    expect(getActiveProtectedNodes()).toEqual([]);
+  });
+
+  it('returns an empty array when nothing is registered for the topmost id', () => {
+    pushModal('a');
+    expect(getActiveProtectedNodes()).toEqual([]);
+    popModal('a');
   });
 });

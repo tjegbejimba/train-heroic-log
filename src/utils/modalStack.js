@@ -29,8 +29,11 @@ export function activeModalCount() {
 }
 
 // Which DOM node each open overlay wants to keep interactive. Consumers call
-// this alongside pushModal/popModal and pass the full accumulated list to
-// lockBackground, so a second (nested) overlay doesn't re-lock the first one.
+// this alongside pushModal/popModal. getProtectedNodes() returns every
+// currently-registered node (a generic registry query); getActiveProtectedNodes()
+// returns only the topmost overlay's node, which is what background-isolation
+// must actually protect — every overlay underneath the topmost one is exactly
+// as "background" as true page content and must go inert too while covered.
 const protectedNodes = new Map();
 
 export function registerProtectedNode(id, node) {
@@ -43,6 +46,12 @@ export function unregisterProtectedNode(id) {
 
 export function getProtectedNodes() {
   return Array.from(protectedNodes.values());
+}
+
+export function getActiveProtectedNodes() {
+  const topId = stack[stack.length - 1];
+  const node = topId !== undefined ? protectedNodes.get(topId) : undefined;
+  return node ? [node] : [];
 }
 
 const FOCUSABLE_SELECTOR = [

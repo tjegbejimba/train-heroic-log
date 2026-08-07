@@ -276,4 +276,20 @@ describe('RestTimer — trust: no silent blocked taps', () => {
     expect(screen.queryByText('PAUSED')).toBeNull();
     expect(onSkip).not.toHaveBeenCalled();
   });
+
+  it('gives Skip a salient, non-glow pulse cue on a blocked tap, clearing once the cue times out', () => {
+    // DESIGN.md reserves box-shadow glow for the primary CTA and the live
+    // rest-timer ring — the Skip button (a secondary control) must draw
+    // attention some other way (the --pulse class here backs a scale +
+    // color-state animation in CSS, not a shadow/glow).
+    render(<RestTimer initialSeconds={30} onDone={onDone} onSkip={onSkip} />);
+    const skipButton = screen.getByLabelText('Skip rest');
+    expect(skipButton.className).not.toMatch(/--pulse/);
+
+    fireEvent.click(document.querySelector('.rest-timer'));
+    expect(skipButton.className).toMatch(/--pulse/);
+
+    tickSeconds(3);
+    expect(skipButton.className).not.toMatch(/--pulse/);
+  });
 });

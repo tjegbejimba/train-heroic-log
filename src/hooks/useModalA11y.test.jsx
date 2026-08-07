@@ -165,7 +165,7 @@ describe('useModalA11y', () => {
     expect(sibling.hasAttribute('aria-hidden')).toBe(false);
   });
 
-  it('keeps both dialogs interactive when a second (nested) dialog opens on top', () => {
+  it('marks a covered (non-topmost) dialog inert + aria-hidden while a second dialog is on top', () => {
     const sibling = document.createElement('div');
     sibling.id = 'app-sibling';
     document.body.appendChild(sibling);
@@ -181,12 +181,61 @@ describe('useModalA11y', () => {
     const { unmount } = render(<TwoDialogs />);
 
     const dialogs = document.querySelectorAll('[tabindex="-1"]');
-    dialogs.forEach((dialog) => {
-      expect(dialog.hasAttribute('inert')).toBe(false);
-    });
+    expect(dialogs).toHaveLength(2);
+    const [bottomDialog, topDialog] = dialogs;
+
+    // Only the topmost dialog remains exposed; the covered one goes inert,
+    // exactly like true background content — it must not stay reachable by
+    // pointer, keyboard, or assistive tech while covered.
+    expect(bottomDialog.hasAttribute('inert')).toBe(true);
+    expect(bottomDialog.getAttribute('aria-hidden')).toBe('true');
+    expect(topDialog.hasAttribute('inert')).toBe(false);
+    expect(topDialog.hasAttribute('aria-hidden')).toBe(false);
     expect(sibling.hasAttribute('inert')).toBe(true);
 
     unmount();
     expect(sibling.hasAttribute('inert')).toBe(false);
+  });
+
+  it('restores the covered dialog to interactive precisely when the top dialog closes', () => {
+    function TwoDialogs({ showSecond }) {
+      return (
+        <>
+          <TestDialog />
+          {showSecond && <TestDialog focusThird />}
+        </>
+      );
+    }
+    const { rerender } = render(<TwoDialogs showSecond />);
+    const [bottomDialog] = document.querySelectorAll('[tabindex="-1"]');
+    expect(bottomDialog.hasAttribute('inert')).toBe(true);
+
+    rerender(<TwoDialogs showSecond={false} />);
+    expect(bottomDialog.hasAttribute('inert')).toBe(false);
+    expect(bottomDialog.hasAttribute('aria-hidden')).toBe(false);
+  });
+
+  it('only the topmost dialog traps Tab — a covered dialog never steals focus back', () => {
+    function TwoDialogs() {
+      return (
+        <>
+          <TestDialog />
+          <TestDialog focusThird />
+        </>
+      );
+    }
+    render(<TwoDialogs />);
+    const dialogs = document.querySelectorAll('[tabindex="-1"]');
+    const topDialog = dialogs[1];
+    const topButtons = topDialog.querySelectorAll('button');
+    topButtons[topButtons.length - 1].focus();
+
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => { document.activeElement.dispatchEvent(event); });
+
+    // Tab must wrap within the top dialog only — never redirected into the
+    // covered (inert) dialog underneath.
+    expect(topDialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement.textContent).toBe('First');
   });
 });
