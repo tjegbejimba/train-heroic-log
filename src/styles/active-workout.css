@@ -232,17 +232,18 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background: var(--surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .aw-exercise-card--current {
   border-color: var(--accent-line);
   background: color-mix(in oklch, var(--accent) 5%, var(--surface));
+  box-shadow: var(--shadow-md);
 }
 
 .aw-exercise-card--done {
-  border-color: color-mix(in oklch, var(--success) 35%, var(--border-subtle));
-  background: color-mix(in oklch, var(--success) 5%, var(--surface));
+  border-color: color-mix(in oklch, var(--success) 24%, var(--border-subtle));
+  background: color-mix(in oklch, var(--success) 4%, var(--surface));
 }
 
 .aw-exercise-card__header {

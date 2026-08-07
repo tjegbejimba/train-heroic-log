@@ -452,10 +452,8 @@
 }
 
 .history-card__workout-note {
-  padding: var(--space-md);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-high);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .history-card__workout-note-label {
@@ -555,19 +553,19 @@
 .history-card__set-row {
   min-height: 36px;
   padding: var(--space-xs) var(--space-sm);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.history-card__set-row:last-child {
+  border-bottom: none;
 }
 
 .history-card__set-row--completed {
-  background: color-mix(in oklch, var(--success) 7%, var(--bg));
+  background: color-mix(in oklch, var(--success) 6%, transparent);
 }
 
 .history-card__set-row--pr {
-  border-color: var(--warning-subtle);
-  background: color-mix(in oklch, var(--warning) 10%, var(--bg));
+  background: color-mix(in oklch, var(--warning) 8%, transparent);
 }
 
 .history-card__set-index,
