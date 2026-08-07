@@ -45,7 +45,6 @@ import StatsView from './views/StatsView';
 import Modal from './components/Modal';
 import NavBar from './components/NavBar';
 import ErrorBoundary from './components/ErrorBoundary';
-import FeedbackModal from './components/FeedbackModal';
 import './styles/App.css';
 
 // The persistence authority owns the exactly-once, reload-safe sequence
@@ -111,8 +110,6 @@ export default function App() {
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isInlineEditorActive, setIsInlineEditorActive] = useState(false);
 
   // On startup, pull from server and reload if new data arrived
   useEffect(() => {
@@ -394,7 +391,6 @@ export default function App() {
           onUpdateExerciseNotes={(exerciseTitle, notes) =>
             applyWrites(applyNoteChange(snap(), exerciseTitle, notes))
           }
-          onInlineEditorChange={setIsInlineEditorActive}
           templateList={templateList}
           deleteTemplate={handleDeleteTemplate}
           navigate={navigate}
@@ -497,16 +493,6 @@ export default function App() {
           currentTab={view}
           onTabChange={(tab) => navigate(tab)}
           syncStatus={syncStatus}
-          onFeedback={() => setShowFeedback(true)}
-          showFeedbackAction={view !== ROUTE_IMPORT && view !== ROUTE_SETTINGS && !isInlineEditorActive}
-        />
-      )}
-
-      {showFeedback && (
-        <FeedbackModal
-          onClose={() => setShowFeedback(false)}
-          showToast={showToast}
-          currentView={view}
         />
       )}
 

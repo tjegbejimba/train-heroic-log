@@ -551,11 +551,17 @@ export default function SettingsView({
         </section>
 
         <section className="settings-section settings-section--about">
-          <div className="settings-view__version">TrainLog v0.1.0</div>
+          <div className="settings-section__head">
+            <span className="settings-section__icon" aria-hidden="true"><MessageSquare size={20} /></span>
+            <div>
+              <h2>Feedback</h2>
+              <p>Report a bug or share an idea to improve TrainLog.</p>
+            </div>
+          </div>
           <button className="btn btn-secondary w-full" onClick={() => setShowFeedback(true)}>
-            <MessageSquare size={15} />
-              Send Feedback
+            Send Feedback
           </button>
+          <div className="settings-view__version">TrainLog v0.1.0</div>
         </section>
       </div>
 
