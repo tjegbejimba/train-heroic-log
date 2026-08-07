@@ -60,12 +60,21 @@
 .planner-view__grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: 0 var(--space-lg);
+  margin: 0 var(--space-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
-.planner-day.card {
-  margin: 0;
+.planner-day:first-child {
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+}
+
+.planner-day:last-child {
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
 }
 
 .planner-day {
@@ -74,26 +83,34 @@
   align-items: center;
   gap: var(--space-md);
   min-height: 86px;
-  padding: var(--space-md);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  transition: background-color var(--transition), border-color var(--transition), transform var(--dur-fast) var(--ease-out-quart);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  transition: background-color var(--transition);
+}
+
+.planner-day:last-child {
+  border-bottom: none;
 }
 
 .planner-day:hover {
-  border-color: var(--border);
+  background: var(--surface-high);
 }
 
 .planner-day--today {
-  border-color: var(--accent-line);
   background: var(--accent-subtle);
 }
 
+.planner-day--today:hover {
+  background: color-mix(in oklch, var(--accent-subtle) 80%, var(--surface-high));
+}
+
 .planner-day--draft {
-  border-color: color-mix(in oklch, var(--warning) 36%, var(--border));
   background: color-mix(in oklch, var(--warning-subtle) 72%, var(--surface));
+}
+
+.planner-day--draft:hover {
+  background: color-mix(in oklch, var(--warning-subtle) 90%, var(--surface-high));
 }
 
 .planner-day__header {
@@ -405,9 +422,12 @@
   }
 
   .planner-view__nav,
-  .planner-view__grid,
   .planner-view__actions {
     padding-inline: var(--space-md);
+  }
+
+  .planner-view__grid {
+    margin-inline: var(--space-md);
   }
 
   .planner-view__sticky-action {
@@ -416,6 +436,7 @@
 
   .planner-day {
     grid-template-columns: 44px minmax(0, 1fr);
+    padding-inline: var(--space-md);
   }
 
   .planner-day__assign {

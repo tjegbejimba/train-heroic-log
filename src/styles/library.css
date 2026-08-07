@@ -168,20 +168,24 @@
 .library-view__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
   padding: 0 var(--space-lg) var(--view-end-space);
 }
 
 .library-row {
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: color-mix(in oklch, var(--surface) 78%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+}
+
+.library-row:last-child {
+  border-bottom: none;
 }
 
 .library-row--expanded {
+  margin: var(--space-sm) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  border-color: var(--border);
   box-shadow: var(--shadow-md);
 }
 

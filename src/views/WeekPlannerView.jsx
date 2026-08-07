@@ -236,7 +236,7 @@ export default function WeekPlannerView({
           return (
             <div
               key={dateStr}
-              className={`planner-day card ${isToday ? 'planner-day--today' : ''} ${
+              className={`planner-day ${isToday ? 'planner-day--today' : ''} ${
                 isDrafted ? 'planner-day--draft' : ''
               }`}
             >

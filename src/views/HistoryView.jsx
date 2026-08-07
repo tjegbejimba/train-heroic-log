@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { calculateStreaks } from '../utils/streaks';
+import { classifyAgainstBest } from '../utils/workoutSummary';
 
 const VOLUME_UNITS = new Set(['lb', 'kg']);
 
@@ -31,6 +32,9 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     [allLogs]
   );
 
+  // Tracks, per exercise+reps combo, the best-ever weight on record along with
+  // which log/set it belongs to and whether that log established the
+  // baseline (first-ever recording) or a genuine PR (beat a prior best).
   const prMap = useMemo(() => {
     const bests = {};
     const chronological = [...completedLogs].reverse();
@@ -44,13 +48,14 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
           if (isNaN(w) || w <= 0 || isNaN(reps) || reps <= 0) return;
 
           if (!bests[exName]) bests[exName] = {};
-          const prev = bests[exName][reps];
-          if (!prev || w > prev.weight) {
+          const kind = classifyAgainstBest(bests[exName][reps]?.weight, w);
+          if (kind) {
             bests[exName][reps] = {
               weight: w,
               logKey: log.key,
               date: log.date,
               setIdx,
+              kind,
             };
           }
         });
@@ -144,29 +149,33 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return `${reps} × ${load}`;
   };
 
-  const getSetPR = (exName, set, logKey, setIdx) => {
+  // Returns { reps, kind: 'pr' | 'baseline' } when this exact set is the
+  // best-on-record for its exercise+reps combo, or null otherwise.
+  const getSetRecord = (exName, set, logKey, setIdx) => {
     if (!set.completed || !set.actualWeight) return null;
     const reps = parseInt(set.actualReps, 10);
     if (isNaN(reps) || reps <= 0) return null;
-    const exPRs = prMap[exName];
-    if (!exPRs) return null;
-    const pr = exPRs[reps];
+    const exBests = prMap[exName];
+    if (!exBests) return null;
+    const best = exBests[reps];
     if (
-      pr &&
-      pr.logKey === logKey &&
-      parseFloat(set.actualWeight) === pr.weight &&
-      setIdx === pr.setIdx
+      best &&
+      best.logKey === logKey &&
+      parseFloat(set.actualWeight) === best.weight &&
+      setIdx === best.setIdx
     ) {
-      return reps;
+      return { reps, kind: best.kind };
     }
     return null;
   };
 
+  // Only genuine PRs count toward the card's headline badge — a first-ever
+  // baseline recording hasn't beaten anything, so it shouldn't read as one.
   const countPRs = (log) => {
     let count = 0;
     Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
       sets.forEach((set, setIdx) => {
-        if (getSetPR(exName, set, log.key, setIdx) !== null) count++;
+        if (getSetRecord(exName, set, log.key, setIdx)?.kind === 'pr') count++;
       });
     });
     return count;
@@ -371,8 +380,9 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                             </div>
 
                             {sets.map((set, idx) => {
-                              const prReps = getSetPR(exName, set, log.key, idx);
-                              const isPR = prReps !== null;
+                              const record = getSetRecord(exName, set, log.key, idx);
+                              const isPR = record?.kind === 'pr';
+                              const isBaseline = record?.kind === 'baseline';
                               return (
                                 <div
                                   key={idx}
@@ -394,7 +404,12 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                                     {isPR && (
                                       <span className="history-card__pr-badge">
                                         <Trophy size={11} strokeWidth={2.4} />
-                                        PR @ {prReps} rep{prReps !== 1 ? 's' : ''}
+                                        PR @ {record.reps} rep{record.reps !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    {isBaseline && (
+                                      <span className="history-card__baseline-badge">
+                                        Baseline
                                       </span>
                                     )}
                                   </span>

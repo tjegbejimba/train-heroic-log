@@ -94,8 +94,19 @@ describe('ImportView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview pasted CSV' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace all workouts and schedule' }));
 
+    // The destructive confirm is a proper labelled dialog, not just markup.
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(screen.getByText(/replaces 12 workouts and 24 scheduled dates/i)).toBeTruthy();
     expect(onReplaceImport).not.toHaveBeenCalled();
+
+    // Escape backs out of the destructive action without replacing anything.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(onReplaceImport).not.toHaveBeenCalled();
+
+    // Re-open and confirm.
+    fireEvent.click(screen.getByRole('button', { name: 'Replace all workouts and schedule' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace all' }));
     expect(onReplaceImport).toHaveBeenCalledOnce();
   });

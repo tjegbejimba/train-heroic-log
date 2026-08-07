@@ -7,6 +7,18 @@ vi.mock('../hooks/useSettings', () => ({
   useSettings: () => ({ settings: { restDuration: 90 } }),
 }));
 
+// jsdom doesn't implement CSS.escape or Element.scrollIntoView; both are
+// invoked by scrollToNextSet after the rest timer is skipped. Real browsers
+// provide these natively.
+if (typeof globalThis.CSS === 'undefined') {
+  globalThis.CSS = { escape: (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&') };
+} else if (typeof globalThis.CSS.escape !== 'function') {
+  globalThis.CSS.escape = (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+}
+if (typeof Element.prototype.scrollIntoView !== 'function') {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 const logKey = '2026-07-04::Full-Body Express';
 
 const workout = {
@@ -148,6 +160,10 @@ describe('ActiveWorkoutView', () => {
     });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    // Completing a Set starts the (now fully modal) rest timer, which
+    // correctly makes the rest of the screen inert until Skipped — mirror
+    // that real flow before logging the next Set.
+    fireEvent.click(screen.getByLabelText('Skip rest'));
     fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
 
     const finalLog = saveLog.mock.calls.at(-1)[1];

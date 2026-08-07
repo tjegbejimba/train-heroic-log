@@ -73,20 +73,6 @@
   font-weight: 500;
 }
 
-.feedback-fab {
-  flex: 0 0 var(--touch-target);
-  color: var(--text-muted);
-}
-
-.feedback-fab .navbar__label {
-  display: none;
-}
-
-.feedback-fab:hover,
-.feedback-fab:active {
-  color: var(--text);
-}
-
 /* ========== Modal ========== */
 .modal-overlay {
   position: fixed;

@@ -32,7 +32,7 @@ function buildDescription(workout) {
       const firstSet = ex.sets?.[0];
       const setSummary =
         setCount > 0 && firstSet?.reps
-          ? `${setCount}×${firstSet.reps}`
+          ? `${setCount} × ${firstSet.reps}`
           : setCount > 0
           ? `${setCount} sets`
           : '';
