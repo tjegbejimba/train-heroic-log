@@ -109,3 +109,69 @@ describe('HistoryView — delete confirm (destructive Modal consumer)', () => {
     expect(deleteLog).toHaveBeenCalledWith(loggedSession.key);
   });
 });
+
+describe('HistoryView — baseline vs PR semantics', () => {
+  it('labels a first-ever set as "Baseline", never "PR"', () => {
+    // Only one log ever exists for this exercise/rep combo — there is
+    // nothing on record to have beaten, so it must not read as a PR.
+    render(
+      <HistoryView
+        allLogs={[loggedSession]}
+        deleteLog={vi.fn()}
+        workouts={{ 'Upper A': { title: 'Upper A', blocks: [{ exercises: [{ title: 'Bench Press' }] }] } }}
+        completedDates={new Set(['2026-01-08'])}
+      />
+    );
+    fireEvent.click(screen.getByText('Upper A'));
+
+    expect(screen.getAllByText('Baseline').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^PR @/)).toBeNull();
+    // The card-level count badge only ever counts genuine PRs.
+    expect(screen.queryByText(/PR$/)).toBeNull();
+    expect(screen.queryByText(/PRs$/)).toBeNull();
+  });
+
+  it('labels a set that beats a prior best as "PR" and counts it on the card', () => {
+    const firstSession = {
+      key: '2026-01-08::Upper A',
+      date: '2026-01-08',
+      workoutTitle: 'Upper A',
+      completedAt: '2026-01-08T09:30:00',
+      startedAt: '2026-01-08T09:00:00',
+      exercises: {
+        'Bench Press': [
+          { targetReps: 8, targetWeight: 135, unit: 'lb', actualReps: 8, actualWeight: 135, completed: true },
+        ],
+      },
+    };
+    const secondSession = {
+      key: '2026-01-15::Upper A',
+      date: '2026-01-15',
+      workoutTitle: 'Upper A',
+      completedAt: '2026-01-15T09:30:00',
+      startedAt: '2026-01-15T09:00:00',
+      exercises: {
+        'Bench Press': [
+          { targetReps: 8, targetWeight: 140, unit: 'lb', actualReps: 8, actualWeight: 145, completed: true },
+        ],
+      },
+    };
+
+    render(
+      <HistoryView
+        // allLogs is latest-first, matching useWorkoutLogs' real ordering.
+        allLogs={[secondSession, firstSession]}
+        deleteLog={vi.fn()}
+        workouts={{ 'Upper A': { title: 'Upper A', blocks: [{ exercises: [{ title: 'Bench Press' }] }] } }}
+        completedDates={new Set(['2026-01-08', '2026-01-15'])}
+      />
+    );
+
+    // Expand the more recent (2026-01-15) session, which beat the baseline.
+    const toggles = screen.getAllByText('Upper A');
+    fireEvent.click(toggles[0]);
+
+    expect(screen.getByText(/^PR @/)).toBeTruthy();
+    expect(screen.getByText('1 PR')).toBeTruthy();
+  });
+});

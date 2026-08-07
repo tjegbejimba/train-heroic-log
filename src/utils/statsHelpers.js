@@ -1,4 +1,5 @@
 import { parseLogKey } from '../constants.js';
+import { classifyAgainstBest } from './workoutSummary.js';
 
 const VOLUME_UNITS = new Set(['lb', 'kg']);
 
@@ -92,6 +93,13 @@ export function sessionsByWeek(logs, dateRange) {
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
+/**
+ * Count genuine PRs (a completed set that beats the best-ever weight recorded
+ * for that exercise+reps combo) that fall within the given date range. A
+ * first-ever recording of an exercise+reps combo is a baseline, not a PR —
+ * it establishes the reference but is not counted, since there was nothing
+ * on record yet to beat.
+ */
 export function prCountInRange(logs, dateRange, unit) {
   const resolvedUnit = unit || dominantUnit(logs, dateRange);
 
@@ -123,11 +131,11 @@ export function prCountInRange(logs, dateRange, unit) {
         if (isNaN(w) || w <= 0 || isNaN(reps) || reps <= 0) continue;
 
         if (!bests[exName]) bests[exName] = {};
-        const prev = bests[exName][reps];
+        const kind = classifyAgainstBest(bests[exName][reps], w);
 
-        if (!prev || w > prev) {
+        if (kind) {
           bests[exName][reps] = w;
-          if (inRange) prCount++;
+          if (inRange && kind === 'pr') prCount++;
         }
       }
     }

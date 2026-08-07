@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Layers3, Loader, Play, Search, Upload, X } from 'lucide-react';
 import YouTubeLinkInput, { isValidYouTubeUrl } from '../components/YouTubeLinkInput';
 import TemplateListView from './TemplateListView';
+import { formatSetPrescription } from '../utils/formatters';
 
 const YOUTUBE_URL_RE = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]*/i;
 
@@ -75,23 +76,6 @@ export function extractUrls(text) {
       return match ? { url: match[0], manualName: null } : { url: line, manualName: null };
     })
     .filter((e) => isValidYouTubeUrl(e.url));
-}
-
-/** Format set summary: "4x8 @ 135lb" or just "3 sets" */
-function formatSetSummary(exercise) {
-  const sets = exercise.sets || [];
-  if (sets.length === 0) return null;
-  const first = sets[0];
-  const allSame = sets.every(
-    (s) => s.reps === first.reps && s.weight === first.weight
-  );
-  if (allSame && first.reps && first.weight) {
-    return `${sets.length}x${first.reps} @ ${first.weight}${first.unit || 'lb'}`;
-  }
-  if (allSame && first.reps) {
-    return `${sets.length}x${first.reps}`;
-  }
-  return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
 }
 
 export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, setManyYouTubeLinks, onUpdateExerciseNotes, onExerciseTap, templateList = [], deleteTemplate, navigate, initialTab, onTabChange }) {
@@ -327,7 +311,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
           filtered.map((exercise) => {
             const link = youtubeLinks[exercise.title];
             const isExpanded = expandedExercise === exercise.title;
-            const setSummary = formatSetSummary(exercise);
+            const setSummary = formatSetPrescription(exercise.sets);
 
             return (
               <div key={exercise.title} className={`library-row ${isExpanded ? 'library-row--expanded' : ''}`}>

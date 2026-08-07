@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, MinusCircle, TrendingUp } from 'lucide-react';
 import { ROUTE_LIBRARY } from '../constants';
 import ProgressChart from '../components/ProgressChart';
 import { estimated1RM, epley, brzycki } from '../utils/oneRepMax';
+import { markRunningRecords } from '../utils/workoutSummary';
 
 export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }) {
   const sessions = useMemo(() => {
@@ -35,8 +36,7 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
 
   const chartSessions = useMemo(() => {
     const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    let runningMax = -Infinity;
-    return sorted.reduce((acc, session) => {
+    const withBests = sorted.reduce((acc, session) => {
       const completedSets = (session.sets || []).filter(
         (s) => s.completed === true && s.actualWeight != null && s.actualWeight !== '' && Number(s.actualWeight) > 0
       );
@@ -52,12 +52,18 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
         0
       );
       const unit = (completedSets[0].unit) || 'lb';
-      const isPR = bestWeight > runningMax;
-      if (isPR) runningMax = bestWeight;
 
-      acc.push({ date: session.date, bestWeight, bestReps, volume, unit, isPR });
+      acc.push({ date: session.date, bestWeight, bestReps, volume, unit });
       return acc;
     }, []);
+
+    // The first session on the chart is a baseline (nothing to beat yet), so
+    // it must never render as a PR — only a session that genuinely beats the
+    // running best weight earns that marker.
+    return markRunningRecords(withBests, (s) => s.bestWeight).map((s) => ({
+      ...s,
+      isPR: s.kind === 'pr',
+    }));
   }, [sessions]);
 
   const completedSetCount = useMemo(() => {

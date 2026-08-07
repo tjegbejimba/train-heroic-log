@@ -71,6 +71,28 @@ export function formatSet(set, count = 1) {
 }
 
 /**
+ * Format a compact one-line prescription summary for a Set list — the same
+ * "count × reps @ weight" shorthand used everywhere else in the app (via
+ * formatSet) when every set shares the same reps/weight, since the
+ * multiplication genuinely communicates sets × reps there. Falls back to a
+ * spelled-out count ("3 sets") when the prescription varies per set, since
+ * multiplication would misrepresent non-uniform data.
+ * @param {Array} sets
+ * @returns {string|null}
+ */
+export function formatSetPrescription(sets) {
+  if (!sets || sets.length === 0) return null;
+  const first = sets[0];
+  const uniform = sets.every(
+    (s) => s.reps === first.reps && s.weight === first.weight
+  );
+  if (uniform && first.reps) {
+    return formatSet(first, sets.length);
+  }
+  return `${sets.length} set${sets.length !== 1 ? 's' : ''}`;
+}
+
+/**
  * Group consecutive identical sets together.
  * @param {Array} sets
  * @returns {Array<{set, count}>}

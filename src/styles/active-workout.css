@@ -1211,6 +1211,54 @@
   font-weight: 800;
 }
 
+.aw-summary__baselines {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.aw-summary__baseline-heading {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.aw-summary__baseline-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-high);
+}
+
+.aw-summary__baseline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+}
+
+.aw-summary__baseline-text {
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.aw-summary__baseline-weight {
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
 /* =====================================================
    Plate display
    ===================================================== */

@@ -183,17 +183,17 @@ describe('sessionsByWeek', () => {
 
 // ---------- prCountInRange ----------
 describe('prCountInRange', () => {
-  it('counts new PRs in the given range', () => {
-    // All-time: bench 8x135 (Jan 8) → 8x140 (Jan 15, PR) → 8x145 (Jan 22, PR)
-    //           bench 5x155 (Jan 22, first at 5 reps = PR)
-    //           OHP 10x65 (Jan 8) → 10x70 (Jan 15, PR)
-    //           Squat 5x185 (Jan 10) → 5x190 (Jan 17, PR)
+  it('counts genuine PRs in the given range, excluding baselines', () => {
+    // All-time: bench 8x135 (Jan 8, baseline) → 8x140 (Jan 15, PR) → 8x145 (Jan 22, PR)
+    //           bench 5x155 (Jan 22, first-ever at 5 reps = baseline, not a PR)
+    //           OHP 10x65 (Jan 8, baseline) → 10x70 (Jan 15, PR)
+    //           Squat 5x185 (Jan 10, baseline) → 5x190 (Jan 17, PR)
     //           Pull-ups 8x0 (Jan 17, 0 weight — not a PR)
-    // Range Jan 15–22 should capture: 8x140 bench PR, 10x70 OHP PR, 5x190 squat PR,
-    //   8x145 bench PR, 5x155 bench PR = 5 PRs
+    // Range Jan 15–22 should capture only the genuine PRs: 8x140 bench,
+    //   10x70 OHP, 5x190 squat, 8x145 bench = 4 PRs (5x155 is a baseline).
     const range = { start: '2024-01-15', end: '2024-01-22' };
     const count = prCountInRange(mockLogs, range);
-    expect(count).toBe(5);
+    expect(count).toBe(4);
   });
 
   it('does not count duplicate/same weights as PRs', () => {
@@ -221,7 +221,7 @@ describe('prCountInRange', () => {
     expect(count).toBe(0);
   });
 
-  it('first ever set for exercise+rep is a PR', () => {
+  it('first ever set for exercise+rep is a baseline, not a PR', () => {
     const logs = {
       '2024-01-08::Test': {
         date: '2024-01-08',
@@ -233,7 +233,7 @@ describe('prCountInRange', () => {
       },
     };
     const count = prCountInRange(logs, null);
-    expect(count).toBe(1);
+    expect(count).toBe(0);
   });
 });
 
@@ -449,11 +449,12 @@ describe('mixed unit handling', () => {
     expect(result[0].unit).toBe('kg');
   });
 
-  it('prCountInRange only counts PRs for dominant unit', () => {
-    // Dominant unit is kg. lb squat should not count as a PR.
+  it('prCountInRange only counts genuine PRs for the dominant unit, excluding baselines', () => {
+    // Dominant unit is kg. lb squat should not count. Bench 8x60 and OHP
+    // 10x30 are each the first-ever entry for their exercise+reps — baselines,
+    // not PRs — so the genuine PR count is 0.
     const count = prCountInRange(mixedLogs, null);
-    // kg PRs: Bench 8x60 (first=PR), OHP 10x30 (first=PR) = 2
-    expect(count).toBe(2);
+    expect(count).toBe(0);
   });
 
   it('allows explicit unit override', () => {
