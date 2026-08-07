@@ -1083,6 +1083,39 @@
   transform: scale(0.97);
 }
 
+/* Blocked-interaction trust cue: a tap that lands on the overlay's own
+   background (not a control) must never disappear silently. This assertive
+   cue + a brief pulse on Skip tells the athlete exactly what to do next. */
+.rest-timer__blocked-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  animation: rest-timer-hint-in var(--dur) var(--ease-out-quart);
+}
+
+@keyframes rest-timer-hint-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rest-timer__skip-btn--pulse {
+  animation: rest-timer-skip-pulse 600ms var(--ease-out-quart) 2;
+}
+
+@keyframes rest-timer-skip-pulse {
+  0%, 100% { transform: scale(1); box-shadow: none; }
+  50% { transform: scale(1.06); box-shadow: var(--glow-accent); }
+}
+
 /* =====================================================
    Completion summary
    ===================================================== */
@@ -1550,5 +1583,14 @@
 
   .rest-timer__ring-fill {
     transition: none;
+  }
+
+  .rest-timer__blocked-hint {
+    animation: none;
+  }
+
+  .rest-timer__skip-btn--pulse {
+    animation: none;
+    box-shadow: var(--glow-accent);
   }
 }
