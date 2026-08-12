@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Youtube, CheckCircle, ChevronDown, Pencil, Trophy } from 'lucide-react';
+import { Youtube, CheckCircle, ChevronDown, Pencil, Trophy, Target } from 'lucide-react';
 import SessionHeader from '../components/SessionHeader';
 import BlockSection from '../components/BlockSection';
 import { LogSetRow, EditSetRow } from '../components/log-set';
@@ -11,7 +11,7 @@ import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
-import { buildSummary, findPRs } from '../utils/workoutSummary';
+import { buildSummary, findRecords } from '../utils/workoutSummary';
 import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, completeSessionIntent, cancelSessionIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
 
 export default function ActiveWorkoutView({
@@ -246,8 +246,10 @@ export default function ActiveWorkoutView({
     if (!log) return null;
     const today = new Date().toISOString().slice(0, 10);
     const summary = buildSummary(log);
-    const prs = findPRs(log, allLogs, today);
-    return { ...summary, prs };
+    const records = findRecords(log, allLogs, today);
+    const prs = records.filter((r) => r.kind === 'pr');
+    const baselines = records.filter((r) => r.kind === 'baseline');
+    return { ...summary, prs, baselines };
   };
 
   const handleCancelWorkout = () => {
@@ -667,6 +669,21 @@ export default function ActiveWorkoutView({
                         <span className="aw-summary__pr-text">
                           <strong>{pr.exTitle}</strong>
                           <span className="aw-summary__pr-weight"> {pr.reps} × {pr.weight} {pr.unit}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {summary.baselines.length > 0 && (
+                  <div className="aw-summary__baselines">
+                    <p className="aw-summary__baseline-heading">New Baselines</p>
+                    {summary.baselines.map((b, i) => (
+                      <div key={i} className="aw-summary__baseline-item">
+                        <span className="aw-summary__baseline-icon" aria-hidden="true"><Target size={15} /></span>
+                        <span className="aw-summary__baseline-text">
+                          <strong>{b.exTitle}</strong>
+                          <span className="aw-summary__baseline-weight"> {b.reps} × {b.weight} {b.unit}</span>
                         </span>
                       </div>
                     ))}

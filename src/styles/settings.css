@@ -144,10 +144,8 @@
   gap: var(--space-sm);
   /* Indent to align with heading text (icon 42px + gap 12px) */
   margin-left: calc(42px + var(--space-md));
-  padding: var(--space-md);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-high);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .settings-control__label {
@@ -279,11 +277,8 @@
   gap: var(--space-sm);
   /* Indent to align with heading text */
   margin-left: calc(42px + var(--space-md));
-  min-height: 48px;
-  padding: var(--space-md);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-high);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
   color: var(--text);
   font-size: var(--text-sm);
   font-weight: 700;

@@ -232,17 +232,18 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background: var(--surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .aw-exercise-card--current {
   border-color: var(--accent-line);
   background: color-mix(in oklch, var(--accent) 5%, var(--surface));
+  box-shadow: var(--shadow-md);
 }
 
 .aw-exercise-card--done {
-  border-color: color-mix(in oklch, var(--success) 35%, var(--border-subtle));
-  background: color-mix(in oklch, var(--success) 5%, var(--surface));
+  border-color: color-mix(in oklch, var(--success) 24%, var(--border-subtle));
+  background: color-mix(in oklch, var(--success) 4%, var(--surface));
 }
 
 .aw-exercise-card__header {
@@ -1082,6 +1083,49 @@
   transform: scale(0.97);
 }
 
+/* Blocked-interaction trust cue: a tap that lands on the overlay's own
+   background (not a control) must never disappear silently. This assertive
+   cue + a brief pulse on Skip tells the athlete exactly what to do next. */
+.rest-timer__blocked-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  animation: rest-timer-hint-in var(--dur) var(--ease-out-quart);
+}
+
+@keyframes rest-timer-hint-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rest-timer__skip-btn--pulse {
+  animation: rest-timer-skip-pulse 600ms var(--ease-out-quart) 2;
+}
+
+@keyframes rest-timer-skip-pulse {
+  0%, 100% {
+    transform: scale(1);
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+  }
+  50% {
+    transform: scale(1.06);
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+  }
+}
+
 /* =====================================================
    Completion summary
    ===================================================== */
@@ -1174,6 +1218,54 @@
 
 .aw-summary__pr-weight {
   color: var(--success);
+  font-weight: 800;
+}
+
+.aw-summary__baselines {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.aw-summary__baseline-heading {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.aw-summary__baseline-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-high);
+}
+
+.aw-summary__baseline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+}
+
+.aw-summary__baseline-text {
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.aw-summary__baseline-weight {
+  color: var(--text-secondary);
   font-weight: 800;
 }
 
@@ -1549,5 +1641,16 @@
 
   .rest-timer__ring-fill {
     transition: none;
+  }
+
+  .rest-timer__blocked-hint {
+    animation: none;
+  }
+
+  .rest-timer__skip-btn--pulse {
+    animation: none;
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
   }
 }

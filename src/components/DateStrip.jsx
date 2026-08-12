@@ -150,7 +150,7 @@ export default function DateStrip({
                 </div>
                 {hasWorkout && (
                   <div className="date-strip__day-indicator">
-                    {isCompleted ? '✓' : '•'}
+                    {isCompleted ? '✓' : <span className="date-strip__day-indicator-dot" aria-hidden="true" />}
                   </div>
                 )}
               </button>

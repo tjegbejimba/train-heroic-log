@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import {
   LS_WORKOUTS,
   LS_SCHEDULE,
@@ -6,6 +7,7 @@ import {
   LS_WORKOUT_LOGS,
   LS_TEMPLATES,
 } from '../constants';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 function buildMeta(currentView) {
   return {
@@ -37,13 +39,21 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
   const [includeSnapshot, setIncludeSnapshot] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && !submitting) onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, submitting]);
+  const overlayRef = useRef(null);
+  const dialogRef = useRef(null);
+  const titleFieldRef = useRef(null);
+  const headingId = useId();
+
+  // Same shared contract as Modal/RestTimer: initial focus, Tab containment,
+  // Escape-only-when-topmost, focus restoration, background inert-ing.
+  // Escape is disabled mid-submit exactly as before (no accidental dismiss
+  // while a request is in flight).
+  useModalA11y({
+    containerRef: dialogRef,
+    protectedRef: overlayRef,
+    initialFocusRef: titleFieldRef,
+    onEscape: submitting ? undefined : onClose,
+  });
 
   async function handleSubmit() {
     if (!title.trim() || !description.trim()) return;
@@ -70,10 +80,18 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
     }
   }
 
-  return (
-    <div className="modal-overlay" onClick={() => { if (!submitting) onClose(); }}>
-      <div className="modal feedback-modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal__title">Send Feedback</h2>
+  return createPortal(
+    <div className="modal-overlay" ref={overlayRef} onClick={() => { if (!submitting) onClose(); }}>
+      <div
+        ref={dialogRef}
+        className="modal feedback-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id={headingId} className="modal__title">Send Feedback</h2>
 
         <p className="feedback-modal__label">Category</p>
         <div className="feedback-modal__category-row">
@@ -91,6 +109,7 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
 
         <label className="feedback-modal__label" htmlFor="feedback-title">Title</label>
         <input
+          ref={titleFieldRef}
           id="feedback-title"
           type="text"
           placeholder="Brief summary..."
@@ -139,6 +158,7 @@ export default function FeedbackModal({ onClose, showToast, currentView }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

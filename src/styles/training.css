@@ -176,6 +176,13 @@
   line-height: 1;
 }
 
+.date-strip__day-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
 .date-strip__day--completed {
   color: var(--success);
 }
@@ -199,7 +206,6 @@
   border-color: color-mix(in oklch, var(--accent) 72%, transparent);
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: var(--glow-accent);
 }
 
 .date-strip__day--selected .date-strip__weekday,
