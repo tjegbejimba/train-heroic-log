@@ -26,11 +26,13 @@ describe('findPreviousSets', () => {
       '2026-03-01::Upper A': {
         key: '2026-03-01::Upper A',
         date: '2026-03-01',
+        completedAt: '2026-03-01T12:00:00Z',
         exercises: { 'Bench Press': [{ actualReps: 8, actualWeight: 135 }] },
       },
       '2026-03-08::Upper A': {
         key: '2026-03-08::Upper A',
         date: '2026-03-08',
+        completedAt: '2026-03-08T12:00:00Z',
         exercises: { 'Bench Press': [{ actualReps: 8, actualWeight: 145 }] },
       },
     };
@@ -43,11 +45,13 @@ describe('findPreviousSets', () => {
       '2026-03-08::Upper A': {
         key: '2026-03-08::Upper A',
         date: '2026-03-08',
+        completedAt: '2026-03-08T12:00:00Z',
         exercises: { 'Bench Press': [{ actualReps: 8, actualWeight: 145 }] },
       },
       '2026-03-01::Upper A': {
         key: '2026-03-01::Upper A',
         date: '2026-03-01',
+        completedAt: '2026-03-01T12:00:00Z',
         exercises: { 'Bench Press': [{ actualReps: 8, actualWeight: 135 }] },
       },
     };
@@ -71,6 +75,7 @@ describe('findPreviousSets', () => {
       '2026-03-01::Upper A': {
         logKey: '2026-03-01::Upper A',
         date: '2026-03-01',
+        completedAt: '2026-03-01T12:00:00Z',
         exercises: { 'Bench Press': [{ actualReps: 10, actualWeight: 115 }] },
       },
     };

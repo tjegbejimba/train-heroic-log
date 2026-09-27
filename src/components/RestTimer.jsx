@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
 import { showLocalNotification, requestNotificationPermission } from '../storage/push';
-import { hapticHeavy, hapticLight } from '../utils/haptics';
-import { useModalA11y } from '../hooks/useModalA11y';
-
-const BLOCKED_HINT_MS = 2200;
+import { hapticHeavy } from '../utils/haptics';
 
 function playBeep() {
   try {
@@ -27,28 +23,8 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
   const [remaining, setRemaining] = useState(safeInitial);
   const [isPaused, setIsPaused] = useState(false);
-  const [showBlockedHint, setShowBlockedHint] = useState(false);
   const hasFiredRef = useRef(false);
   const mountedRef = useRef(true);
-  const blockedHintTimeoutRef = useRef(null);
-  const containerRef = useRef(null);
-  const ringWrapRef = useRef(null);
-
-  // The full-screen overlay intentionally owns the screen (see PRODUCT.md —
-  // an athlete mid-rest shouldn't be able to fat-finger the next set's log
-  // controls underneath). But a tap that lands on the overlay's own
-  // background must never disappear silently: it surfaces an assertive cue
-  // pointing at Skip instead of leaving the athlete wondering whether their
-  // tap "did something." Escape mirrors Skip for keyboard users, and the
-  // shared a11y hook keeps this from fighting a Modal's own trap if one
-  // were ever open underneath.
-  useModalA11y({ containerRef, initialFocusRef: ringWrapRef, onEscape: onSkip });
-
-  useEffect(() => {
-    return () => {
-      if (blockedHintTimeoutRef.current) clearTimeout(blockedHintTimeoutRef.current);
-    };
-  }, []);
 
   // Track mounted state for safe callback execution
   useEffect(() => {
@@ -91,92 +67,22 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
 
   const adjust = (delta) => setRemaining((r) => Math.max(5, r + delta));
 
-  const handleBackgroundTap = (e) => {
-    // Only the bare overlay background (not a header/ring/control tap)
-    // counts as a "blocked" interaction attempt.
-    if (e.target !== e.currentTarget) return;
-    hapticLight();
-    setShowBlockedHint(true);
-    if (blockedHintTimeoutRef.current) clearTimeout(blockedHintTimeoutRef.current);
-    blockedHintTimeoutRef.current = setTimeout(() => {
-      setShowBlockedHint(false);
-    }, BLOCKED_HINT_MS);
-  };
-
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
-  const pct = Math.min(100, ((safeInitial - remaining) / safeInitial) * 100);
-
   const isUrgent = remaining <= 10;
 
   return createPortal(
     <div
-      ref={containerRef}
       className={`rest-timer${isUrgent ? ' rest-timer--urgent' : ''}${isPaused ? ' rest-timer--paused' : ''}`}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Rest timer active"
-      tabIndex={-1}
-      onClick={handleBackgroundTap}
+      role="region"
+      aria-label="Rest timer"
     >
-      <div className="rest-timer__header">
-        <span className="rest-timer__eyebrow">Rest timer</span>
-        <button
-          className="rest-timer__close"
-          onClick={onSkip}
-          aria-label="Close rest timer"
-          type="button"
-        >
-          <X size={18} />
-        </button>
+      <div className="rest-timer__readout">
+        <span className="rest-timer__label">{isPaused ? 'Rest paused' : 'Rest'}</span>
+        <span className="rest-timer__countdown" role="timer" aria-live="off">
+          {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
+        </span>
       </div>
-      <div
-        ref={ringWrapRef}
-        className="rest-timer__progress-ring-wrap"
-        onClick={() => setIsPaused(p => !p)}
-        role="button"
-        aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsPaused(p => !p);
-          }
-        }}
-      >
-        <svg className="rest-timer__ring" viewBox="0 0 100 100" aria-hidden="true">
-          <circle
-            className="rest-timer__ring-track"
-            cx="50" cy="50" r="44"
-            fill="none"
-            strokeWidth="6"
-          />
-          <circle
-            className="rest-timer__ring-fill"
-            cx="50" cy="50" r="44"
-            fill="none"
-            strokeWidth="6"
-            strokeDasharray={`${2 * Math.PI * 44}`}
-            strokeDashoffset={`${2 * Math.PI * 44 * (pct / 100)}`}
-            strokeLinecap="round"
-            transform="rotate(-90 50 50)"
-          />
-        </svg>
-        <div className="rest-timer__inner">
-          <span className="rest-timer__label">{isPaused ? 'PAUSED' : 'REST'}</span>
-          <span className="rest-timer__countdown" aria-live="polite">
-            {mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`}
-          </span>
-          <span className="rest-timer__hint">{isPaused ? 'Tap to resume' : 'Tap to pause'}</span>
-        </div>
-      </div>
-
-      {showBlockedHint && (
-        <div className="rest-timer__blocked-hint" role="status" aria-live="assertive">
-          Rest is active — tap Skip to log your next set
-        </div>
-      )}
-
       <div className="rest-timer__controls">
         <button
           className="rest-timer__adjust-btn"
@@ -184,16 +90,15 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           aria-label="Subtract 15 seconds"
           type="button"
         >
-          −15s
+          −15
         </button>
         <button
-          className={`rest-timer__skip-btn${showBlockedHint ? ' rest-timer__skip-btn--pulse' : ''}`}
-          onClick={onSkip}
-          aria-label="Skip rest"
+          className="rest-timer__pause-btn"
+          onClick={() => setIsPaused(p => !p)}
+          aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           type="button"
         >
-          <X size={16} />
-          Skip
+          {isPaused ? 'Resume' : 'Pause'}
         </button>
         <button
           className="rest-timer__adjust-btn"
@@ -201,7 +106,15 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
           aria-label="Add 15 seconds"
           type="button"
         >
-          +15s
+          +15
+        </button>
+        <button
+          className="rest-timer__skip-btn"
+          onClick={onSkip}
+          aria-label="Skip rest"
+          type="button"
+        >
+          Skip
         </button>
       </div>
     </div>,

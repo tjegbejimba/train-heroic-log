@@ -9,8 +9,9 @@ import { useSettings } from '../hooks/useSettings';
 import { parseLogKey } from '../constants';
 import { extractVideoId } from '../utils/youtube';
 import { hapticSuccess } from '../utils/haptics';
-import { findPreviousSets } from '../utils/exerciseHistory';
+import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
+import { getSetMeta } from '../utils/setMeta';
 import { buildSummary, findRecords } from '../utils/workoutSummary';
 import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, completeSessionIntent, cancelSessionIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
 
@@ -224,6 +225,7 @@ export default function ActiveWorkoutView({
   }, [commitLog]);
 
   const handleCompleteWorkout = () => {
+    setRestTimerActive(false);
     // Dispatch the completion intention: fold the athlete's final Workout note
     // (from the freshest committed Log) and stamp exactly one completion time
     // before deriving the Log that summary and personal-record inputs read.
@@ -391,7 +393,7 @@ export default function ActiveWorkoutView({
                   </div>
 
                   {/* Column labels */}
-                  <div className="aw-sets-header">
+                  <div className={`aw-sets-header${editMode ? ' aw-sets-header--edit' : ''}`}>
                     <span className="aw-sets-header__set">SET</span>
                     {editMode ? (
                       <>
@@ -402,7 +404,6 @@ export default function ActiveWorkoutView({
                     ) : (
                       <>
                         <span className="aw-sets-header__target">TARGET</span>
-                        <span className="aw-sets-header__inputs">ACTUAL</span>
                         <span className="aw-sets-header__done" aria-hidden="true" />
                       </>
                     )}
@@ -425,6 +426,21 @@ export default function ActiveWorkoutView({
                         );
                       }
                       const prevSets = prevSetsMap[exercise.title];
+                      const prevSet = prevSets?.[setIdx];
+                      const exUnit = prevSet?.unit || exercise.unit || 'lb';
+                      const exRepsUnit = exercise.repsUnit || 'reps';
+                      const lastHint = prevSet?.completed
+                        ? formatLastHint(
+                          { ...prevSet, unit: exUnit },
+                          getSetMeta({ ...set, unit: exUnit, repsUnit: exRepsUnit })
+                        )
+                        : null;
+                      const suggestion = lastHint
+                        ? computeSuggestion(prevSet, set.reps != null ? Number(set.reps) : null, exUnit, exRepsUnit)
+                        : null;
+                      const overloadHint = suggestion
+                        ? formatOverloadHint(prevSet, suggestion, exUnit, exRepsUnit)
+                        : null;
                       return (
                         <div key={setIdx} data-set-id={`${exercise.title}::${setIdx}`}>
                           <LogSetRow
@@ -438,24 +454,8 @@ export default function ActiveWorkoutView({
                             onUpdate={(newSetData) =>
                               updateExerciseSet(exercise.title, setIdx, newSetData)
                             }
-                            lastHint={(() => {
-                              const prevSet = prevSets?.[setIdx] ?? null;
-                              if (!prevSet) return null;
-                              const exUnit = prevSet.unit || exercise.unit || 'lb';
-                              const exRepsUnit = exercise.repsUnit || 'reps';
-                              const suggestion = computeSuggestion(
-                                { actualReps: Number(prevSet.actualReps), actualWeight: Number(prevSet.actualWeight), unit: exUnit },
-                                set.reps != null ? Number(set.reps) : null,
-                                exUnit,
-                                exRepsUnit
-                              );
-                              return formatOverloadHint(
-                                { actualReps: Number(prevSet.actualReps), actualWeight: Number(prevSet.actualWeight), unit: exUnit },
-                                suggestion,
-                                exUnit,
-                                exRepsUnit
-                              );
-                            })()}
+                            lastHint={lastHint}
+                            suggestionHint={overloadHint ? `Try: ${overloadHint.split(' → ')[1]}` : null}
                             barWeight={exercise.barWeight ?? null}
                           />
                         </div>

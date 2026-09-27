@@ -23,6 +23,7 @@ export default function LogSetRow({
   onUpdate,
   isNext = false,
   lastHint = null,
+  suggestionHint = null,
   barWeight = null,
 }) {
   const { isBodyweight, isTimeWeight, isTimeReps, weightLabel, repsLabel } = getSetMeta(set);
@@ -144,9 +145,6 @@ export default function LogSetRow({
       <div className="log-set-row__target-wrap">
         {isNext && !isCompleted && <span className="log-set-row__next-chip">Next</span>}
         <span className="log-set-row__target">{formatSet(set)}</span>
-        {lastHint && (
-          <span className="log-set-row__last-hint">{lastHint}</span>
-        )}
       </div>
 
       <div className="log-set-row__inputs">
@@ -285,6 +283,12 @@ export default function LogSetRow({
         <Check size={20} strokeWidth={3} />
         {isCompleted && <span className="log-set-row__undo-label">undo</span>}
       </button>
+      {(lastHint || suggestionHint) && (
+        <div className="log-set-row__history">
+          {lastHint && <span className="log-set-row__last-hint">{lastHint}</span>}
+          {suggestionHint && <span className="log-set-row__suggestion">{suggestionHint}</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -97,11 +97,9 @@ test('@visual set row layout has non-overlapping grid columns', async ({ page, b
   // Set number and target must not overlap (target starts after set number)
   expect(targetBox.x).toBeGreaterThanOrEqual(setNumBox.x + setNumBox.width - 1);
 
-  // Target and inputs must not overlap (inputs start after target)
-  expect(inputsBox.x).toBeGreaterThanOrEqual(targetBox.x + targetBox.width - 1);
-
-  // Inputs and complete button must not overlap
-  expect(completeBox.x).toBeGreaterThanOrEqual(inputsBox.x + inputsBox.width - 1);
+  // Inputs have their own line so weight is not squeezed between target and check.
+  expect(inputsBox.y).toBeGreaterThanOrEqual(targetBox.y + targetBox.height - 1);
+  expect(completeBox.x).toBeGreaterThanOrEqual(targetBox.x + targetBox.width - 1);
 
   // Complete button must have 44px minimum touch target (mobile accessibility)
   expect(completeBox.width).toBeGreaterThanOrEqual(44);
@@ -138,8 +136,8 @@ test('@visual set row layout has non-overlapping grid columns', async ({ page, b
 
   // Same non-overlap checks for weighted row
   expect(weightedTargetBox.x).toBeGreaterThanOrEqual(weightedSetNumBox.x + weightedSetNumBox.width - 1);
-  expect(weightedInputsBox.x).toBeGreaterThanOrEqual(weightedTargetBox.x + weightedTargetBox.width - 1);
-  expect(weightedCompleteBox.x).toBeGreaterThanOrEqual(weightedInputsBox.x + weightedInputsBox.width - 1);
+  expect(weightedInputsBox.y).toBeGreaterThanOrEqual(weightedTargetBox.y + weightedTargetBox.height - 1);
+  expect(weightedCompleteBox.x).toBeGreaterThanOrEqual(weightedTargetBox.x + weightedTargetBox.width - 1);
 
   // Capture weighted row evidence
   await captureVisualEvidence(page, testInfo, 'set-row-layout-weighted-active');
@@ -165,4 +163,59 @@ test('@visual set row layout has non-overlapping grid columns', async ({ page, b
 
   // Check no horizontal overflow after interactions
   await expectNoDocumentHorizontalOverflow(page);
+});
+
+test('@visual weight entry and last completed sets stay readable on the workout screen', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    const day = date.toISOString().slice(0, 10);
+    const key = `${day}::Lower Body B`;
+    localStorage.setItem('th_logs', JSON.stringify({
+      [key]: {
+        logKey: key,
+        date: day,
+        completedAt: `${day}T18:00:00.000Z`,
+        exercises: {
+          'Barbell Back Squat': [
+            { actualReps: 3, actualWeight: 230, unit: 'lb', completed: true },
+            { actualReps: 5, actualWeight: 210, unit: 'lb', completed: true },
+            { actualReps: 8, actualWeight: 190, unit: 'lb', completed: true },
+          ],
+        },
+      },
+    }));
+  });
+  await page.reload();
+  await quickStartLowerBodyWorkout(page);
+
+  const squat = page.locator('.aw-exercise-card', { has: page.getByRole('heading', { name: 'Barbell Back Squat' }) });
+  await squat.scrollIntoViewIfNeeded();
+  await expect(squat.getByText('Last: 3 × 230 lb')).toBeVisible();
+  await expect(squat.getByText('Last: 5 × 210 lb')).toBeVisible();
+  await expect(squat.getByText('Last: 8 × 190 lb')).toBeVisible();
+  const weight = squat.locator('.log-set-row__weight-row input').first();
+  await weight.fill('240');
+  await expect(weight).toHaveValue('240');
+  const metrics = await weight.evaluate((input) => ({
+    fontSize: parseFloat(getComputedStyle(input).fontSize),
+    width: input.getBoundingClientRect().width,
+    clipped: input.scrollWidth > input.clientWidth,
+  }));
+  expect(metrics.fontSize).toBeGreaterThanOrEqual(20);
+  expect(metrics.width).toBeGreaterThanOrEqual(70);
+  expect(metrics.width).toBeLessThanOrEqual(90);
+  expect(metrics.clipped).toBe(false);
+  await expectNoDocumentHorizontalOverflow(page);
+  await captureVisualEvidence(page, testInfo, 'weight-entry-with-last-session');
+  if (testInfo.project.name === 'mobile-chrome') {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await expectNoDocumentHorizontalOverflow(page);
+    const bounds = await squat.locator('.log-set-row').first().boundingBox();
+    const weightBounds = await weight.boundingBox();
+    expect(weightBounds.x + weightBounds.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+    await captureVisualEvidence(page, testInfo, 'weight-entry-narrow-mobile');
+  }
 });
