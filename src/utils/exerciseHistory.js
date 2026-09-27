@@ -6,7 +6,7 @@ import { getUnitLabel } from './setMeta';
  * Find the most recent logged sets for an exercise before a given date.
  * Call once per exercise (not per set) and memoize in the parent.
  *
- * @param {Object} allLogs - Map of logKey → log objects
+ * @param {Array|Object} allLogs - Historical log objects
  * @param {string} workoutTitle
  * @param {string} exerciseTitle
  * @param {Object} [options]
@@ -20,7 +20,7 @@ export function findPreviousSets(allLogs, workoutTitle, exerciseTitle, options =
   let bestLog = null;
 
   for (const log of Object.values(allLogs)) {
-    if (!log?.date || !log?.exercises) continue;
+    if (!log?.date || !log?.completedAt || !log?.exercises) continue;
     if (log.date >= before) continue;
 
     const logKey = log.key || log.logKey;

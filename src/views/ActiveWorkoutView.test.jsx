@@ -121,6 +121,49 @@ function renderActiveWorkout(overrides = {}) {
 }
 
 describe('ActiveWorkoutView', () => {
+  it('shows the last completed workout set with reps, weight, and units', () => {
+    renderActiveWorkout({
+      workouts: { [twoSetWorkout.title]: twoSetWorkout },
+      logs: { [logKey]: twoSetLog() },
+      allLogs: [{
+        key: '2026-06-27::Full-Body Express',
+        date: '2026-06-27',
+        completedAt: '2026-06-27T12:00:00.000Z',
+        exercises: {
+          'Back Squat': [
+            { actualReps: 7, actualWeight: 180, unit: 'lb', completed: true },
+            { actualReps: 6, actualWeight: 175, unit: 'lb', completed: true },
+          ],
+        },
+      }],
+    });
+
+    expect(screen.getByText('Last: 7 × 180 lb')).toBeTruthy();
+    expect(screen.getByText('Last: 6 × 175 lb')).toBeTruthy();
+  });
+
+  it('ignores an unfinished newer workout when showing last session', () => {
+    renderActiveWorkout({
+      workouts: { [twoSetWorkout.title]: twoSetWorkout },
+      logs: { [logKey]: twoSetLog() },
+      allLogs: [
+        {
+          key: '2026-07-01::Full-Body Express',
+          date: '2026-07-01',
+          exercises: { 'Back Squat': [{ actualReps: 1, actualWeight: 50, completed: true }] },
+        },
+        {
+          key: '2026-06-27::Full-Body Express',
+          date: '2026-06-27',
+          completedAt: '2026-06-27T12:00:00.000Z',
+          exercises: { 'Back Squat': [{ actualReps: 7, actualWeight: 180, unit: 'lb', completed: true }] },
+        },
+      ],
+    });
+    expect(screen.getByText('Last: 7 × 180 lb')).toBeTruthy();
+    expect(screen.queryByText('Last: 1 × 50 lb')).toBeNull();
+  });
+
   it('persists workout notes immediately for crash recovery', () => {
     const { saveLog } = renderActiveWorkout();
 
@@ -153,6 +196,35 @@ describe('ActiveWorkoutView', () => {
     });
   });
 
+  it('starts rest without blocking the next set or taking focus away from logging', () => {
+    renderActiveWorkout({
+      workouts: { [twoSetWorkout.title]: twoSetWorkout },
+      logs: { [logKey]: twoSetLog() },
+    });
+    const nextSet = screen.getAllByRole('button', { name: 'Mark complete' })[1];
+    nextSet.focus();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+
+    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: /rest timer/i })).toBeNull();
+    expect(nextSet.closest('[inert]')).toBeNull();
+    expect(document.activeElement).toBe(nextSet);
+  });
+
+  it('stops rest when the workout is finished early', () => {
+    renderActiveWorkout({
+      workouts: { [twoSetWorkout.title]: twoSetWorkout },
+      logs: { [logKey]: twoSetLog() },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish (1/2 sets)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish Anyway' }));
+    expect(document.querySelector('.rest-timer')).toBeNull();
+    expect(screen.getByText('Workout complete')).toBeTruthy();
+  });
+
   it('does not overwrite an earlier logged Set when a later Set is completed', () => {
     const { saveLog } = renderActiveWorkout({
       workouts: { [twoSetWorkout.title]: twoSetWorkout },
@@ -160,9 +232,7 @@ describe('ActiveWorkoutView', () => {
     });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
-    // Completing a Set starts the (now fully modal) rest timer, which
-    // correctly makes the rest of the screen inert until Skipped — mirror
-    // that real flow before logging the next Set.
+    // Skipping rest keeps this test focused on sequential set persistence.
     fireEvent.click(screen.getByLabelText('Skip rest'));
     fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
 

@@ -33,6 +33,8 @@ Success looks like:
 - A logged set takes **one tap** and near-zero cognitive load.
 - The next action on every screen is obvious at a glance (glanceable at arm's length).
 - The lifter trusts the numbers enough to drive week-over-week progression from them.
+- Each set shows the last completed session's reps and weight for the same workout, while
+  a compact rest timer runs without preventing the next set from being logged.
 - It works flawlessly offline and feels instantaneous.
 - It looks good enough that opening it is a small motivator, not a chore.
 
