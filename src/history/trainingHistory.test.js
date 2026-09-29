@@ -203,3 +203,83 @@ describe('isEmpty', () => {
     }).isEmpty).toBe(false);
   });
 });
+
+describe('exerciseTimeline', () => {
+  it('lists completed Sessions containing the Exercise, newest first, with their notes', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Squat: [set(5, 200), set(5, 200, { completed: false })] }),
+      [keyOf('2026-01-06', 'Lower B')]: session('2026-01-06', { Row: [set(10, 50)] }, { workoutTitle: 'Lower B' }),
+      [keyOf('2026-01-12')]: session('2026-01-12', { Squat: [set(5, 210)] }, { exerciseNotes: { Squat: 'belt on' } }),
+      [keyOf('2026-01-19')]: session('2026-01-19', { Squat: [set(5, 230)] }, { completedAt: null }),
+    });
+
+    const timeline = history.exerciseTimeline('Squat');
+
+    expect(timeline.sessions.map((s) => [s.date, s.workoutTitle, s.exerciseNote])).toEqual([
+      ['2026-01-12', 'Upper A', 'belt on'],
+      ['2026-01-05', 'Upper A', null],
+    ]);
+    expect(timeline.sessions[1].sets).toHaveLength(2);
+    expect(timeline.completedSetCount).toBe(2);
+  });
+
+  it('charts each Session oldest first and marks Top-set records at any rep count', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Squat: [set(5, 200), set(3, 190)] }),
+      [keyOf('2026-01-12')]: session('2026-01-12', { Squat: [set(3, 215)] }),
+      [keyOf('2026-01-19')]: session('2026-01-19', { Squat: [set(8, 215)] }),
+      [keyOf('2026-01-26')]: session('2026-01-26', { Squat: [set(8, 180)] }),
+    });
+
+    expect(history.exerciseTimeline('Squat').progress).toEqual([
+      { date: '2026-01-05', bestWeight: 200, bestReps: 5, volume: 1570, unit: 'lb', kind: 'baseline' },
+      { date: '2026-01-12', bestWeight: 215, bestReps: 3, volume: 645, unit: 'lb', kind: 'pr' },
+      { date: '2026-01-19', bestWeight: 215, bestReps: 8, volume: 1720, unit: 'lb', kind: null },
+      { date: '2026-01-26', bestWeight: 180, bestReps: 8, volume: 1440, unit: 'lb', kind: null },
+    ]);
+  });
+
+  it('reports the best estimated 1RM', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Squat: [set(1, 225)] }),
+      [keyOf('2026-01-12')]: session('2026-01-12', { Squat: [set(5, 200)] }),
+    });
+
+    const { best1RM } = history.exerciseTimeline('Squat');
+
+    expect(best1RM).toMatchObject({ weight: 200, reps: 5, unit: 'lb' });
+    expect(best1RM.est).toBeCloseTo(229.17, 2);
+    expect(best1RM.epley).toBeCloseTo(233.33, 2);
+    expect(best1RM.brzycki).toBeCloseTo(225, 2);
+  });
+
+  it('charts and estimates only in the unit of the most recent Session', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Deadlift: [set(3, 300)] }),
+      [keyOf('2026-01-12')]: session('2026-01-12', { Deadlift: [set(3, 140, { unit: 'kg' })] }),
+      [keyOf('2026-01-19')]: session('2026-01-19', { Deadlift: [set(3, 145, { unit: 'kg' })] }),
+    });
+
+    const timeline = history.exerciseTimeline('Deadlift');
+
+    expect(timeline.unit).toBe('kg');
+    expect(timeline.progress.map((p) => [p.bestWeight, p.kind])).toEqual([
+      [140, 'baseline'],
+      [145, 'pr'],
+    ]);
+    expect(timeline.best1RM).toMatchObject({ weight: 145, unit: 'kg' });
+    expect(timeline.sessions).toHaveLength(3);
+  });
+
+  it('has no chart or 1RM when the Exercise has no weighted Sets', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Plank: [set(1, 0, { unit: 'bw' })] }),
+    });
+
+    const timeline = history.exerciseTimeline('Plank');
+
+    expect(timeline.unit).toBeNull();
+    expect(timeline.progress).toEqual([]);
+    expect(timeline.best1RM).toBeNull();
+  });
+});

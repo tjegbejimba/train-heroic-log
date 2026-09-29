@@ -7,6 +7,7 @@
  * the Sessions before it, so a PR is an event that never un-happens.
  */
 import { parseLogKey } from '../constants.js';
+import { brzycki, epley, estimated1RM } from '../utils/oneRepMax.js';
 
 const VOLUME_UNITS = new Set(['lb', 'kg']);
 
@@ -189,5 +190,64 @@ export function buildTrainingHistory(logs) {
     };
   }
 
-  return { isEmpty: sessions.length === 0, sessionRecap, rangeSummary };
+  function exerciseTimeline(exercise) {
+    const withExercise = sessions.filter(({ log }) => log.exercises?.[exercise]);
+    const loadsOf = ({ log }) => log.exercises[exercise].map(completedLoad).filter(Boolean);
+
+    const latestLoaded = [...withExercise].reverse().find((entry) => loadsOf(entry).length > 0);
+    const unit = latestLoaded ? loadsOf(latestLoaded)[0].unit : null;
+
+    const points = [];
+    let best1RM = null;
+    for (const entry of withExercise) {
+      const loads = loadsOf(entry).filter((load) => load.unit === unit);
+      if (loads.length === 0) continue;
+      const top = loads.reduce((best, load) => (load.weight > best.weight ? load : best));
+      points.push({
+        date: entry.date,
+        bestWeight: top.weight,
+        bestReps: top.reps,
+        volume: VOLUME_UNITS.has(unit)
+          ? loads.reduce((sum, load) => sum + load.reps * load.weight, 0)
+          : 0,
+        unit,
+      });
+      if (!VOLUME_UNITS.has(unit)) continue;
+      for (const { weight, reps } of loads) {
+        const est = estimated1RM(weight, reps);
+        if (est > 0 && (!best1RM || est > best1RM.est)) {
+          best1RM = { est, weight, reps, unit, epley: epley(weight, reps), brzycki: brzycki(weight, reps) };
+        }
+      }
+    }
+
+    let runningBest;
+    const progress = points.map((point) => {
+      let kind = null;
+      if (runningBest === undefined) kind = 'baseline';
+      else if (point.bestWeight > runningBest) kind = 'pr';
+      if (kind) runningBest = point.bestWeight;
+      return { ...point, kind };
+    });
+
+    const newestFirst = [...withExercise].reverse();
+    return {
+      sessions: newestFirst.map(({ key, date, log }) => ({
+        logKey: key,
+        date,
+        workoutTitle: log.workoutTitle,
+        sets: log.exercises[exercise],
+        exerciseNote: log.exerciseNotes?.[exercise] || null,
+      })),
+      completedSetCount: newestFirst.reduce(
+        (total, { log }) => total + log.exercises[exercise].filter((set) => set?.completed).length,
+        0
+      ),
+      unit,
+      progress,
+      best1RM,
+    };
+  }
+
+  return { isEmpty: sessions.length === 0, sessionRecap, rangeSummary, exerciseTimeline };
 }
