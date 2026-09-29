@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import ActiveWorkoutView from './ActiveWorkoutView.jsx';
 
 vi.mock('../hooks/useSettings', () => ({
@@ -269,5 +269,34 @@ describe('ActiveWorkoutView', () => {
     const finalLog = saveLog.mock.calls.at(-1)[1];
     expect(finalLog.exercises['Back Squat']).toHaveLength(2);
     expect(finalLog.exercises['Back Squat'][1].completed).toBe(true);
+  });
+});
+
+describe('ActiveWorkoutView — completion summary', () => {
+  it('reports a PR against earlier Sessions without comparing the Session to itself', () => {
+    renderActiveWorkout({
+      allLogs: [
+        {
+          key: '2026-07-04::Full-Body Express',
+          ...existingLog,
+          completedAt: '2026-07-04T13:00:00.000Z',
+        },
+        {
+          key: '2026-06-27::Full-Body Express',
+          date: '2026-06-27',
+          workoutTitle: 'Full-Body Express',
+          completedAt: '2026-06-27T12:00:00.000Z',
+          exercises: { 'Back Squat': [{ actualReps: 8, actualWeight: 180, unit: 'lb', completed: true }] },
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete Workout' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Workout complete' });
+    expect(within(dialog).getByText('New PRs')).toBeTruthy();
+    expect(within(dialog).getByText('Back Squat')).toBeTruthy();
+    expect(within(dialog).getByText(/8 × 185 lb/)).toBeTruthy();
+    expect(within(dialog).queryByText('New Baselines')).toBeNull();
   });
 });

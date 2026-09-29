@@ -12,7 +12,7 @@ import { hapticSuccess } from '../utils/haptics';
 import { findPreviousSets, formatLastHint } from '../utils/exerciseHistory';
 import { computeSuggestion, formatOverloadHint } from '../utils/overloadSuggestion';
 import { getSetMeta } from '../utils/setMeta';
-import { buildSummary, findRecords } from '../utils/workoutSummary';
+import { buildTrainingHistory } from '../history/trainingHistory';
 import { buildInitialSessionLog, buildSessionExercises, hasLoggedData, applySessionIntent, setExerciseNoteIntent, setWorkoutNoteIntent, completeSessionIntent, cancelSessionIntent, beginTargetEdit, editTargetSet, addTargetSet, removeTargetSet, confirmTargetEdit, discardTargetEdit, logSet, findNextSet, evaluateRest, resolveManualRest, findExerciseByTitle } from '../session/session';
 
 export default function ActiveWorkoutView({
@@ -244,14 +244,12 @@ export default function ActiveWorkoutView({
   };
 
   // Build summary data for the completion modal
+  // The just-completed Log may not have reached allLogs yet, so it is merged in
+  // by key; Training history then judges it only against earlier Sessions.
   const computeSummary = (log) => {
     if (!log) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    const summary = buildSummary(log);
-    const records = findRecords(log, allLogs, today);
-    const prs = records.filter((r) => r.kind === 'pr');
-    const baselines = records.filter((r) => r.kind === 'baseline');
-    return { ...summary, prs, baselines };
+    const earlier = Object.values(allLogs || {}).filter((l) => l?.key !== logKey);
+    return buildTrainingHistory([...earlier, { ...log, key: logKey }]).sessionRecap(logKey);
   };
 
   const handleCancelWorkout = () => {
@@ -667,7 +665,7 @@ export default function ActiveWorkoutView({
                       <div key={i} className="aw-summary__pr-item">
                         <span className="aw-summary__pr-trophy" aria-hidden="true"><Trophy size={15} /></span>
                         <span className="aw-summary__pr-text">
-                          <strong>{pr.exTitle}</strong>
+                          <strong>{pr.exercise}</strong>
                           <span className="aw-summary__pr-weight"> {pr.reps} × {pr.weight} {pr.unit}</span>
                         </span>
                       </div>
@@ -682,7 +680,7 @@ export default function ActiveWorkoutView({
                       <div key={i} className="aw-summary__baseline-item">
                         <span className="aw-summary__baseline-icon" aria-hidden="true"><Target size={15} /></span>
                         <span className="aw-summary__baseline-text">
-                          <strong>{b.exTitle}</strong>
+                          <strong>{b.exercise}</strong>
                           <span className="aw-summary__baseline-weight"> {b.reps} × {b.weight} {b.unit}</span>
                         </span>
                       </div>
