@@ -365,7 +365,6 @@ export default function App() {
         <HistoryView
           allLogs={allLogs}
           deleteLog={deleteLog}
-          workouts={workouts}
           completedDates={completedDates}
         />
       );

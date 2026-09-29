@@ -14,11 +14,9 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { calculateStreaks } from '../utils/streaks';
-import { classifyAgainstBest } from '../utils/workoutSummary';
+import { buildTrainingHistory } from '../history/trainingHistory';
 
-const VOLUME_UNITS = new Set(['lb', 'kg']);
-
-export default function HistoryView({ allLogs, deleteLog, workouts, completedDates }) {
+export default function HistoryView({ allLogs, deleteLog, completedDates }) {
   const [expandedKey, setExpandedKey] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -32,38 +30,7 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     [allLogs]
   );
 
-  // Tracks, per exercise+reps combo, the best-ever weight on record along with
-  // which log/set it belongs to and whether that log established the
-  // baseline (first-ever recording) or a genuine PR (beat a prior best).
-  const prMap = useMemo(() => {
-    const bests = {};
-    const chronological = [...completedLogs].reverse();
-
-    chronological.forEach((log) => {
-      Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
-        sets.forEach((set, setIdx) => {
-          if (!set.completed || !set.actualWeight || set.actualWeight === '') return;
-          const w = parseFloat(set.actualWeight);
-          const reps = parseInt(set.actualReps, 10);
-          if (isNaN(w) || w <= 0 || isNaN(reps) || reps <= 0) return;
-
-          if (!bests[exName]) bests[exName] = {};
-          const kind = classifyAgainstBest(bests[exName][reps]?.weight, w);
-          if (kind) {
-            bests[exName][reps] = {
-              weight: w,
-              logKey: log.key,
-              date: log.date,
-              setIdx,
-              kind,
-            };
-          }
-        });
-      });
-    });
-
-    return bests;
-  }, [completedLogs]);
+  const history = useMemo(() => buildTrainingHistory(allLogs), [allLogs]);
 
   const formatDayNumber = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
@@ -98,40 +65,6 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
-  const getExerciseUnit = (exName, sets) => {
-    if (sets[0]?.unit) return sets[0].unit;
-    if (workouts) {
-      for (const w of Object.values(workouts)) {
-        for (const block of w.blocks || []) {
-          for (const ex of block.exercises || []) {
-            if (ex.title === exName && ex.sets?.[0]?.unit) {
-              return ex.sets[0].unit;
-            }
-          }
-        }
-      }
-    }
-    return 'lb';
-  };
-
-  const calcVolume = (exercises) => {
-    const totals = {};
-    Object.entries(exercises || {}).forEach(([exName, sets]) => {
-      const unit = getExerciseUnit(exName, sets);
-      if (!VOLUME_UNITS.has(unit)) return;
-      sets.forEach((set) => {
-        if (set.completed && set.actualReps && set.actualWeight) {
-          const reps = parseFloat(set.actualReps);
-          const weight = parseFloat(set.actualWeight);
-          if (!isNaN(reps) && !isNaN(weight)) {
-            totals[unit] = (totals[unit] || 0) + reps * weight;
-          }
-        }
-      });
-    });
-    return totals;
-  };
-
   const formatVolume = (totals) => {
     const parts = Object.entries(totals)
       .filter(([, vol]) => vol > 0)
@@ -147,38 +80,6 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
     if (reps == null || reps === '') return '--';
     const load = weight !== '' && weight != null ? weight : 'BW';
     return `${reps} × ${load}`;
-  };
-
-  // Returns { reps, kind: 'pr' | 'baseline' } when this exact set is the
-  // best-on-record for its exercise+reps combo, or null otherwise.
-  const getSetRecord = (exName, set, logKey, setIdx) => {
-    if (!set.completed || !set.actualWeight) return null;
-    const reps = parseInt(set.actualReps, 10);
-    if (isNaN(reps) || reps <= 0) return null;
-    const exBests = prMap[exName];
-    if (!exBests) return null;
-    const best = exBests[reps];
-    if (
-      best &&
-      best.logKey === logKey &&
-      parseFloat(set.actualWeight) === best.weight &&
-      setIdx === best.setIdx
-    ) {
-      return { reps, kind: best.kind };
-    }
-    return null;
-  };
-
-  // Only genuine PRs count toward the card's headline badge — a first-ever
-  // baseline recording hasn't beaten anything, so it shouldn't read as one.
-  const countPRs = (log) => {
-    let count = 0;
-    Object.entries(log.exercises || {}).forEach(([exName, sets]) => {
-      sets.forEach((set, setIdx) => {
-        if (getSetRecord(exName, set, log.key, setIdx)?.kind === 'pr') count++;
-      });
-    });
-    return count;
   };
 
   const handleDelete = () => {
@@ -259,8 +160,9 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
           const allSets = Object.values(log.exercises || {}).flat();
           const totalSets = allSets.length;
           const completedSets = allSets.filter((s) => s.completed).length;
-          const volumeStr = formatVolume(calcVolume(log.exercises));
-          const prCount = countPRs(log);
+          const recap = history.sessionRecap(log.key);
+          const volumeStr = formatVolume(recap?.volumeByUnit || {});
+          const prCount = recap?.prs.length || 0;
           const duration = formatDuration(log.startedAt, log.completedAt);
           const fullDate = formatFullDate(log.date);
 
@@ -380,7 +282,9 @@ export default function HistoryView({ allLogs, deleteLog, workouts, completedDat
                             </div>
 
                             {sets.map((set, idx) => {
-                              const record = getSetRecord(exName, set, log.key, idx);
+                              const record = recap?.records.find(
+                                (r) => r.exercise === exName && r.setIndex === idx
+                              );
                               const isPR = record?.kind === 'pr';
                               const isBaseline = record?.kind === 'baseline';
                               return (

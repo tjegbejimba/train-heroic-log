@@ -51,7 +51,6 @@ describe('HistoryView — renders completed sessions after a Template is deleted
       <HistoryView
         allLogs={[loggedSession]}
         deleteLog={vi.fn()}
-        workouts={survivingWorkouts}
         completedDates={new Set(['2026-01-08'])}
       />
     );
@@ -79,7 +78,6 @@ describe('HistoryView — delete confirm (destructive Modal consumer)', () => {
       <HistoryView
         allLogs={[loggedSession]}
         deleteLog={deleteLog}
-        workouts={{ 'Upper A': { title: 'Upper A', blocks: [{ exercises: [{ title: 'Bench Press' }] }] } }}
         completedDates={new Set(['2026-01-08'])}
       />
     );
@@ -118,7 +116,6 @@ describe('HistoryView — baseline vs PR semantics', () => {
       <HistoryView
         allLogs={[loggedSession]}
         deleteLog={vi.fn()}
-        workouts={{ 'Upper A': { title: 'Upper A', blocks: [{ exercises: [{ title: 'Bench Press' }] }] } }}
         completedDates={new Set(['2026-01-08'])}
       />
     );
@@ -162,7 +159,6 @@ describe('HistoryView — baseline vs PR semantics', () => {
         // allLogs is latest-first, matching useWorkoutLogs' real ordering.
         allLogs={[secondSession, firstSession]}
         deleteLog={vi.fn()}
-        workouts={{ 'Upper A': { title: 'Upper A', blocks: [{ exercises: [{ title: 'Bench Press' }] }] } }}
         completedDates={new Set(['2026-01-08', '2026-01-15'])}
       />
     );
