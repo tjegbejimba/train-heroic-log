@@ -1,14 +1,5 @@
 import { useState, useMemo } from 'react';
-import {
-  volumeByWeek,
-  sessionsByWeek,
-  prCountInRange,
-  topExercisesByVolume,
-  volumeByExercise,
-  workoutDates,
-  dateRangeFromPreset,
-  dominantUnit,
-} from '../utils/statsHelpers';
+import { buildTrainingHistory } from '../history/trainingHistory';
 import { calculateStreaks } from '../utils/streaks';
 import VolumeChart from '../components/charts/VolumeChart';
 import SessionsChart from '../components/charts/SessionsChart';
@@ -40,23 +31,17 @@ function rangeCopy(range) {
 export default function StatsView({ logs, completedDates }) {
   const [range, setRange] = useState('4W');
 
-  const completedLogs = useMemo(() => {
-    const filtered = {};
-    for (const [key, log] of Object.entries(logs)) {
-      if (log.completedAt) filtered[key] = log;
-    }
-    return filtered;
-  }, [logs]);
-
-  const dateRange = useMemo(() => dateRangeFromPreset(range), [range]);
-  const unit = useMemo(() => dominantUnit(completedLogs, dateRange), [completedLogs, dateRange]);
-
-  const volumeData = useMemo(() => volumeByWeek(completedLogs, dateRange, unit), [completedLogs, dateRange, unit]);
-  const sessionsData = useMemo(() => sessionsByWeek(completedLogs, dateRange), [completedLogs, dateRange]);
-  const prCount = useMemo(() => prCountInRange(completedLogs, dateRange, unit), [completedLogs, dateRange, unit]);
-  const topExercises = useMemo(() => topExercisesByVolume(completedLogs, dateRange, 3, unit), [completedLogs, dateRange, unit]);
-  const exerciseVolume = useMemo(() => volumeByExercise(completedLogs, dateRange, unit), [completedLogs, dateRange, unit]);
-  const workoutDatesSet = useMemo(() => workoutDates(completedLogs, dateRange), [completedLogs, dateRange]);
+  const history = useMemo(() => buildTrainingHistory(logs), [logs]);
+  const {
+    dateRange,
+    unit,
+    volumeByWeek: volumeData,
+    sessionsByWeek: sessionsData,
+    prCount,
+    volumeByExercise: exerciseVolume,
+    workoutDates: workoutDatesSet,
+  } = useMemo(() => history.rangeSummary(range), [history, range]);
+  const topExercises = exerciseVolume.slice(0, 3);
   const streaks = useMemo(() => calculateStreaks(completedDates), [completedDates]);
   const totalVolume = useMemo(
     () => volumeData.reduce((sum, w) => sum + w.volume, 0),
@@ -67,7 +52,7 @@ export default function StatsView({ logs, completedDates }) {
     [sessionsData]
   );
 
-  const isEmpty = Object.keys(completedLogs).length === 0;
+  const { isEmpty } = history;
   const hasVolume = volumeData.some((week) => week.volume > 0);
   const hasSessions = sessionsData.some((week) => week.count > 0);
   const volumePointCount = volumeData.filter((week) => week.volume > 0).length;

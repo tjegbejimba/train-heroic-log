@@ -33,11 +33,11 @@ The record of completed sessions, read to report on past training: records, volu
 _Avoid_: Stats, analytics, log history
 
 **PR**:
-A completed set whose weight beats the best earlier weight for the same exercise, rep count, and unit.
+A session's heaviest completed set for an exercise, rep count, and unit, when it beats the best weight from all earlier sessions. A PR stays a PR even after a later session beats it.
 _Avoid_: Personal best, record (unqualified)
 
 **Baseline**:
-The first completed set recorded for an exercise, rep count, and unit; it sets the reference a later PR must beat but is not itself a PR.
+A session's heaviest completed set for an exercise, rep count, and unit, when no earlier session recorded that combination; it sets the reference a later PR must beat but is not itself a PR.
 _Avoid_: First PR
 
 **Top-set record**:
