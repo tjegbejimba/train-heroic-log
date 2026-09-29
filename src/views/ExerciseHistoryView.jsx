@@ -2,76 +2,20 @@ import { useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, MinusCircle, TrendingUp } from 'lucide-react';
 import { ROUTE_LIBRARY } from '../constants';
 import ProgressChart from '../components/ProgressChart';
-import { estimated1RM, epley, brzycki } from '../utils/oneRepMax';
-import { markRunningRecords } from '../utils/workoutSummary';
+import { buildTrainingHistory } from '../history/trainingHistory';
 
 export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }) {
-  const sessions = useMemo(() => {
-    return allLogs
-      .filter((log) => log.completedAt && log.exercises?.[exerciseTitle])
-      .map((log) => ({
-        date: log.date,
-        workoutTitle: log.workoutTitle,
-        sets: log.exercises[exerciseTitle],
-        exerciseNote: (log.exerciseNotes || {})[exerciseTitle] || null,
-      }));
-  }, [allLogs, exerciseTitle]);
-
-  const best1RM = useMemo(() => {
-    let best = null;
-    for (const session of sessions) {
-      for (const set of session.sets || []) {
-        if (!set.completed) continue;
-        const w = Number(set.actualWeight);
-        const r = Number(set.actualReps);
-        if (!w || !r || w <= 0 || r <= 0) continue;
-        const est = estimated1RM(w, r);
-        if (est > 0 && (!best || est > best.est)) {
-          best = { est, weight: w, reps: r, unit: set.unit || 'lb', epley: epley(w, r), brzycki: brzycki(w, r) };
-        }
-      }
-    }
-    return best;
-  }, [sessions]);
-
-  const chartSessions = useMemo(() => {
-    const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    const withBests = sorted.reduce((acc, session) => {
-      const completedSets = (session.sets || []).filter(
-        (s) => s.completed === true && s.actualWeight != null && s.actualWeight !== '' && Number(s.actualWeight) > 0
-      );
-      if (completedSets.length === 0) return acc;
-
-      const bestSet = completedSets.reduce((best, s) =>
-        Number(s.actualWeight) > Number(best.actualWeight) ? s : best
-      );
-      const bestWeight = Number(bestSet.actualWeight);
-      const bestReps = Number(bestSet.actualReps) || 0;
-      const volume = completedSets.reduce(
-        (sum, s) => sum + (Number(s.actualReps) || 0) * Number(s.actualWeight),
-        0
-      );
-      const unit = (completedSets[0].unit) || 'lb';
-
-      acc.push({ date: session.date, bestWeight, bestReps, volume, unit });
-      return acc;
-    }, []);
-
-    // The first session on the chart is a baseline (nothing to beat yet), so
-    // it must never render as a PR — only a session that genuinely beats the
-    // running best weight earns that marker.
-    return markRunningRecords(withBests, (s) => s.bestWeight).map((s) => ({
-      ...s,
-      isPR: s.kind === 'pr',
-    }));
-  }, [sessions]);
-
-  const completedSetCount = useMemo(() => {
-    return sessions.reduce(
-      (total, session) => total + (session.sets || []).filter((set) => set.completed).length,
-      0
-    );
-  }, [sessions]);
+  const history = useMemo(() => buildTrainingHistory(allLogs), [allLogs]);
+  const { sessions, completedSetCount, best1RM, progress } = useMemo(
+    () => history.exerciseTimeline(exerciseTitle),
+    [history, exerciseTitle]
+  );
+  // The first Session is a Baseline (nothing to beat yet); only a genuine
+  // Top-set record earns the chart's PR marker.
+  const chartSessions = useMemo(
+    () => progress.map((point) => ({ ...point, isPR: point.kind === 'top-set' })),
+    [progress]
+  );
 
   return (
     <div className="view exercise-history-view">
@@ -130,8 +74,8 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
         </div>
       ) : (
         <div className="exercise-history-view__list">
-          {sessions.map((session, idx) => (
-            <div key={idx} className="card exercise-history-session">
+          {sessions.map((session) => (
+            <div key={session.logKey} className="card exercise-history-session">
               <div className="exercise-history-session__meta">
                 <div>
                   <span className="exercise-history-session__date">

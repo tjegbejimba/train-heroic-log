@@ -5,6 +5,7 @@ import ExerciseHistoryView from './ExerciseHistoryView.jsx';
 
 function makeLog(date, weight, reps = 8) {
   return {
+    key: `${date}::Upper A`,
     date,
     completedAt: `${date}T09:00:00`,
     workoutTitle: 'Upper A',

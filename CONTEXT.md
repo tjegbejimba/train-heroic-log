@@ -27,3 +27,23 @@ _Avoid_: Schedule entry
 **Schedule conflict**:
 An imported scheduled workout and an existing scheduled workout assigned to the same date with different templates. A conflict remains unresolved until the user chooses which scheduled workout to keep.
 _Avoid_: Duplicate date
+
+**Training history**:
+The record of completed sessions, read to report on past training: records, volume, estimated 1RM, and per-exercise timelines.
+_Avoid_: Stats, analytics, log history
+
+**PR**:
+A session's heaviest completed set for an exercise, rep count, and unit, when it beats the best weight from all earlier sessions. A PR stays a PR even after a later session beats it.
+_Avoid_: Personal best, record (unqualified)
+
+**Baseline**:
+A session's heaviest completed set for an exercise, rep count, and unit, when no earlier session recorded that combination; it sets the reference a later PR must beat but is not itself a PR.
+_Avoid_: First PR
+
+**Top-set record**:
+A session whose heaviest completed set for an exercise beats every earlier session's heaviest set for that exercise, at any rep count.
+_Avoid_: PR, weight PR
+
+**Volume**:
+The sum of reps × weight across completed sets, kept separately per weight unit (lb or kg); time-based and bodyweight sets have no volume.
+_Avoid_: Tonnage, load

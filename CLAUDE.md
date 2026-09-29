@@ -143,6 +143,10 @@ Export backup (`Settings → Export Backup`) includes:
 
 A full backup captures everything needed to restore: templates, exercises, notes (both kinds), YouTube links, and all logged history. Restore (`Settings → Restore from Backup`) persists each section through the authority (`writeByKey`) inside the reload-safe `coordinateSyncReload` coordinator, which flushes to the server and sets `skipSync` before reloading so the pull doesn't server-wins merge over the restored data.
 
+### Training History
+
+`src/history/trainingHistory.js` owns every report about completed sessions. `buildTrainingHistory(logs)` (accepts the `th_logs` map or the `allLogs` array) walks completed logs once and exposes `sessionRecap(logKey)` (History cards + completion modal), `exerciseTimeline(title)` (Exercise history chart + 1RM), `rangeSummary(preset)` (Stats), and `isEmpty`. PR, Baseline, Top-set record, and Volume rules live only here — see `CONTEXT.md` for their definitions. Don't re-derive them in views.
+
 ### App.jsx
 
 Central orchestrator (~254 lines). Imports all 6 hooks, owns all state, and passes data + callbacks down to views as props. It also handles the crash recovery modal (detecting an unfinished active session on startup).
