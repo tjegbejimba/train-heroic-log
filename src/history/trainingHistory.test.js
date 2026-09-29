@@ -128,6 +128,14 @@ describe('sessionRecap', () => {
     expect(history.sessionRecap(keyOf('2026-01-05')).volumeByUnit).toEqual({ lb: 500, kg: 200 });
   });
 
+  it('has no duration when the Session was not timed', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-01-05')]: session('2026-01-05', { Squat: [set(5, 200)] }, { startedAt: null }),
+    });
+
+    expect(history.sessionRecap(keyOf('2026-01-05')).durationMin).toBeNull();
+  });
+
   it('accepts the allLogs array, whose items carry their key', () => {
     const history = buildTrainingHistory([
       { key: keyOf('2026-01-12'), ...session('2026-01-12', { Squat: [set(5, 210)] }) },
@@ -174,6 +182,13 @@ describe('rangeSummary', () => {
     expect(summary.workoutDates).toEqual(new Set(['2026-03-10']));
     expect(summary.dateRange).toEqual({ start: '2026-03-05', end: '2026-03-12' });
     expect(buildTrainingHistory(logs).rangeSummary('ALL').dateRange).toBeNull();
+  });
+
+  it('spans 28 days for 4W and 90 days for 3M', () => {
+    const history = buildTrainingHistory(logs);
+
+    expect(history.rangeSummary('4W', { today: '2026-03-12' }).dateRange).toEqual({ start: '2026-02-12', end: '2026-03-12' });
+    expect(history.rangeSummary('3M', { today: '2026-03-12' }).dateRange).toEqual({ start: '2025-12-12', end: '2026-03-12' });
   });
 
   it('picks kg as the unit when most completed Sets are kg, defaulting to lb on a tie', () => {
