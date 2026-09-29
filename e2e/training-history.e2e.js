@@ -85,8 +85,10 @@ test('@visual Training history reports PRs consistently across the app', async (
   await expectBottomNavVisible(page);
 
   await page.getByRole('button', { name: 'Stats' }).click();
-  await page.getByRole('button', { name: '4W' }).click();
+  await page.getByRole('button', { name: 'All', exact: true }).click();
   await expect(page.locator('.stats-chart--volume')).toBeVisible();
+  // One PR on 09-08 plus today's two, matching the History badges.
+  await expect(page.locator('.stats-pr-callout')).toHaveText(/^\s*3\s*PRs\s*$/);
   await captureVisualEvidence(page, testInfo, 'stats with training history');
   await expectNoDocumentHorizontalOverflow(page);
 

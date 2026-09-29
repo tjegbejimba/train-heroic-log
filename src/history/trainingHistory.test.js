@@ -93,6 +93,17 @@ describe('sessionRecap', () => {
     ]);
   });
 
+  it('treats numeric and raw-string reps and weights as the same record', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-03-02')]: session('2026-03-02', { Squat: [{ completed: true, actualReps: 5, actualWeight: 200, unit: 'lb' }] }),
+      [keyOf('2026-03-04')]: session('2026-03-04', { Squat: [set(' 5 ', '210')] }),
+    });
+
+    expect(history.sessionRecap(keyOf('2026-03-04')).records).toEqual([
+      { exercise: 'Squat', setIndex: 0, reps: 5, weight: 210, unit: 'lb', kind: 'pr' },
+    ]);
+  });
+
   it('ignores unfinished Logs: they are not history and set no reference', () => {
     const history = buildTrainingHistory({
       [keyOf('2026-01-05')]: session('2026-01-05', { Squat: [set(5, 250)] }, { completedAt: null }),
@@ -184,6 +195,20 @@ describe('rangeSummary', () => {
     expect(buildTrainingHistory(logs).rangeSummary('ALL').dateRange).toBeNull();
   });
 
+  it('counts PRs only in the dominant unit, like its volume', () => {
+    const history = buildTrainingHistory({
+      [keyOf('2026-03-02')]: session('2026-03-02', { Squat: [set(5, 200)], Row: [set(10, 20, { unit: 'kg' })] }),
+      [keyOf('2026-03-04')]: session('2026-03-04', { Squat: [set(5, 210)], Row: [set(10, 25, { unit: 'kg' })] }),
+      [keyOf('2026-03-06')]: session('2026-03-06', { Squat: [set(5, 220)], Plank: [set(1, 60, { unit: 'sec' })] }),
+      [keyOf('2026-03-08')]: session('2026-03-08', { Plank: [set(1, 90, { unit: 'sec' })] }),
+    });
+
+    const summary = history.rangeSummary('ALL');
+
+    expect(summary.unit).toBe('lb');
+    expect(summary.prCount).toBe(2);
+  });
+
   it('spans 28 days for 4W and 90 days for 3M', () => {
     const history = buildTrainingHistory(logs);
 
@@ -248,7 +273,7 @@ describe('exerciseTimeline', () => {
 
     expect(history.exerciseTimeline('Squat').progress).toEqual([
       { date: '2026-01-05', bestWeight: 200, bestReps: 5, volume: 1570, unit: 'lb', kind: 'baseline' },
-      { date: '2026-01-12', bestWeight: 215, bestReps: 3, volume: 645, unit: 'lb', kind: 'pr' },
+      { date: '2026-01-12', bestWeight: 215, bestReps: 3, volume: 645, unit: 'lb', kind: 'top-set' },
       { date: '2026-01-19', bestWeight: 215, bestReps: 8, volume: 1720, unit: 'lb', kind: null },
       { date: '2026-01-26', bestWeight: 180, bestReps: 8, volume: 1440, unit: 'lb', kind: null },
     ]);
@@ -280,7 +305,7 @@ describe('exerciseTimeline', () => {
     expect(timeline.unit).toBe('kg');
     expect(timeline.progress.map((p) => [p.bestWeight, p.kind])).toEqual([
       [140, 'baseline'],
-      [145, 'pr'],
+      [145, 'top-set'],
     ]);
     expect(timeline.best1RM).toMatchObject({ weight: 145, unit: 'kg' });
     expect(timeline.sessions).toHaveLength(3);

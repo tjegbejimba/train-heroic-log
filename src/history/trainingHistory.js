@@ -63,7 +63,8 @@ function classifySessions(sessions) {
   const recordsByKey = new Map();
   for (const { key, log } of sessions) {
     const records = [];
-    for (const [id, top] of sessionTopSets(log)) {
+    const tops = sessionTopSets(log);
+    for (const [id, top] of tops) {
       const previous = bests.get(id);
       if (previous === undefined) {
         records.push({ ...top, kind: 'baseline' });
@@ -71,7 +72,7 @@ function classifySessions(sessions) {
         records.push({ ...top, kind: 'pr' });
       }
     }
-    for (const [id, top] of sessionTopSets(log)) {
+    for (const [id, top] of tops) {
       bests.set(id, Math.max(bests.get(id) ?? -Infinity, top.weight));
     }
     recordsByKey.set(key, records);
@@ -169,7 +170,7 @@ export function buildTrainingHistory(logs) {
           exerciseVolume[exercise] = (exerciseVolume[exercise] || 0) + v.volume;
         }
       }
-      prCount += (recordsByKey.get(key) || []).filter((r) => r.kind === 'pr').length;
+      prCount += (recordsByKey.get(key) || []).filter((r) => r.kind === 'pr' && r.unit === unit).length;
     }
 
     const byWeek = (a, b) => a.weekStart.localeCompare(b.weekStart);
@@ -225,7 +226,7 @@ export function buildTrainingHistory(logs) {
     const progress = points.map((point) => {
       let kind = null;
       if (runningBest === undefined) kind = 'baseline';
-      else if (point.bestWeight > runningBest) kind = 'pr';
+      else if (point.bestWeight > runningBest) kind = 'top-set';
       if (kind) runningBest = point.bestWeight;
       return { ...point, kind };
     });

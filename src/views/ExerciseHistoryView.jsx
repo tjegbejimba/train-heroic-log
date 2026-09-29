@@ -13,7 +13,7 @@ export default function ExerciseHistoryView({ exerciseTitle, allLogs, navigate }
   // The first Session is a Baseline (nothing to beat yet); only a genuine
   // Top-set record earns the chart's PR marker.
   const chartSessions = useMemo(
-    () => progress.map((point) => ({ ...point, isPR: point.kind === 'pr' })),
+    () => progress.map((point) => ({ ...point, isPR: point.kind === 'top-set' })),
     [progress]
   );
 
