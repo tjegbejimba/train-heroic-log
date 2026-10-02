@@ -145,7 +145,7 @@ A full backup captures everything needed to restore: templates, exercises, notes
 
 ### Training History
 
-`src/history/trainingHistory.js` owns every report about completed sessions. `buildTrainingHistory(logs)` (accepts the `th_logs` map or the `allLogs` array) walks completed logs once and exposes `sessionRecap(logKey)` (History cards + completion modal), `exerciseTimeline(title)` (Exercise history chart + 1RM), `rangeSummary(preset)` (Stats), and `isEmpty`. PR, Baseline, Top-set record, and Volume rules live only here — see `CONTEXT.md` for their definitions. Don't re-derive them in views.
+`src/history/trainingHistory.js` owns every report about completed sessions. `buildTrainingHistory(logs)` (accepts the `th_logs` map or the `allLogs` array) walks completed logs once and exposes `sessionRecap(logKey)` (History cards + completion modal), `exerciseTimeline(title)` (Exercise history chart + 1RM), `rangeSummary(preset)` (Stats), and `isEmpty`. PR, Baseline, Top-set record, and Volume rules live only here — see `GLOSSARY.md` for their definitions. Don't re-derive them in views.
 
 ### App.jsx
 
