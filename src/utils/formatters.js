@@ -32,6 +32,10 @@ export function mmssToSeconds(str) {
  * When count = 1, shows single format: "8 × 135 lb"
  * Time units (sec/time) display as MM:SS instead of raw seconds.
  */
+function isLoadUnit(unit) {
+  return unit === 'lb' || unit === 'kg';
+}
+
 export function formatSet(set, count = 1) {
   if (!set) return '';
 
@@ -50,15 +54,18 @@ export function formatSet(set, count = 1) {
 
   const unitLabel = UNIT_LABELS[set.unit] || set.unit;
   const noWeight = set.unit === 'reps';
-  const isBodyweight = set.weight === null || set.unit === 'bw';
+  const isBodyweight = set.unit === 'bw' || (set.weight === null && !isLoadUnit(set.unit));
+  // A load unit (lb/kg) with no target weight means "pick your load", not bodyweight.
+  const noTargetLoad = set.weight === null && isLoadUnit(set.unit);
 
   if (count > 1) {
-    if (noWeight || isBodyweight) return `${count} × ${repsStr}`;
+    if (noWeight || isBodyweight || noTargetLoad) return `${count} × ${repsStr}`;
     const wStr = isTimeWeight ? secondsToMmss(set.weight) : `${set.weight} ${unitLabel}`;
     return `${count} × ${repsStr} @ ${wStr}`;
   }
 
   if (noWeight) return repsStr;
+  if (noTargetLoad) return repsStr === String(set.reps) ? `${repsStr} reps` : repsStr;
   let weightStr;
   if (isBodyweight) {
     weightStr = 'BW';

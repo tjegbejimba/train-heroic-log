@@ -633,15 +633,9 @@
 }
 
 .tpl-editor__footer {
-  position: sticky;
-  bottom: 0;
-  z-index: var(--z-sticky);
   display: flex;
   justify-content: center;
   padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border-subtle);
-  background: var(--surface-elevated);
-  box-shadow: 0 -12px 28px -18px rgba(0, 0, 0, 0.9);
 }
 
 .tpl-editor__footer .btn {
