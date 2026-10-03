@@ -149,6 +149,33 @@ describe('RestTimer', () => {
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText('3s')).toBeTruthy();
   });
+
+  it('keeps counting real time while the app is backgrounded (timers suspended)', () => {
+    render(<RestTimer initialSeconds={60} onDone={onDone} onSkip={onSkip} />);
+    tickSeconds(5);
+    expect(screen.getByText('55s')).toBeTruthy();
+
+    // iOS suspends JS timers when the PWA is hidden: wall clock moves, no ticks fire.
+    vi.setSystemTime(Date.now() + 30_000);
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(screen.getByText('25s')).toBeTruthy();
+  });
+
+  it('fires onDone on return if the rest ended while backgrounded', () => {
+    render(<RestTimer initialSeconds={20} onDone={onDone} onSkip={onSkip} />);
+    vi.setSystemTime(Date.now() + 45_000);
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not lose paused time to backgrounding', () => {
+    render(<RestTimer initialSeconds={30} onDone={onDone} onSkip={onSkip} />);
+    tickSeconds(2);
+    fireEvent.click(screen.getByRole('button', { name: /pause timer/i }));
+    vi.setSystemTime(Date.now() + 60_000);
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(screen.getByText('28s')).toBeTruthy();
+  });
 });
 
 describe('RestTimer — non-blocking rest', () => {

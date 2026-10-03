@@ -267,3 +267,24 @@ test.describe('Template Editor @visual', () => {
     await captureVisualEvidence(page, testInfo, 'free-text-title-and-added-exercise-preserved');
   });
 });
+
+test('@visual Add Part sits at the end of the template, not floating over parts', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: /Lower Body B/ }).click();
+  await expect(page.getByRole('button', { name: 'Save Template' })).toBeVisible();
+
+  const addPart = page.getByRole('button', { name: 'Add Part' });
+  await expect(addPart).not.toBeInViewport();
+  await captureVisualEvidence(page, testInfo, 'template-editor-top-no-floating-add-part');
+
+  await addPart.scrollIntoViewIfNeeded();
+  await expect(addPart).toBeInViewport();
+  const lastAddExercise = page.getByRole('button', { name: /Add Exercise to Part/ }).last();
+  const partBottom = (await lastAddExercise.boundingBox()).y;
+  const addPartTop = (await addPart.boundingBox()).y;
+  expect(addPartTop).toBeGreaterThan(partBottom);
+  await captureVisualEvidence(page, testInfo, 'template-editor-bottom-add-part');
+});

@@ -71,6 +71,16 @@ describe('parseCSV', () => {
     expect(workoutMap['Push Day'].blocks[1].exercises[0].title).toBe('Overhead Press');
   });
 
+  it('drops a zero BlockValue placeholder (e.g. "0.00") so no "0.00" label is shown', () => {
+    const csv = makeCSV([
+      ['WorkoutTitle', 'ScheduledDate', 'ExerciseTitle', 'ExerciseData', 'BlockValue', 'BlockUnits'],
+      ['Push Day', '3/22/2026', 'Bench Press', '6 rep x 135 lb', '0.00', ''],
+    ]);
+    const { workoutMap } = parseCSV(csv);
+
+    expect(workoutMap['Push Day'].blocks[0].value).toBe('');
+  });
+
   it('separates different workouts', () => {
     const csv = makeCSV([
       ['WorkoutTitle', 'ScheduledDate', 'ExerciseTitle', 'ExerciseData', 'BlockValue', 'BlockUnits'],

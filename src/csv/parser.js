@@ -8,6 +8,12 @@ import { parseExerciseData } from './exerciseData';
  * @param {string} csvText - Raw CSV text
  * @returns {Object} { workoutMap, scheduleMap, parseErrors }
  */
+// TrainHeroic exports "0.00" as a placeholder when a block has no value.
+function normalizeBlockValue(value) {
+  const trimmed = (value || '').trim();
+  return trimmed !== '' && Number(trimmed) === 0 ? '' : trimmed;
+}
+
 export function parseCSV(csvText) {
   try {
     const rows = parseCSVRows(csvText);
@@ -81,7 +87,7 @@ export function parseCSV(csvText) {
         const blockKey = `${row.BlockValue || ''}::${row.BlockUnits || ''}`;
         if (!blocks[blockKey]) {
           blocks[blockKey] = {
-            value: row.BlockValue || '',
+            value: normalizeBlockValue(row.BlockValue),
             units: row.BlockUnits || '',
             instructions: row.BlockInstructions || '',
             notes: row.BlockNotes || '',

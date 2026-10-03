@@ -14,6 +14,11 @@ describe('formatSet', () => {
     expect(formatSet({ reps: 8, weight: null, unit: 'bw' }, 3)).toBe('3 × 8');
   });
 
+  it('does not label a weighted (lb) set with no target weight as BW', () => {
+    expect(formatSet({ reps: 5, weight: null, unit: 'lb' })).toBe('5 reps');
+    expect(formatSet({ reps: 5, weight: null, unit: 'kg' })).toBe('5 reps');
+  });
+
   it('formats AMRAP sets', () => {
     expect(formatSet({ reps: null, weight: 135, unit: 'lb' }, 2)).toBe('2 × AMRAP @ 135 lb');
   });

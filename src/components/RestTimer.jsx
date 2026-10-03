@@ -19,8 +19,16 @@ function playBeep() {
   } catch (e) { /* silently ignore */ }
 }
 
+function secondsUntil(endsAt) {
+  return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+}
+
 export default function RestTimer({ initialSeconds, onDone, onSkip }) {
   const safeInitial = initialSeconds > 0 ? initialSeconds : 60;
+  // Count down against a wall-clock deadline rather than per-tick decrements:
+  // iOS suspends timers while the PWA is backgrounded, so ticks alone would
+  // freeze the rest period until the app is reopened.
+  const endsAtRef = useRef(Date.now() + safeInitial * 1000);
   const [remaining, setRemaining] = useState(safeInitial);
   const [isPaused, setIsPaused] = useState(false);
   const hasFiredRef = useRef(false);
@@ -44,6 +52,22 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
     }
   }, []);
 
+  // Resync immediately when the app returns to the foreground.
+  useEffect(() => {
+    if (isPaused) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'hidden') setRemaining(secondsUntil(endsAtRef.current));
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [isPaused]);
+
   useEffect(() => {
     if (isPaused) return;
     if (remaining <= 0) {
@@ -61,11 +85,30 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
       }
       return;
     }
-    const id = setTimeout(() => setRemaining((r) => r - 1), 1000);
+    const msToNextSecond = ((endsAtRef.current - Date.now()) % 1000) || 1000;
+    const id = setTimeout(() => setRemaining(secondsUntil(endsAtRef.current)), msToNextSecond);
     return () => clearTimeout(id);
   }, [remaining, isPaused]);
 
-  const adjust = (delta) => setRemaining((r) => Math.max(5, r + delta));
+  const togglePause = () => {
+    if (isPaused) {
+      endsAtRef.current = Date.now() + remaining * 1000;
+      setIsPaused(false);
+    } else {
+      setRemaining(secondsUntil(endsAtRef.current));
+      setIsPaused(true);
+    }
+  };
+
+  const adjust = (delta) => {
+    if (isPaused) {
+      setRemaining((r) => Math.max(5, r + delta));
+      return;
+    }
+    const next = Math.max(5, secondsUntil(endsAtRef.current) + delta);
+    endsAtRef.current = Date.now() + next * 1000;
+    setRemaining(next);
+  };
 
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
@@ -94,7 +137,7 @@ export default function RestTimer({ initialSeconds, onDone, onSkip }) {
         </button>
         <button
           className="rest-timer__pause-btn"
-          onClick={() => setIsPaused(p => !p)}
+          onClick={togglePause}
           aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           type="button"
         >
