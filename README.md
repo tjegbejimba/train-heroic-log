@@ -45,6 +45,8 @@ npm run preview
 
 Deploy the `dist/` folder to any static host (GitHub Pages, Netlify, Vercel, etc.).
 
+The production instance runs on a Synology NAS and deploys automatically from `main` via GitHub Actions; see [DEPLOY.md](DEPLOY.md).
+
 ## CSV Format
 
 The app expects a TrainHeroic CSV export with these columns:
