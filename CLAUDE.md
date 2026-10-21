@@ -31,12 +31,12 @@ Server (backend API):
 cd server && npm start   # Start API server on port 3001
 ```
 
-Docker (production):
+Docker (local production-like run):
 ```bash
 npm run build && docker compose up -d   # Build + run nginx + API
 ```
 
-Deploy (push to main triggers GitHub Actions → deploys to NAS via Tailscale SSH):
+Deploy (push to main triggers GitHub Actions → tests, builds, and deploys to `/volume2/docker/trainlog` on the NAS via Tailscale SSH). See `DEPLOY.md` for the CI steps and the manual fallback:
 ```bash
 git push origin main
 ```
@@ -169,7 +169,7 @@ Dark theme (`#111111` background, `#4B7BFF` primary blue). CSS is split into fea
 
 ### Infrastructure
 
-**NAS:** Synology NAS running Docker. nginx container on host port **3080** (`0.0.0.0:3080->80/tcp`). Node/Express API on port **3001**.
+**NAS:** Synology NAS running Docker, deployed to `/volume2/docker/trainlog`. nginx container on host port **3080**, bound to loopback only (`127.0.0.1:3080->80/tcp`), so it is not reachable from the LAN. Node/Express API on port **3001** (internal to the compose network). User data lives in the `trainlog-data` Docker volume; secrets in `server/.env` on the NAS.
 
 **Tailscale HTTPS:**
 - App is served over HTTPS via `tailscale serve`: `https://tjnas.tail217062.ts.net:8443 → http://localhost:3080`
