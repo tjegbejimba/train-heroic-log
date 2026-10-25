@@ -27,6 +27,15 @@ Every push to `main` runs `.github/workflows/deploy.yml` ("Deploy to NAS"). It:
 
 Your local `server/data/` is dev-only data and must never be copied to the NAS.
 
+## Node runtime
+
+The API container runs the exact Node version pinned in `server/Dockerfile` (currently `node:24.22.1-alpine3.24`). The three workflows pin only the Node major (`node-version: 24`).
+
+- Stay on a Node line that still receives security fixes. Node 24 gets them until 2028-04-30. See the [release schedule](https://nodejs.org/en/about/previous-releases).
+- Keep the exact version in the Dockerfile. `docker compose up -d --build` does not pass `--pull`, so a floating tag such as `node:24-alpine` stays on whichever copy the NAS cached first and never picks up a patched release.
+- When Node announces a security release, bump the Dockerfile to the patched version and push to `main`. The deploy rebuilds the image. The `trainlog-data` volume holds plain JSON, so a Node change does not touch the data.
+- To roll back, revert the commit and push. The next deploy rebuilds on the previous version.
+
 ## Access
 
 The `trainlog` container publishes `127.0.0.1:3080:80`: loopback only on the NAS. The app has no auth, so it is reached only through Tailscale Serve (tailnet only):
