@@ -59,7 +59,6 @@
   height: 3px;
   background-color: var(--accent);
   border-radius: 0 0 3px 3px;
-  box-shadow: 0 0 10px -1px var(--accent);
 }
 
 .navbar__icon {
@@ -69,8 +68,12 @@
 }
 
 .navbar__label {
-  font-size: var(--font-size-xs);
+  font-size: var(--text-xs);
   font-weight: 500;
+}
+
+.navbar__tab--active .navbar__label {
+  font-weight: 650;
 }
 
 /* ========== Modal ========== */

@@ -1,5 +1,37 @@
 import { test, expect } from '@playwright/test';
-import { gotoCleanApp, importSampleCsv, captureVisualEvidence } from './helpers.js';
+import {
+  gotoCleanApp,
+  importSampleCsv,
+  captureVisualEvidence,
+  expectBottomNavVisible,
+  expectNoDocumentHorizontalOverflow,
+} from './helpers.js';
+
+test('rest day keeps planning thumb-sized and Quick Start close by @visual', async ({ page }, testInfo) => {
+  await page.clock.setFixedTime(new Date('2026-03-23T09:00:00'));
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  const restCard = page.locator('.training-rest-card');
+  await expect(restCard.getByText('Upper Body A')).toBeVisible();
+  await expect(restCard.getByText('Tomorrow')).toBeVisible();
+  const planButton = page.getByRole('button', { name: 'Plan today' });
+  expect((await planButton.boundingBox()).height).toBeGreaterThanOrEqual(48);
+  expect((await restCard.boundingBox()).height).toBeLessThanOrEqual(320);
+  await captureVisualEvidence(page, testInfo, 'rest-day-with-next-workout');
+
+  const quickStart = page.getByRole('button', { name: 'Preview Lower Body B' });
+  await quickStart.scrollIntoViewIfNeeded();
+  const quickStartBox = await quickStart.boundingBox();
+  const navBox = await page.locator('.navbar').boundingBox();
+  expect(quickStartBox.y).toBeGreaterThanOrEqual(0);
+  expect(quickStartBox.y + quickStartBox.height).toBeLessThanOrEqual(navBox.y);
+  await expectBottomNavVisible(page);
+  await expectNoDocumentHorizontalOverflow(page);
+  await captureVisualEvidence(page, testInfo, 'quick-start-reachable-above-navigation');
+  await planButton.click();
+  await expect(page.getByRole('heading', { name: 'Week Planner', exact: true })).toBeVisible();
+});
 
 /**
  * Computes WCAG 2.1 contrast ratio between two colors.

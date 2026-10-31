@@ -137,12 +137,17 @@ intentional, not like a stretched phone**:
 ```
 --app-max-width: 480px;
 ```
-- `html` paints `--bg-ambient` (fills the whole viewport, incl. behind the iOS home bar).
+- On mobile, `html` paints the navigation's `--surface-elevated` while the bottom nav
+  is present, so iOS exposing canvas below the dynamic viewport does not reveal a
+  separate dark strip. Without navigation it paints `--bg`; at desktop widths
+  (>= 520px) it paints `--bg-ambient`.
 - `.app` is `max-width: var(--app-max-width)`, centered with `margin-inline:auto`, sits on
   `--bg`, and on ≥ 520px viewports is lifted off the ambient field with `--shadow-lg` and a
   hairline border (a calm "device column"). Bottom nav + sticky CTAs align to this column.
 - Respect `env(safe-area-inset-*)`. Content scroll region is `.view`; nav and sticky CTAs
   are pinned to the column, not the viewport edge on desktop.
+- Rest days use a compact icon-and-copy grid with a 48px planning target. The next
+  scheduled workout sits beneath a quiet divider, not inside another accented card.
 
 Breakpoints (structural, not fluid type): `480px` (small phone → large phone),
 `520px` (enter device-column mode), `900px` (optional two-pane for list+detail surfaces

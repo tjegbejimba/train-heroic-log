@@ -162,11 +162,21 @@ body,
   overflow: hidden;
 }
 
-/* html background paints the entire canvas (including behind the
-   iOS home indicator and, on wide screens, the field beside the
-   centered app column). */
+/* iOS can expose the root canvas below the dynamic viewport. */
 html {
-  background-color: var(--bg-ambient);
+  background-color: var(--bg);
+}
+
+@media (max-width: 519px) {
+  html:has(.navbar) {
+    background-color: var(--surface-elevated);
+  }
+}
+
+@media (min-width: 520px) {
+  html {
+    background-color: var(--bg-ambient);
+  }
 }
 
 body {
