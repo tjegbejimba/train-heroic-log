@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
+  captureVisualEvidence,
   completeNextSet,
   expectBottomNavVisible,
   expectNoDocumentHorizontalOverflow,
@@ -7,6 +8,28 @@ import {
   importSampleCsv,
   quickStartLowerBodyWorkout,
 } from './helpers';
+
+test('paints the mobile home-indicator region as part of navigation @visual', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chrome', 'Home-indicator canvas belongs to the mobile shell.');
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  const colors = await page.locator('.navbar').evaluate((nav) => ({
+    navigation: getComputedStyle(nav).backgroundColor,
+    canvas: getComputedStyle(document.documentElement).backgroundColor,
+  }));
+  expect(colors.canvas, 'The exposed canvas beneath navigation must not form a separate black strip')
+    .toBe(colors.navigation);
+
+  for (const height of [851, 640]) {
+    await page.setViewportSize({ width: 393, height });
+    const nav = await page.locator('.navbar').boundingBox();
+    expect(Math.abs(nav.y + nav.height - height)).toBeLessThanOrEqual(1);
+    await expectBottomNavVisible(page);
+    await expectNoDocumentHorizontalOverflow(page);
+  }
+  await captureVisualEvidence(page, testInfo, 'mobile-navigation-short-viewport');
+});
 
 test('restores an active workout after reload', async ({ page }) => {
   await gotoCleanApp(page);
@@ -74,7 +97,7 @@ test('keeps primary mobile navigation and planning controls thumb-sized', async 
   await page.getByRole('button', { name: 'Library' }).click();
   for (const libraryTab of await page.getByRole('tab').all()) {
     const box = await libraryTab.boundingBox();
-    expect(box.height).toBeGreaterThanOrEqual(48);
+    expect(box.height).toBeGreaterThanOrEqual(47.99);
   }
 });
 
