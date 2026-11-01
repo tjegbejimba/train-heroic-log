@@ -154,6 +154,8 @@ intentional, not like a stretched phone**:
 - Keep pinch zoom enabled. The viewport uses `viewport-fit=cover` and
   `interactive-widget=resizes-content`; editable fields stay at least 16px to prevent
   iOS focus zoom, and numeric editors request numeric or decimal keyboards.
+  The app shell uses `touch-action: manipulation` to suppress double-tap zoom across
+  content as well as controls, while preserving panning and deliberate pinch zoom.
 - Hover styles require `(hover: hover) and (pointer: fine)` so a tap cannot leave
   mouse feedback stuck on screen. Controls retain press-down feedback with the existing
   `--dur-fast` / `--ease-out-quart` tokens and `touch-action: manipulation`.
