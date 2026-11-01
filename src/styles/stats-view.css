@@ -34,7 +34,7 @@
   place-items: center;
   align-content: center;
   gap: var(--space-md);
-  min-height: 62vh;
+  min-height: 62dvh;
   padding: var(--space-2xl) var(--space-lg);
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);
@@ -110,9 +110,11 @@
   line-height: 1;
 }
 
-.stats-view__pill:hover {
-  color: var(--text);
-  background: color-mix(in oklch, var(--surface-elevated) 64%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .stats-view__pill:hover:not(.stats-view__pill--active) {
+    color: var(--text);
+    background: color-mix(in oklch, var(--surface-elevated) 64%, transparent);
+  }
 }
 
 .stats-view__pill:active {
@@ -125,8 +127,7 @@
   box-shadow: 0 0 0 4px var(--accent-subtle);
 }
 
-.stats-view__pill--active,
-.stats-view__pill--active:hover {
+.stats-view__pill--active {
   border-color: var(--accent-line);
   background: var(--accent-subtle);
   color: var(--text);

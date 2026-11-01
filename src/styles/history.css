@@ -39,7 +39,7 @@
   place-items: center;
   align-content: center;
   gap: var(--space-md);
-  min-height: 58vh;
+  min-height: 58dvh;
   margin: 0 var(--space-lg) var(--space-xl);
   padding: var(--space-2xl) var(--space-lg);
   border: 1px solid var(--border);
@@ -278,14 +278,17 @@
     background-color var(--dur) var(--ease-out-quart);
 }
 
-.history-card:hover,
 .history-entry--open .history-card {
   border-color: var(--border-strong);
   background: var(--surface-elevated);
 }
 
-.history-card:hover {
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .history-card:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-elevated);
+    transform: translateY(-1px);
+  }
 }
 
 .history-card__top {
@@ -311,8 +314,10 @@
   text-align: left;
 }
 
-.history-card__toggle:hover {
-  background: var(--surface-high);
+@media (hover: hover) and (pointer: fine) {
+  .history-card__toggle:hover {
+    background: var(--surface-high);
+  }
 }
 
 .history-card__toggle:active {
@@ -426,11 +431,13 @@
   opacity: 0.72;
 }
 
-.history-card__delete-btn:hover {
-  border-color: var(--danger-subtle);
-  background: var(--danger-subtle);
-  color: var(--danger);
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .history-card__delete-btn:hover {
+    border-color: var(--danger-subtle);
+    background: var(--danger-subtle);
+    color: var(--danger);
+    opacity: 1;
+  }
 }
 
 .history-card__delete-btn:active {
@@ -675,7 +682,9 @@
     transition-duration: 1ms;
   }
 
-  .history-card:hover {
-    transform: none;
+  @media (hover: hover) and (pointer: fine) {
+    .history-card:hover {
+      transform: none;
+    }
   }
 }

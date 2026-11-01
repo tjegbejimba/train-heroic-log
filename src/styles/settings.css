@@ -194,9 +194,11 @@
   text-align: left;
 }
 
-.settings-nav-row:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-elevated);
+@media (hover: hover) and (pointer: fine) {
+  .settings-nav-row:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-elevated);
+  }
 }
 
 .settings-nav-row:active {

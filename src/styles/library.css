@@ -97,9 +97,11 @@
   line-height: 1;
 }
 
-.library-view__tab:hover {
-  color: var(--text);
-  background: color-mix(in oklch, var(--surface-elevated) 64%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .library-view__tab:hover:not(.library-view__tab--active) {
+    color: var(--text);
+    background: color-mix(in oklch, var(--surface-elevated) 64%, transparent);
+  }
 }
 
 .library-view__tab:active {
@@ -112,8 +114,7 @@
   box-shadow: 0 0 0 4px var(--accent-subtle);
 }
 
-.library-view__tab--active,
-.library-view__tab--active:hover {
+.library-view__tab--active {
   border-color: var(--accent-line);
   background: var(--accent-subtle);
   color: var(--text);
@@ -160,9 +161,11 @@
   color: var(--text-secondary);
 }
 
-.library-view__search-clear:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .library-view__search-clear:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .library-view__list {
@@ -202,8 +205,10 @@
   text-align: left;
 }
 
-.library-row__header:hover {
-  background: color-mix(in oklch, var(--surface-high) 38%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .library-row__header:hover {
+    background: color-mix(in oklch, var(--surface-high) 38%, transparent);
+  }
 }
 
 .library-row__header:active {
@@ -288,9 +293,11 @@
   font-weight: 650;
 }
 
-.library-row__history-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent-hover);
+@media (hover: hover) and (pointer: fine) {
+  .library-row__history-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-hover);
+  }
 }
 
 .library-row__sets,
@@ -377,8 +384,10 @@
   text-align: left;
 }
 
-.library-row__notes-toggle:hover {
-  border-color: var(--border-strong);
+@media (hover: hover) and (pointer: fine) {
+  .library-row__notes-toggle:hover {
+    border-color: var(--border-strong);
+  }
 }
 
 .library-row__notes-toggle p {
@@ -536,7 +545,7 @@
 
 .library-view__bulk-card textarea {
   min-height: 140px;
-  font-size: var(--text-sm);
+  font-size: 16px;
   line-height: 1.45;
 }
 

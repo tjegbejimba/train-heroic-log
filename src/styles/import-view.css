@@ -68,10 +68,16 @@
   transition: border-color var(--transition), background-color var(--transition), transform var(--dur-fast) var(--ease-out-quart);
 }
 
-.import-view__upload--dragging,
-.import-view__upload:hover {
+.import-view__upload--dragging {
   border-color: var(--accent);
   background: color-mix(in oklch, var(--accent-subtle) 34%, var(--surface));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .import-view__upload:hover {
+    border-color: var(--accent);
+    background: color-mix(in oklch, var(--accent-subtle) 34%, var(--surface));
+  }
 }
 
 .import-view__upload--dragging {
@@ -116,7 +122,7 @@
 
 .import-view__paste textarea {
   min-height: 126px;
-  font-size: var(--text-sm);
+  font-size: 16px;
   line-height: 1.45;
 }
 
@@ -229,9 +235,11 @@
   color: var(--text-secondary);
 }
 
-.import-view .btn-ghost:hover:not(:disabled) {
-  background: var(--surface-high);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .import-view .btn-ghost:hover:not(:disabled) {
+    background: var(--surface-high);
+    color: var(--text);
+  }
 }
 
 .import-view__safe-callout {

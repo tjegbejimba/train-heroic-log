@@ -559,6 +559,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       <span className="tpl-editor__set-num">{sIdx + 1}</span>
                       <input
                         type="number"
+                        inputMode="numeric"
                         className="input tpl-editor__set-input"
                         placeholder="-"
                         value={set.reps ?? ''}
@@ -567,6 +568,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       {ex.showValue !== false ? (
                         <input
                           type="number"
+                          inputMode="decimal"
                           className="input tpl-editor__set-input"
                           placeholder="-"
                           value={set.weight ?? ''}

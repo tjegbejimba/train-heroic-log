@@ -91,6 +91,8 @@ export default function RestDurationPicker({ value, onChange, isOpen, onToggle }
         <div className="rest-picker__custom-input-wrap">
           <input
             type="number"
+            inputMode="numeric"
+            enterKeyHint="done"
             className="input rest-picker__custom-input"
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}

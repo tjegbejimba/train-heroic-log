@@ -26,7 +26,7 @@ Use the tokens — never hardcode hex in components or view CSS.
 
 ### Canvas & surfaces (cool graphite ramp)
 ```
---bg:                oklch(0.16 0.014 265);   /* ~#0b0d12  app canvas / behind column   */
+--bg:                oklch(0.16 0.014 265);   /* ~#0a0d13  app canvas / behind column   */
 --bg-ambient:        oklch(0.13 0.012 265);   /* ~#08090d  desktop backdrop behind app  */
 --surface:           oklch(0.205 0.016 265);  /* ~#14161f  cards, sheets                */
 --surface-elevated:  oklch(0.245 0.017 265);  /* ~#1a1d28  nav, modals, popovers        */
@@ -148,6 +148,25 @@ intentional, not like a stretched phone**:
   are pinned to the column, not the viewport edge on desktop.
 - Rest days use a compact icon-and-copy grid with a 48px planning target. The next
   scheduled workout sits beneath a quiet divider, not inside another accented card.
+
+### Mobile platform behavior
+
+- Keep pinch zoom enabled. The viewport uses `viewport-fit=cover` and
+  `interactive-widget=resizes-content`; editable fields stay at least 16px to prevent
+  iOS focus zoom, and numeric editors request numeric or decimal keyboards.
+- Hover styles require `(hover: hover) and (pointer: fine)` so a tap cannot leave
+  mouse feedback stuck on screen. Controls retain press-down feedback with the existing
+  `--dur-fast` / `--ease-out-quart` tokens and `touch-action: manipulation`.
+- Disable selection and iOS callouts only on controls, not instructions, notes, or
+  editable text. The root suppresses the browser tap flash and landscape text inflation.
+- Root overscroll is disabled; view, sheet, modal, picker, and dropdown scrolling is
+  contained so it cannot move the page behind it. Swipe-to-delete rows reserve horizontal
+  gestures with `pan-y pinch-zoom`, keeping vertical scrolling and pinch zoom available;
+  cancelled gestures restore the last settled row position.
+- App-height surfaces use `dvh`. Dialogs honor all four safe areas; preview actions own
+  their bottom inset so the home indicator cannot cover them while the sheet scrolls.
+  Browser and manifest colors use the canvas's sRGB value, `#0a0d13`, under both OS schemes
+  because TrainLog remains dark-only.
 
 Breakpoints (structural, not fluid type): `480px` (small phone → large phone),
 `520px` (enter device-column mode), `900px` (optional two-pane for list+detail surfaces
