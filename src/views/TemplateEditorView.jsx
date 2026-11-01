@@ -4,8 +4,7 @@ import RestDurationPicker from '../components/RestDurationPicker';
 import BarWeightPicker from '../components/BarWeightPicker';
 import { useToast } from '../components/Toast';
 import { validateTemplate } from '../utils/templateValidation';
-
-const UNIT_OPTIONS = ['lb', 'kg', 'bw', 'reps', '%', 'yd', 'm', 'RPE', 'in', 'ft', 'sec'];
+import { UNIT_OPTIONS } from '../../server/prescription.js';
 
 function makeEmptySet(unit = 'lb', repsUnit = 'reps') {
   return { reps: null, weight: null, unit, repsUnit, rawReps: '', rawWeight: '' };

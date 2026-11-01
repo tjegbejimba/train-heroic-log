@@ -21,6 +21,17 @@ beforeEach(() => {
 });
 
 describe('createEntityHook', () => {
+  it('refreshes a synchronized section in place without remounting or pushing it back', () => {
+    store.test_key = { a: 1 };
+    const useTest = createEntityHook('test_key', {});
+    const { result } = renderHook(() => useTest());
+    store.test_key = { a: 2, coach: true };
+    act(() => window.dispatchEvent(new CustomEvent('sync-applied', { detail: { keys: ['test_key'] } })));
+    expect(result.current.data).toEqual({ a: 2, coach: true });
+    act(() => result.current.save((previous) => ({ ...previous, athlete: true })));
+    expect(result.current.data).toEqual({ a: 2, coach: true, athlete: true });
+  });
+
   it('reads initial state from localStorage', () => {
     store['test_key'] = { a: 1 };
     const useTest = createEntityHook('test_key', {});

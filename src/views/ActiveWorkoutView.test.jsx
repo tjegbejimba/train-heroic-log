@@ -121,6 +121,17 @@ function renderActiveWorkout(overrides = {}) {
 }
 
 describe('ActiveWorkoutView', () => {
+  it('resumes the starting prescription even when the shared workout definition changed', () => {
+    renderActiveWorkout({
+      workouts: { [workout.title]: {
+        ...workout, blocks: [{ exercises: [{ title: 'Deadlift', sets: [{ reps: 5, weight: 225, unit: 'lb' }] }] }],
+      } },
+      logs: { [logKey]: { ...existingLog, workoutSnapshot: structuredClone(workout) } },
+    });
+    expect(screen.getByText('Back Squat')).toBeTruthy();
+    expect(screen.queryByText('Deadlift')).toBeNull();
+  });
+
   it('shows the last completed workout set with reps, weight, and units', () => {
     renderActiveWorkout({
       workouts: { [twoSetWorkout.title]: twoSetWorkout },

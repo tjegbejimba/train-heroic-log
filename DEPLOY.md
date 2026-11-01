@@ -4,7 +4,7 @@
 
 Every push to `main` runs `.github/workflows/deploy.yml` ("Deploy to NAS"). It:
 
-1. Runs `npm ci`, installs Playwright Chromium, and runs `npm run test:ci` (unit + E2E).
+1. Runs `npm ci` and `npm --prefix server ci`, installs Playwright Chromium, and runs `npm run test:ci` (unit/HTTP/CLI + E2E).
 2. Runs `npm run build`.
 3. Joins the tailnet (`tag:ci`) and connects to the NAS over SSH (`tjegbejimba@100.104.13.117`).
 4. `scp`s `docker-compose.yml` and `nginx.conf` into `/volume2/docker/trainlog/`.
@@ -44,6 +44,21 @@ The `trainlog` container publishes `127.0.0.1:3080:80`: loopback only on the NAS
 - Check: `tailscale serve status` on the NAS
 
 Direct LAN access to `http://<nas-ip>:3080` is intentionally blocked.
+
+## Coach interface rollout
+
+Deploy frontend and backend together before enabling the
+[coach CLI](server/COACH.md). After the first coach write, obsolete clients'
+baseline-free writes receive HTTP 428; refresh those clients rather than
+disabling the guard. Devices with unsynced edits but no prior baseline preserve
+both proposals for review.
+
+The API owns durable conflict/receipt metadata (`sync_metadata.json`) and a
+roll-forward transaction journal inside the existing data volume. Do not remove
+either during deployment or recovery. An older backend does not enforce the new
+guards: pause coaching before a rollback and review pending conflicts first.
+Neither deployment nor CLI installation grants exclusive coach access; tailnet
+policy remains the authorization boundary.
 
 ## Manual fallback (CI unavailable)
 

@@ -60,4 +60,21 @@ describe('TrainingView', () => {
     expect(props.onScheduleTemplate).not.toHaveBeenCalled();
     expect(props.onStartWorkout).not.toHaveBeenCalled();
   });
+
+  it('shows the completed offline session rather than offering to start a coach replacement on the same date', () => {
+    const actual = { title: 'Original Upper A', blocks: template.blocks };
+    renderTrainingView({
+      workouts: { 'Coach Upper A v2': { title: 'Coach Upper A v2', blocks: template.blocks } },
+      schedule: { '2026-07-04': 'Coach Upper A v2' },
+      getWorkoutForDate: () => 'Coach Upper A v2',
+      completedDates: new Set(['2026-07-04']),
+      completedLogForDate: {
+        workoutTitle: actual.title, workoutSnapshot: actual,
+        startedAt: '2026-07-04T10:00:00Z', completedAt: '2026-07-04T11:00:00Z', exercises: {},
+      },
+    });
+    expect(screen.getByText('Workout Complete')).toBeTruthy();
+    expect(screen.getByText('Original Upper A')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Start Workout' })).toBeNull();
+  });
 });

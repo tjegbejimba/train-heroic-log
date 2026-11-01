@@ -25,10 +25,13 @@ export default function ActiveWorkoutView({
   onComplete,
   onCancel,
   onUpdateWorkout,
+  workoutSnapshot,
 }) {
   const { date, workoutTitle } = parseLogKey(logKey);
-  const workout = workouts[workoutTitle];
   const log = logs[logKey];
+  const [workout, setSessionWorkout] = useState(() =>
+    structuredClone(log?.workoutSnapshot || workoutSnapshot || workouts[workoutTitle]),
+  );
 
   const [currentLog, setCurrentLog] = useState(() => {
     if (log) return log;
@@ -105,7 +108,12 @@ export default function ActiveWorkoutView({
   const toggleEditMode = () => {
     if (editMode) {
       const change = confirmTargetEdit(editBlocks, workoutTitle);
-      if (change && onUpdateWorkout) onUpdateWorkout(change.blocks);
+      if (change) {
+        const nextWorkout = { ...workout, blocks: change.blocks };
+        setSessionWorkout(nextWorkout);
+        commitLog({ ...currentLogRef.current, workoutSnapshot: structuredClone(nextWorkout) });
+        if (onUpdateWorkout) onUpdateWorkout(change.blocks);
+      }
       setEditMode(false);
       setEditBlocks(null);
     } else {

@@ -6,16 +6,19 @@ import { fileURLToPath } from 'url';
 import webpush from 'web-push';
 import cron from 'node-cron';
 import { buildIssueTitle, buildGithubIssueBody } from './feedback.js';
-import { VALID_KEYS as _VALID_KEYS, isValidKey, dataFilePath, safeParseJSON, isValidReminderTime, buildCronExpression } from './data-utils.js';
+import { isValidReminderTime, buildCronExpression } from './data-utils.js';
+import { createDataStore } from './data-store.js';
+import { createDataRouter, dataApiErrorHandler } from './data-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const PORT = process.env.PORT || 3001;
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
+const dataStore = createDataStore(DATA_DIR);
 
 // VAPID setup — keys auto-generated on first start, persisted to data dir
 const VAPID_FILE    = path.join(DATA_DIR, 'vapid.json');
@@ -130,21 +133,9 @@ function scheduleReminder(config) {
 const savedReminderConfig = readReminderConfig();
 if (savedReminderConfig) scheduleReminder(savedReminderConfig);
 
-// Valid storage keys — imported from data-utils.js
-const VALID_KEYS = _VALID_KEYS;
-
-function dataFile(key) {
-  return dataFilePath(DATA_DIR, key);
-}
-
 function readData(key) {
-  const file = dataFile(key);
-  if (!fs.existsSync(file)) return null;
-  return safeParseJSON(fs.readFileSync(file, 'utf-8'));
-}
-
-function writeData(key, value) {
-  fs.writeFileSync(dataFile(key), JSON.stringify(value, null, 2), 'utf-8');
+  dataStore.recover();
+  return dataStore.read(key);
 }
 
 const app = express();
@@ -159,78 +150,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// GET /api/data/:key — read one key
-app.get('/api/data/:key', (req, res) => {
-  const { key } = req.params;
-  if (!VALID_KEYS.includes(key)) {
-    return res.status(400).json({ error: 'Invalid key' });
-  }
-  const data = readData(key);
-  res.json({ key, data, updatedAt: getUpdatedAt(key) });
-});
-
-// PUT /api/data/:key — write one key
-app.put('/api/data/:key', (req, res) => {
-  const { key } = req.params;
-  if (!VALID_KEYS.includes(key)) {
-    return res.status(400).json({ error: 'Invalid key' });
-  }
-  try {
-    writeData(key, req.body.data);
-    res.json({ key, ok: true, updatedAt: new Date().toISOString() });
-  } catch (e) {
-    console.error(`Failed to write ${key}:`, e);
-    res.status(500).json({ error: 'Write failed', key });
-  }
-});
-
-// DELETE /api/data/:key — delete one key
-app.delete('/api/data/:key', (req, res) => {
-  const { key } = req.params;
-  if (!VALID_KEYS.includes(key)) {
-    return res.status(400).json({ error: 'Invalid key' });
-  }
-  try {
-    const file = dataFile(key);
-    if (fs.existsSync(file)) fs.unlinkSync(file);
-    res.json({ key, ok: true });
-  } catch (e) {
-    console.error(`Failed to delete ${key}:`, e);
-    res.status(500).json({ error: 'Delete failed', key });
-  }
-});
-
-// GET /api/data — read all keys at once (for initial sync)
-app.get('/api/data', (req, res) => {
-  const result = {};
-  for (const key of VALID_KEYS) {
-    result[key] = {
-      data: readData(key),
-      updatedAt: getUpdatedAt(key),
-    };
-  }
-  res.json(result);
-});
-
-// PUT /api/data — write all keys at once (for full sync push)
-app.put('/api/data', (req, res) => {
-  const updates = req.body;
-  const errors = [];
-  for (const key of VALID_KEYS) {
-    if (key in updates) {
-      try {
-        writeData(key, updates[key]);
-      } catch (e) {
-        console.error(`Failed to write ${key}:`, e);
-        errors.push(key);
-      }
-    }
-  }
-  if (errors.length > 0) {
-    return res.status(500).json({ ok: false, errors, updatedAt: new Date().toISOString() });
-  }
-  res.json({ ok: true, updatedAt: new Date().toISOString() });
-});
+app.use('/api', createDataRouter(dataStore));
 
 // GET /api/push/vapid-public-key
 app.get('/api/push/vapid-public-key', (req, res) => {
@@ -334,11 +254,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-function getUpdatedAt(key) {
-  const file = dataFile(key);
-  if (!fs.existsSync(file)) return null;
-  return fs.statSync(file).mtime.toISOString();
-}
+app.use('/api', dataApiErrorHandler);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`TrainLog API running on port ${PORT}`);

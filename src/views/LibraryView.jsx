@@ -227,7 +227,7 @@ export default function LibraryView({ workouts, youtubeLinks, setYouTubeLink, se
   const hasWorkouts = Object.keys(workouts).length > 0;
 
   return (
-    <div className="view library-view">
+    <div className="view library-view" data-sync-editing={editingNotes || showBulkImport ? 'true' : undefined}>
       <div className="library-view__header">
         <div>
           <h1>Library</h1>

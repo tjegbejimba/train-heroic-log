@@ -148,6 +148,7 @@ export function buildInitialSessionLog({ logKey, workout, startedAt }) {
     date,
     completedAt: null,
     startedAt: startedAt || new Date().toISOString(),
+    workoutSnapshot: workout ? structuredClone(workout) : null,
     exercises: buildSessionExercises(workout),
     exerciseNotes: {},
     workoutNote: '',

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { readByKey, writeByKey, removeByKey } from '../storage/authority';
 
 /**
@@ -15,6 +15,13 @@ import { readByKey, writeByKey, removeByKey } from '../storage/authority';
 export function createEntityHook(lsKey, defaultValue) {
   return function useEntity() {
     const [data, setData] = useState(() => readByKey(lsKey, defaultValue));
+    useEffect(() => {
+      const refresh = (event) => {
+        if (event.detail?.keys?.includes(lsKey)) setData(readByKey(lsKey, defaultValue));
+      };
+      window.addEventListener('sync-applied', refresh);
+      return () => window.removeEventListener('sync-applied', refresh);
+    }, []);
 
     const save = useCallback((valueOrUpdater) => {
       if (typeof valueOrUpdater === 'function') {

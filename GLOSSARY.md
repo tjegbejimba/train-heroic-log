@@ -24,6 +24,18 @@ _Avoid_: Workout
 A reusable workout definition assigned to a specific calendar date and ready to run.
 _Avoid_: Schedule entry
 
+**Workout version**:
+A distinct prescription of a workout, kept separately from earlier prescriptions and assigned to selected training dates. Developing a new version does not change what earlier versions prescribed.
+_Avoid_: Revision, replacement workout
+
+**Form notes**:
+Coaching tips for an exercise that apply regardless of which workout includes it.
+_Avoid_: Workout notes, workout-specific instructions
+
+**Workout-specific instructions**:
+Instructions for performing an exercise within a particular workout prescription, rather than general advice about the exercise.
+_Avoid_: Form notes, global exercise notes
+
 **Schedule conflict**:
 An imported scheduled workout and an existing scheduled workout assigned to the same date with different templates. A conflict remains unresolved until the user chooses which scheduled workout to keep.
 _Avoid_: Duplicate date

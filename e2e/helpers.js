@@ -70,3 +70,43 @@ export async function expectBottomNavVisible(page) {
     await expect(page.locator('.navbar__tab', { hasText: label })).toBeVisible();
   }
 }
+
+export async function mockCoachSync(page, state) {
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    const method = route.request().method();
+    const payload = route.request().postDataJSON();
+    if (url.pathname.endsWith('/sync/conflicts') && method === 'GET') {
+      return route.fulfill({ json: { revision: state.revision, conflicts: state.conflicts } });
+    }
+    if (/\/sync\/conflicts\/[^/]+\/resolve$/.test(url.pathname)) {
+      if (state.failResolve) return route.fulfill({ status: 409, json: { error: 'Data changed. Refresh conflicts before choosing.' } });
+      const conflict = state.conflicts[0];
+      state.sections[conflict.key].data[conflict.path[0]] = conflict[payload.choice].value;
+      state.conflicts = [];
+      state.revision = 'b'.repeat(64);
+      return route.fulfill({ json: { ok: true, revision: state.revision } });
+    }
+    if (url.pathname.endsWith('/data') && method === 'GET') {
+      state.pulls = (state.pulls || 0) + 1;
+      return route.fulfill({ json: state.ready === false ? {} : state.sections });
+    }
+    if (url.pathname.endsWith('/data') && method === 'PUT') return route.fulfill({ json: { ok: true, data: state.sections, conflicts: state.conflicts } });
+    if (url.pathname.includes('/data/') && ['PUT', 'POST'].includes(method)) return route.fulfill({ json: { ok: true, ...state.sections[url.pathname.split('/').pop()], conflicts: state.conflicts } });
+    return route.fulfill({ json: { status: 'ok' } });
+  });
+}
+
+export async function mountCoachFixture(page, state) {
+  state.ready = false;
+  await mockCoachSync(page, state);
+  await page.addInitScript(() => sessionStorage.setItem('skipSync', '1'));
+  await gotoCleanApp(page);
+  await page.evaluate((sections) => {
+    for (const [key, entry] of Object.entries(sections)) if (entry.data !== null) localStorage.setItem(key, JSON.stringify(entry.data));
+    localStorage.setItem('sync_protocol_version', '2');
+    localStorage.setItem('sync_baselines', JSON.stringify(Object.fromEntries(Object.entries(sections).map(([key, entry]) => [key, entry.data]))));
+  }, state.sections);
+  state.ready = true;
+  await page.reload();
+}

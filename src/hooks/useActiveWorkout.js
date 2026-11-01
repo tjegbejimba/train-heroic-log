@@ -10,8 +10,8 @@ const useActiveBase = createEntityHook(LS_ACTIVE_SESSION, null);
 export function useActiveWorkout() {
   const { data: session, save, remove } = useActiveBase();
 
-  const createSession = useCallback((logKey, startedAt) => {
-    save({ logKey, startedAt });
+  const createSession = useCallback((logKey, startedAt, workout) => {
+    save({ logKey, startedAt, ...(workout ? { workoutSnapshot: structuredClone(workout) } : {}) });
   }, [save]);
 
   const updateSession = useCallback((updates) => {

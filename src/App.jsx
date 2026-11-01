@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useSchedule } from './hooks/useSchedule';
 import { useYouTubeLinks } from './hooks/useYouTubeLinks';
@@ -6,7 +6,9 @@ import { useWorkoutLogs } from './hooks/useWorkoutLogs';
 import { useActiveWorkout } from './hooks/useActiveWorkout';
 import { useTemplates } from './hooks/useTemplates';
 import { useSync } from './hooks/useSync';
-import { retryReplication, clearByKeys, coordinateSyncReload } from './storage/authority';
+import { readByKey, retryReplication, clearByKeys, coordinateSyncReload, canApplyReplication } from './storage/authority';
+import { useCoachSync } from './hooks/useCoachSync';
+import SyncConflicts from './components/SyncConflicts';
 import { useToast } from './components/Toast';
 import {
   applyTemplateChange,
@@ -28,6 +30,7 @@ import {
   ROUTE_EDIT_TEMPLATE,
   ROUTE_EXERCISE_HISTORY,
   ROUTE_STATS,
+  LS_WORKOUTS,
   parseLogKey,
 } from './constants';
 import { evaluateSessionRecovery } from './session/session';
@@ -110,18 +113,26 @@ export default function App() {
   });
 
   const [showResumeModal, setShowResumeModal] = useState(false);
+  const waitingForInitialPlan = useRef(Object.keys(workouts).length === 0);
+  const editingPlan = [ROUTE_EDIT_TEMPLATE, ROUTE_PLANNER].includes(navState.view);
+  const coachSync = useCoachSync({ blocked: !!session || editingPlan || showResumeModal, pullSync });
 
-  // On startup, pull from server and reload if new data arrived
+  useEffect(() => {
+    if (navState.view !== ROUTE_IMPORT) waitingForInitialPlan.current = false;
+    if (waitingForInitialPlan.current && Object.keys(workouts).length > 0 && canApplyReplication()) {
+      waitingForInitialPlan.current = false;
+      setNavState({ view: ROUTE_TRAINING, params: {} });
+    }
+  }, [workouts, navState.view]);
+
   useEffect(() => {
     const skipSync = sessionStorage.getItem('skipSync');
     if (skipSync) {
       sessionStorage.removeItem('skipSync');
       return;
     }
-    pullSync().then(async ({ ok, changed }) => {
-      if (changed) {
-        await safeFlushAndReload({ syncReload: '1' });
-      } else if (ok) {
+    pullSync().then(({ ok }) => {
+      if (ok) {
         retryReplication(); // push any previously-failed keys
       }
     });
@@ -144,12 +155,17 @@ export default function App() {
       showToast(`Server updated: ${labels.join(', ')}`, 'info');
     };
     window.addEventListener('sync-merge-conflict', handler);
-    return () => window.removeEventListener('sync-merge-conflict', handler);
+    const upgrade = () => showToast('Sync needs an app update. Reopen TrainLog before retrying; your local edits are preserved.', 'error');
+    window.addEventListener('sync-upgrade-required', upgrade);
+    return () => {
+      window.removeEventListener('sync-merge-conflict', handler);
+      window.removeEventListener('sync-upgrade-required', upgrade);
+    };
   }, [showToast]);
 
   // Check for crash recovery on mount
   useEffect(() => {
-    if (session && Object.keys(workouts).length > 0) {
+    if (session) {
       const { date, workoutTitle } = (() => {
         try {
           return parseLogKey(session.logKey);
@@ -159,7 +175,7 @@ export default function App() {
       })();
       const decision = evaluateSessionRecovery({
         session,
-        workout: workoutTitle ? workouts[workoutTitle] : undefined,
+        workout: getLog(session.logKey)?.workoutSnapshot || session.workoutSnapshot || (workoutTitle ? workouts[workoutTitle] : undefined),
         existingLog: date ? getLog(session.logKey) : null,
       });
       if (decision.action === 'resume') {
@@ -320,8 +336,9 @@ export default function App() {
           completedDates={completedDates}
           getWorkoutForDate={getWorkoutForDate}
           getLog={getLog}
+          completedLogForDate={allLogs.find((log) => log.completedAt && parseLogKey(log.key).date === currentDate)}
           onStartWorkout={(logKey) => {
-            createSession(logKey, new Date().toISOString());
+            createSession(logKey, new Date().toISOString(), workouts[parseLogKey(logKey).workoutTitle]);
             navigate(ROUTE_ACTIVE_WORKOUT, { logKey });
           }}
           onScheduleTemplate={(date, templateName) => {
@@ -339,6 +356,7 @@ export default function App() {
         <ActiveWorkoutView
           logKey={params.logKey}
           workouts={workouts}
+          workoutSnapshot={session?.workoutSnapshot}
           logs={logs}
           allLogs={allLogs}
           saveLog={saveLog}
@@ -482,7 +500,10 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" data-sync-editing={[ROUTE_EDIT_TEMPLATE, ROUTE_PLANNER].includes(view) ? 'true' : undefined}>
+      {!session && !editingPlan && (
+        <SyncConflicts {...coachSync} onResolve={coachSync.resolve} onRefresh={coachSync.refresh} />
+      )}
       <ErrorBoundary key={view}>
         {currentView}
       </ErrorBoundary>
@@ -527,7 +548,7 @@ export default function App() {
           }
 
           // Count total sets from workout definition
-          const w = workouts[workoutTitle];
+          const w = existingLog?.workoutSnapshot || session.workoutSnapshot || workouts[workoutTitle];
           let totalSets = 0;
           if (w && Array.isArray(w.blocks)) {
             for (const block of w.blocks) {

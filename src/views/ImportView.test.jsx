@@ -2,11 +2,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ImportView from './ImportView';
+import { canApplyReplication } from '../storage/authority';
 
 const csv = `WorkoutTitle,ScheduledDate,ExerciseTitle,ExerciseData
 Upper,2026-08-10,Bench Press,5 rep x 185 pound`;
 
 describe('ImportView', () => {
+  it('defers incoming plans while a blurred CSV draft or import report is being reviewed', () => {
+    render(<ImportView onMergeImport={() => ({
+      imported: [], alreadyPresent: [], templateConflicts: [], scheduleConflicts: [],
+    })} onResolveConflict={vi.fn()} onReplaceImport={vi.fn()} onDone={vi.fn()} />);
+    expect(canApplyReplication()).toBe(true);
+    fireEvent.change(screen.getByLabelText('Paste CSV'), { target: { value: csv } });
+    expect(canApplyReplication()).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Preview pasted CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Merge safely' }));
+    expect(screen.getByRole('heading', { name: 'Import report' })).toBeTruthy();
+    expect(canApplyReplication()).toBe(false);
+  });
+
   it('defaults to safe merge and exposes template conflict remediation', () => {
     const report = {
       imported: [],
