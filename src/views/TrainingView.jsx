@@ -61,19 +61,22 @@ export default function TrainingView({
   completedDates,
   getWorkoutForDate,
   getLog,
+  completedLogForDate,
   onStartWorkout,
   onScheduleTemplate,
   templateList,
   navigate,
 }) {
   const workoutTitle = getWorkoutForDate(currentDate);
-  const workout = workoutTitle ? workouts[workoutTitle] : null;
   const [viewMode, setViewMode] = useState('week');
   const [previewTemplate, setPreviewTemplate] = useState(null);
 
   const logKey = workoutTitle ? `${currentDate}::${workoutTitle}` : null;
-  const existingLog = logKey ? getLog(logKey) : null;
+  const existingLog = completedLogForDate || (logKey ? getLog(logKey) : null);
   const isCompleted = !!(existingLog && existingLog.completedAt);
+  const workout = isCompleted
+    ? existingLog.workoutSnapshot || workouts[existingLog.workoutTitle] || { title: existingLog.workoutTitle || workoutTitle, blocks: [] }
+    : workoutTitle ? workouts[workoutTitle] : null;
 
   const { currentStreak, isActiveToday } = calculateStreaks(completedDates);
   const streakDisplay = isActiveToday ? currentStreak : (currentStreak > 0 ? currentStreak : 0);

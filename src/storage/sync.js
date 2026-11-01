@@ -9,6 +9,8 @@
 
 import { planSectionMerge } from './merge';
 import { createRetryState, recordFailure, dropKey, getFailedEntries, shouldRetry, getBackoffMs } from './retry';
+import { equal, isMap } from '../../server/sync-protocol.js';
+import { getSyncedKeys } from './registry';
 
 // API base URL — in production, same origin; in dev, point to backend port
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -33,6 +35,113 @@ function readRaw(key) {
 let syncEnabled = true;
 let pendingPushes = new Map(); // key -> timeout ID (debounce)
 let retryTimers = new Map(); // key -> timeout ID (backoff retry)
+const inFlight = new Map();
+
+function baselines() {
+  const raw = localStorage.getItem('sync_baselines');
+  const value = raw ? JSON.parse(raw) : {};
+  if (!isMap(value)) throw new Error('Invalid synchronized baseline; sync cannot safely continue');
+  return value;
+}
+
+function protectedSync() {
+  return localStorage.getItem('sync_protocol_version') === '2';
+}
+
+export function canApplySync() {
+  if (readRaw('th_active')) return false;
+  if (typeof document === 'undefined') return true;
+  return !document.querySelector?.('[data-sync-editing="true"], [role="dialog"]') &&
+    !document.activeElement?.matches?.('input, textarea, select, [contenteditable="true"]');
+}
+
+function pushPayload(key, data) {
+  if (!protectedSync()) return { data };
+  const previous = baselines();
+  return { data, base: previous[key] ?? null, baseKnown: Object.hasOwn(previous, key) };
+}
+
+function acknowledge(key, sent) {
+  const previous = baselines();
+  // Unseen server additions must not become deletions on the next stale save.
+  previous[key] = sent;
+  localStorage.setItem('sync_baselines', JSON.stringify(previous));
+}
+
+async function sendSection(key, data) {
+  const earlier = inFlight.get(key);
+  const work = (async () => {
+    if (earlier) {
+      try { await earlier; } catch { /* The earlier caller reports its failure. */ }
+    }
+    const payload = pushPayload(key, data);
+    const response = await fetch(`${API_BASE}/data/${key}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), signal: AbortSignal.timeout(5000),
+    });
+    if (response.ok && Object.hasOwn(payload, 'base')) {
+      const result = await response.json();
+      acknowledge(key, data);
+      window.dispatchEvent(new CustomEvent('sync-conflicts', { detail: { conflicts: result.conflicts || [] } }));
+    } else if (response.status === 428) {
+      window.dispatchEvent(new CustomEvent('sync-upgrade-required'));
+    }
+    return response;
+  })();
+  inFlight.set(key, work);
+  try { return await work; } finally { if (inFlight.get(key) === work) inFlight.delete(key); }
+}
+
+async function protectedPull(initial) {
+  const keys = getSyncedKeys();
+  const previous = baselines();
+  const observed = Object.fromEntries(keys.map((key) => [key, readRaw(key)]));
+  const updates = {};
+  for (const key of keys) {
+    const entry = initial[key];
+    if (!entry || entry.syncVersion !== 2 || !Object.hasOwn(entry, 'data')) throw new Error(`Invalid synchronized section: ${key}`);
+    if (Object.hasOwn(previous, key)
+      ? !equal(observed[key], previous[key])
+      : (observed[key] !== null || retryState[key]?.payload === null) && !equal(observed[key], entry.data)) updates[key] = observed[key];
+  }
+  let snapshot = initial;
+  if (Object.keys(updates).length) {
+    const response = await fetch(`${API_BASE}/data`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        updates, bases: Object.fromEntries(Object.keys(updates).map((key) => [key, previous[key] ?? null])),
+        unknownBases: Object.keys(updates).filter((key) => !Object.hasOwn(previous, key)),
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`Protected sync failed (HTTP ${response.status})`);
+    const result = await response.json();
+    if (!isMap(result.data)) throw new Error('Protected sync returned an invalid snapshot');
+    snapshot = result.data;
+    window.dispatchEvent(new CustomEvent('sync-conflicts', { detail: { conflicts: result.conflicts || [] } }));
+  }
+  const changedKeys = [];
+  if (!canApplySync()) return { ok: true, changed: false };
+  for (const key of keys) {
+    const entry = snapshot[key];
+    if (!entry || !Object.hasOwn(entry, 'data')) throw new Error(`Missing synchronized section: ${key}`);
+    // Edits made while the request was in flight remain local against the old
+    // baseline and will be reconciled on the next push/pull.
+    if (!equal(readRaw(key), observed[key])) continue;
+    if (!equal(observed[key], entry.data)) {
+      if (entry.data === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, JSON.stringify(entry.data));
+      changedKeys.push(key);
+    }
+    previous[key] = entry.data;
+  }
+  localStorage.setItem('sync_baselines', JSON.stringify(previous));
+  if (changedKeys.length) {
+    window.dispatchEvent(new CustomEvent('sync-applied', { detail: { keys: changedKeys } }));
+    window.dispatchEvent(new CustomEvent('sync-merge-conflict', { detail: { keys: changedKeys } }));
+  }
+  return { ok: true, changed: changedKeys.length > 0 };
+}
 
 // Restore retry state from localStorage so it survives page reloads and PWA restarts
 let retryState = createRetryState();
@@ -84,6 +193,10 @@ export async function pullFromServer() {
     const res = await fetch(`${API_BASE}/data`, { signal: AbortSignal.timeout(5000), cache: 'reload' });
     if (!res.ok) return { ok: false, changed: false };
     const serverData = await res.json();
+    if (Object.values(serverData).some((entry) => entry?.syncVersion === 2)) {
+      localStorage.setItem('sync_protocol_version', '2');
+      return await protectedPull(serverData);
+    }
 
     let changed = false;
     const changedKeys = [];
@@ -129,11 +242,12 @@ export async function pullFromServer() {
       }
     }
     if (changed) {
+      window.dispatchEvent(new CustomEvent('sync-applied', { detail: { keys: changedKeys } }));
       window.dispatchEvent(new CustomEvent('sync-merge-conflict', { detail: { keys: changedKeys } }));
     }
     return { ok: true, changed };
-  } catch {
-    console.warn('Sync pull failed — working offline');
+  } catch (error) {
+    console.warn('Sync pull failed — working offline', error);
     return { ok: false, changed: false };
   }
 }
@@ -153,12 +267,7 @@ export function pushToServer(key, data) {
   const timeoutId = setTimeout(async () => {
     pendingPushes.delete(key);
     try {
-      const res = await fetch(`${API_BASE}/data/${key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
-        signal: AbortSignal.timeout(5000),
-      });
+      const res = await sendSection(key, data);
       if (res.ok) {
         retryState = dropKey(retryState, key);
         persistRetryState();
@@ -192,14 +301,9 @@ function scheduleRetry(key) {
     retryTimers.delete(key);
     const currentEntry = retryState[key];
     if (!currentEntry || currentEntry.exhausted) return;
-    const payload = currentEntry.payload;
+    const payload = protectedSync() ? readRaw(key) : currentEntry.payload;
     try {
-      const res = await fetch(`${API_BASE}/data/${key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: payload }),
-        signal: AbortSignal.timeout(5000),
-      });
+      const res = await sendSection(key, payload);
       if (res.ok) {
         retryState = dropKey(retryState, key);
         persistRetryState();
@@ -224,16 +328,10 @@ export async function flushPendingPushes() {
     clearTimeout(pendingPushes.get(key));
     pendingPushes.delete(key);
   }
-  if (keys.length === 0) return;
   await Promise.all(keys.map(async (key) => {
     try {
       const data = readRaw(key);
-      const res = await fetch(`${API_BASE}/data/${key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
-        signal: AbortSignal.timeout(5000),
-      });
+      const res = await sendSection(key, data);
       if (res.ok) {
         retryState = dropKey(retryState, key);
         persistRetryState();
@@ -248,6 +346,7 @@ export async function flushPendingPushes() {
       persistRetryState();
     }
   }));
+  await Promise.allSettled([...inFlight.values()]);
 }
 
 /**
@@ -268,12 +367,8 @@ export async function retryFailedPushes() {
   if (retryable.length === 0) return;
   await Promise.all(retryable.map(async (entry) => {
     try {
-      const res = await fetch(`${API_BASE}/data/${entry.key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: entry.payload }),
-        signal: AbortSignal.timeout(5000),
-      });
+      const payload = protectedSync() ? readRaw(entry.key) : entry.payload;
+      const res = await sendSection(entry.key, payload);
       if (res.ok) {
         retryState = dropKey(retryState, entry.key);
         persistRetryState();
@@ -300,9 +395,14 @@ export async function pushAllToServer(keys) {
     const res = await fetch(`${API_BASE}/data`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(protectedSync() ? { updates: payload, bases: baselines(), unknownBases: keys.filter((key) => !Object.hasOwn(baselines(), key)) } : payload),
       signal: AbortSignal.timeout(10000),
     });
+    if (res.ok && protectedSync()) {
+      const result = await res.json();
+      for (const key of keys) acknowledge(key, payload[key]);
+      window.dispatchEvent(new CustomEvent('sync-conflicts', { detail: { conflicts: result.conflicts || [] } }));
+    }
     return res.ok;
   } catch {
     console.warn('Full sync push failed');
@@ -323,9 +423,14 @@ export async function clearServerData(keys) {
     const res = await fetch(`${API_BASE}/data`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(protectedSync() ? { updates: payload, bases: baselines(), unknownBases: keys.filter((key) => !Object.hasOwn(baselines(), key)) } : payload),
       signal: AbortSignal.timeout(10000),
     });
+    if (res.ok && protectedSync()) {
+      const result = await res.json();
+      for (const key of keys) acknowledge(key, payload[key]);
+      window.dispatchEvent(new CustomEvent('sync-conflicts', { detail: { conflicts: result.conflicts || [] } }));
+    }
     return res.ok;
   } catch {
     console.warn('Server data clear failed');
@@ -358,12 +463,11 @@ if (typeof window !== 'undefined') {
     for (const key of keys) {
       try {
         const data = readRaw(key);
-        const payload = JSON.stringify({ data });
+        const payload = JSON.stringify(pushPayload(key, data));
         const url = `${API_BASE}/data/${key}`;
-        const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
-        if (!sent) {
-          retryState = recordFailure(retryState, key, data, null);
-        }
+        navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+        // Beacon admission is not persistence acknowledgement.
+        retryState = recordFailure(retryState, key, data, null);
       } catch {
         const data = readRaw(key);
         retryState = recordFailure(retryState, key, data, null);
@@ -384,4 +488,22 @@ export function setSyncEnabled(enabled) {
 
 export function isSyncEnabled() {
   return syncEnabled;
+}
+
+export async function readSyncConflicts() {
+  const response = await fetch(`${API_BASE}/sync/conflicts`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+  if (!response.ok) throw new Error(`Cannot read sync conflicts (HTTP ${response.status})`);
+  const result = await response.json();
+  if (!Array.isArray(result.conflicts) || typeof result.revision !== 'string') throw new Error('Invalid sync conflict response');
+  return result;
+}
+
+export async function resolveSyncConflict(id, choice, revision) {
+  const response = await fetch(`${API_BASE}/sync/conflicts/${encodeURIComponent(id)}/resolve`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ choice, revision }), signal: AbortSignal.timeout(10000),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || `Cannot resolve conflict (HTTP ${response.status})`);
+  return result;
 }

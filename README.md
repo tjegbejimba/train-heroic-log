@@ -18,6 +18,7 @@ A mobile-friendly Progressive Web App for tracking workouts offline, inspired by
 
 ```bash
 npm install
+npm --prefix server ci
 ```
 
 ### 2. Run Dev Server
@@ -64,6 +65,18 @@ ExerciseTitle, ExerciseData, ExerciseNotes
 - `AMRAP`
 - `3 rep x 60%`
 
+## Coaching agents over Tailscale
+
+Hermes or another trusted tailnet agent can download a dependency-free Node CLI,
+read synced exercises/history, validate plans, and apply separately named workout
+versions without browser automation or NAS filesystem access. See the
+[agent guide](server/COACH.md) for installation, JSON examples, safeguards, and
+the tailnet trust boundary.
+
+From this checkout, use `npm run coach -- context` or `npm run coach -- guide`.
+The app receives plans while idle; concurrent offline edits are preserved for
+in-app conflict review. Frontend and backend must be deployed together first.
+
 ## Architecture
 
 - **React + Vite** — Fast dev experience, minimal bundle
@@ -108,7 +121,12 @@ npm run test:e2e:visual # Capture desktop/mobile evidence in artifacts/visual/
 npm run test:ci         # Unit + Playwright, same gate used before deploy
 ```
 
-Unit tests are located in `src/**/*.test.js`. End-to-end tests are located in `e2e/**/*.e2e.js` and run automatically in the deploy workflow before the production build. For UI changes, follow `.agents/skills/visual-verification/SKILL.md`, run the visual command, and inspect the generated desktop and mobile PNGs rather than relying on the test result alone.
+Unit and HTTP/CLI tests are located in `src/**/*.test.js` and `server/**/*.test.js`;
+install server dependencies as shown above before running them. End-to-end tests
+are located in `e2e/**/*.e2e.js` and run automatically in the deploy workflow before
+the production build. For UI changes, follow
+`.agents/skills/visual-verification/SKILL.md`, run the visual command, and inspect
+the generated desktop and mobile PNGs rather than relying on the test result alone.
 
 ### Format Code
 

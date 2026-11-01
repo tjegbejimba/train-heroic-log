@@ -35,7 +35,14 @@ import {
   pushAllToServer,
   clearServerData,
   checkServerHealth,
+  canApplySync,
+  readSyncConflicts,
+  resolveSyncConflict,
 } from './sync';
+
+export const canApplyReplication = () => canApplySync();
+export const readReplicationConflicts = () => readSyncConflicts();
+export const resolveReplicationConflict = (id, choice, revision) => resolveSyncConflict(id, choice, revision);
 
 const QUOTA_ALERT_MESSAGE = 'Storage limit exceeded. Try clearing old workouts.';
 

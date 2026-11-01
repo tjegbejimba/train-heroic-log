@@ -1,0 +1,3 @@
+# Protect concurrent coach and app writes
+
+TrainLog's trusted, single-user coach connects through a portable CLI and the existing tailnet-only HTTP interface, without MCP or separate authentication. Trust does not make whole-section, last-write-wins sync safe: the app must merge unrelated edits against its last synchronized baseline and preserve overlapping proposals for explicit resolution in the app, including across offline periods and backgrounded devices. We accept the additional persistence, conflict UI, and sync work rather than requiring every app instance to be closed before coaching.

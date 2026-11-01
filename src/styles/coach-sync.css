@@ -1,0 +1,41 @@
+.sync-conflicts {
+  max-width: 900px;
+  margin: var(--space-md) auto;
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.sync-conflicts__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  color: var(--warning);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sync-conflicts__toggle span { flex: 1; }
+.sync-conflicts__body { padding-top: var(--space-md); border-top: 1px solid var(--border); }
+.sync-conflicts__body h2 { font-size: var(--text-xl); margin-bottom: var(--space-sm); }
+.sync-conflicts__body h3 { font-size: var(--text-md); margin-bottom: var(--space-md); }
+.sync-conflicts__body p { color: var(--text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+.sync-conflicts__context { margin-bottom: var(--space-sm); }
+.sync-conflicts__comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg); margin-top: var(--space-lg); }
+.sync-conflicts__comparison > div { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.sync-conflicts__comparison .btn { margin-top: auto; width: 100%; min-height: 44px; white-space: normal; }
+.sync-conflicts__comparison .sync-conflicts__value { font-size: var(--text-lg); font-weight: 600; color: var(--text); margin-bottom: var(--space-md); }
+.sync-conflicts__exercise { margin-bottom: var(--space-sm); overflow-wrap: anywhere; }
+.sync-conflicts__raw summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--text-secondary); }
+.sync-conflicts__raw pre { font-size: var(--text-sm); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
+.sync-conflicts__error { margin-top: var(--space-lg); }
+.sync-conflicts__error p { color: var(--danger); margin-bottom: var(--space-sm); }
+@media (max-width: 600px) {
+  .sync-conflicts { margin: var(--space-sm); }
+  .sync-conflicts__comparison { gap: var(--space-md); }
+}

@@ -413,7 +413,7 @@ export default function ImportView({
 
   if (report) {
     return (
-      <div ref={viewRef} className="view view--full-height import-view">
+      <div ref={viewRef} className="view view--full-height import-view" data-sync-editing="true">
         <div className="import-view__content">
           <ImportReport
             report={report}
@@ -427,7 +427,7 @@ export default function ImportView({
   }
 
   return (
-    <div ref={viewRef} className="view view--full-height import-view">
+    <div ref={viewRef} className="view view--full-height import-view" data-sync-editing={csvText || parseStats ? 'true' : undefined}>
       <div className="import-view__content">
         <div className="import-view__header">
           <span className="import-view__icon" aria-hidden="true"><FileUp size={28} /></span>
