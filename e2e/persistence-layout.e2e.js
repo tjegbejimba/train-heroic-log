@@ -19,6 +19,18 @@ test('allows pinch zoom and asks the keyboard to resize the app viewport', async
   expect(viewport).not.toMatch(/user-scalable\s*=\s*(no|0)|maximum-scale\s*=/);
 });
 
+test('suppresses double-tap zoom across the training app while preserving pinch zoom @visual', async ({ page }, testInfo) => {
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+
+  await expect(page.locator('.app')).toHaveCSS('touch-action', 'manipulation');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ }))
+    .not.toHaveCSS('user-select', 'none');
+  await expectBottomNavVisible(page);
+  await expectNoDocumentHorizontalOverflow(page);
+  await captureVisualEvidence(page, testInfo, 'mobile-first-training-shell');
+});
+
 test('browser and installed app chrome match the dark canvas under either OS theme', async ({ page }) => {
   await gotoCleanApp(page);
   const canvasColor = await page.locator('.app').evaluate((app) => {

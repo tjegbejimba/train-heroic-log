@@ -208,6 +208,7 @@ body {
   flex-direction: column;
   background-color: var(--bg);
   overflow: hidden;
+  touch-action: manipulation;
   padding-top: env(safe-area-inset-top);
 }
 
