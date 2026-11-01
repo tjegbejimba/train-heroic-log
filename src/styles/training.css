@@ -141,9 +141,11 @@
   text-align: center;
 }
 
-.date-strip__day:hover {
-  border-color: var(--border);
-  background: var(--surface-high);
+@media (hover: hover) and (pointer: fine) {
+  .date-strip__day:hover {
+    border-color: var(--border);
+    background: var(--surface-high);
+  }
 }
 
 .date-strip__day:active {
@@ -269,9 +271,11 @@
   font-weight: 700;
 }
 
-.workout-preview-card__save:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .workout-preview-card__save:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .workout-preview-card__title {
@@ -330,9 +334,11 @@
   box-shadow: var(--glow-accent);
 }
 
-.workout-preview-card__start:hover,
-.tpl-preview__start-btn:hover {
-  background: var(--accent-hover);
+@media (hover: hover) and (pointer: fine) {
+  .workout-preview-card__start:hover,
+  .tpl-preview__start-btn:hover {
+    background: var(--accent-hover);
+  }
 }
 
 .workout-preview-card__start:active,
@@ -685,9 +691,11 @@
   box-shadow: var(--shadow-sm);
 }
 
-.training-templates__card:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .training-templates__card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
 }
 
 .training-templates__card:active {
@@ -740,7 +748,9 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-inline: max(var(--space-sm), env(safe-area-inset-left));
+  padding-top: max(var(--space-lg), env(safe-area-inset-top, 0px));
+  padding-left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-sm), env(safe-area-inset-right, 0px));
   background: rgba(0, 0, 0, 0.6);
   animation: tpl-fade-in var(--dur) var(--ease-out-quart);
 }
@@ -752,15 +762,15 @@
 
 .tpl-preview-sheet {
   width: min(100%, var(--app-max-width));
-  max-height: min(82vh, 720px);
+  max-height: min(82dvh, 720px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--border);
   border-bottom: 0;
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   background: var(--surface-elevated);
   box-shadow: var(--shadow-lg);
   animation: tpl-slide-up var(--dur-slow) var(--ease-out-expo);
-  padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
 }
 
 @keyframes tpl-slide-up {
@@ -817,9 +827,11 @@
   color: var(--text-secondary);
 }
 
-.tpl-preview__close:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .tpl-preview__close:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .tpl-preview__meta {
@@ -937,6 +949,7 @@
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   gap: var(--space-md);
   padding: var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-subtle);
   background: var(--surface-elevated);
 }
@@ -971,9 +984,11 @@
   font-weight: 750;
 }
 
-.tpl-preview__schedule-btn:hover {
-  border-color: var(--border-strong);
-  background: var(--surface);
+@media (hover: hover) and (pointer: fine) {
+  .tpl-preview__schedule-btn:hover {
+    border-color: var(--border-strong);
+    background: var(--surface);
+  }
 }
 
 .tpl-preview__schedule-btn:active {

@@ -110,6 +110,15 @@ npm run test:ci         # Unit + Playwright, same gate used before deploy
 
 Unit tests are located in `src/**/*.test.js`. End-to-end tests are located in `e2e/**/*.e2e.js` and run automatically in the deploy workflow before the production build. For UI changes, follow `.agents/skills/visual-verification/SKILL.md`, run the visual command, and inspect the generated desktop and mobile PNGs rather than relying on the test result alone.
 
+### Mobile Hardware Checks
+
+Playwright verifies layout and rendered platform styles, not real-phone behavior.
+Run `npm run dev -- --host 0.0.0.0` on a trusted LAN and open the host's LAN IP on
+an iPhone or Android phone. Check pinch zoom, input focus with the keyboard open,
+tap/long-press feedback, scroll boundaries, swipe-to-delete, and sheet actions in
+portrait and landscape. Repeat in the installed PWA for safe-area and status-bar
+behavior. Use Safari Web Inspector or Chrome remote debugging when needed.
+
 ### Format Code
 
 ```bash

@@ -35,11 +35,13 @@
   padding-inline: var(--space-md);
 }
 
-.month-calendar__nav-btn:hover,
-.month-calendar__today-btn:hover,
-.month-picker__year-btn:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .month-calendar__nav-btn:hover,
+  .month-calendar__today-btn:hover,
+  .month-picker__year-btn:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .month-calendar__nav-btn:active,
@@ -69,9 +71,11 @@
   color: var(--text);
 }
 
-.month-calendar__title-btn:hover {
-  border-color: var(--border);
-  background: var(--surface-high);
+@media (hover: hover) and (pointer: fine) {
+  .month-calendar__title-btn:hover {
+    border-color: var(--border);
+    background: var(--surface-high);
+  }
 }
 
 .month-calendar__title {
@@ -143,9 +147,11 @@
   font-weight: 750;
 }
 
-.month-picker__month:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .month-picker__month:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .month-picker__month--active {
@@ -187,9 +193,11 @@
   color: var(--text-secondary);
 }
 
-.month-calendar__day:hover:not(.month-calendar__day--empty) {
-  border-color: var(--border-strong);
-  background: var(--surface-high);
+@media (hover: hover) and (pointer: fine) {
+  .month-calendar__day:hover:not(.month-calendar__day--empty) {
+    border-color: var(--border-strong);
+    background: var(--surface-high);
+  }
 }
 
 .month-calendar__day:active:not(.month-calendar__day--empty) {

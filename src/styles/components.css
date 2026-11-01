@@ -89,9 +89,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-lg);
+  padding: max(var(--space-lg), env(safe-area-inset-top, 0px))
+    max(var(--space-lg), env(safe-area-inset-right, 0px))
+    max(var(--space-lg), env(safe-area-inset-bottom, 0px))
+    max(var(--space-lg), env(safe-area-inset-left, 0px));
   z-index: var(--z-modal);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -100,8 +104,10 @@
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   width: min(100%, 400px);
-  max-height: calc(100dvh - var(--space-2xl));
+  max-height: calc(100dvh - max(var(--space-lg), env(safe-area-inset-top, 0px))
+    - max(var(--space-lg), env(safe-area-inset-bottom, 0px)));
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   animation: modalSlideUp var(--transition-slow) ease-out;
 }

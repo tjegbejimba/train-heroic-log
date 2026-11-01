@@ -99,6 +99,8 @@ export default function BarWeightPicker({ value, onChange, isOpen, onToggle, uni
         <div className="bar-weight-picker__custom-input-wrap">
           <input
             type="number"
+            inputMode="numeric"
+            enterKeyHint="done"
             className="input bar-weight-picker__custom-input"
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}

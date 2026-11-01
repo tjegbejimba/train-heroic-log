@@ -93,24 +93,30 @@
   border-bottom: none;
 }
 
-.planner-day:hover {
-  background: var(--surface-high);
+@media (hover: hover) and (pointer: fine) {
+  .planner-day:hover {
+    background: var(--surface-high);
+  }
 }
 
 .planner-day--today {
   background: var(--accent-subtle);
 }
 
-.planner-day--today:hover {
-  background: color-mix(in oklch, var(--accent-subtle) 80%, var(--surface-high));
+@media (hover: hover) and (pointer: fine) {
+  .planner-day--today:hover {
+    background: color-mix(in oklch, var(--accent-subtle) 80%, var(--surface-high));
+  }
 }
 
 .planner-day--draft {
   background: color-mix(in oklch, var(--warning-subtle) 72%, var(--surface));
 }
 
-.planner-day--draft:hover {
-  background: color-mix(in oklch, var(--warning-subtle) 90%, var(--surface-high));
+@media (hover: hover) and (pointer: fine) {
+  .planner-day--draft:hover {
+    background: color-mix(in oklch, var(--warning-subtle) 90%, var(--surface-high));
+  }
 }
 
 .planner-day__header {
@@ -174,8 +180,10 @@
   text-align: left;
 }
 
-.planner-day__workout-name:hover:not(:disabled) {
-  color: var(--accent-text);
+@media (hover: hover) and (pointer: fine) {
+  .planner-day__workout-name:hover:not(:disabled) {
+    color: var(--accent-text);
+  }
 }
 
 .planner-day__workout-name:disabled {
@@ -196,10 +204,12 @@
   color: var(--text-muted);
 }
 
-.planner-day__clear:hover {
-  border-color: var(--danger-subtle);
-  background: var(--danger-subtle);
-  color: var(--danger);
+@media (hover: hover) and (pointer: fine) {
+  .planner-day__clear:hover {
+    border-color: var(--danger-subtle);
+    background: var(--danger-subtle);
+    color: var(--danger);
+  }
 }
 
 .planner-day__clear:active {
@@ -306,7 +316,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  max-height: min(76vh, 620px);
+  max-height: min(76dvh, 620px);
 }
 
 .template-picker__header {
@@ -337,9 +347,11 @@
   color: var(--text-secondary);
 }
 
-.template-picker__close:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .template-picker__close:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
 }
 
 .template-picker__search {
@@ -376,6 +388,7 @@
   flex-direction: column;
   gap: var(--space-sm);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .template-picker__item {
@@ -393,9 +406,11 @@
   text-align: left;
 }
 
-.template-picker__item:hover {
-  border-color: var(--accent-line);
-  background: var(--accent-subtle);
+@media (hover: hover) and (pointer: fine) {
+  .template-picker__item:hover {
+    border-color: var(--accent-line);
+    background: var(--accent-subtle);
+  }
 }
 
 .template-picker__item:active {

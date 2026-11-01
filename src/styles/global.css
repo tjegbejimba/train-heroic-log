@@ -6,6 +6,7 @@
    below.
    ============================================================ */
 :root {
+  color-scheme: dark;
   /* ---------- Canvas & surfaces (cool graphite ramp) ---------- */
   --bg:               oklch(0.16 0.014 265);   /* app canvas / behind column   */
   --bg-ambient:       oklch(0.13 0.012 265);   /* desktop field behind the app */
@@ -165,6 +166,9 @@ body,
 /* iOS can expose the root canvas below the dynamic viewport. */
 html {
   background-color: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
 }
 
 @media (max-width: 519px) {
@@ -220,6 +224,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
@@ -256,6 +261,34 @@ h3 {
 }
 
 /* Button styles */
+button,
+a[href],
+[role='button'],
+[role='tab'],
+input,
+textarea,
+select,
+label[for] {
+  touch-action: manipulation;
+}
+
+/* Labels are controls; workout instructions and editable text stay selectable. */
+button,
+[role='button'],
+[role='tab'] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+:where(button, [role='button'], [role='tab']):active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.97);
+}
+
+a[href]:active {
+  color: var(--accent-press);
+}
+
 button {
   cursor: pointer;
   border: none;
@@ -309,9 +342,11 @@ button {
   color: var(--on-accent);
 }
 
-.btn-primary:hover:not(:disabled):not([aria-disabled='true']) {
-  background: var(--accent-hover);
-  box-shadow: var(--glow-accent);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled):not([aria-disabled='true']) {
+    background: var(--accent-hover);
+    box-shadow: var(--glow-accent);
+  }
 }
 
 .btn-primary:active:not(:disabled):not([aria-disabled='true']) {
@@ -326,9 +361,11 @@ button {
   border: 1px solid var(--border);
 }
 
-.btn-secondary:hover:not(:disabled):not([aria-disabled='true']) {
-  background: var(--surface-elevated);
-  border-color: var(--border-strong);
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover:not(:disabled):not([aria-disabled='true']) {
+    background: var(--surface-elevated);
+    border-color: var(--border-strong);
+  }
 }
 
 .btn-secondary:active:not(:disabled):not([aria-disabled='true']) {
@@ -342,8 +379,10 @@ button {
   border: 1px solid var(--danger);
 }
 
-.btn-danger:hover:not(:disabled):not([aria-disabled='true']) {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover:not(:disabled):not([aria-disabled='true']) {
+    filter: brightness(1.08);
+  }
 }
 
 .btn-danger:active:not(:disabled):not([aria-disabled='true']) {
@@ -356,9 +395,11 @@ button {
   border: 1px solid var(--danger-subtle);
 }
 
-.btn-outline-danger:hover:not(:disabled):not([aria-disabled='true']) {
-  background: var(--danger-subtle);
-  border-color: var(--danger);
+@media (hover: hover) and (pointer: fine) {
+  .btn-outline-danger:hover:not(:disabled):not([aria-disabled='true']) {
+    background: var(--danger-subtle);
+    border-color: var(--danger);
+  }
 }
 
 .btn-outline-danger:active:not(:disabled):not([aria-disabled='true']) {
@@ -376,8 +417,10 @@ button {
   opacity: 0.85;
 }
 
-.btn-text-danger:hover:not(:disabled):not([aria-disabled='true']) {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .btn-text-danger:hover:not(:disabled):not([aria-disabled='true']) {
+    opacity: 1;
+  }
 }
 
 .btn-text-danger:active:not(:disabled):not([aria-disabled='true']) {
@@ -459,8 +502,10 @@ input[type='checkbox'] {
   flex-shrink: 0;
 }
 
-input[type='checkbox']:hover {
-  border-color: var(--border-strong);
+@media (hover: hover) and (pointer: fine) {
+  input[type='checkbox']:hover {
+    border-color: var(--border-strong);
+  }
 }
 
 input[type='checkbox']:checked {
@@ -493,8 +538,10 @@ a {
   transition: color var(--transition);
 }
 
-a:hover {
-  color: var(--accent-hover);
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--accent-hover);
+  }
 }
 
 /* Scrollbar — hide for native feel */

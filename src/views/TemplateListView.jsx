@@ -41,6 +41,16 @@ function SwipeableRow({ children, onDelete }) {
     startX.current = null;
   };
 
+  const handleTouchCancel = () => {
+    if (rowRef.current) {
+      rowRef.current.style.transition = 'transform 200ms ease';
+      rowRef.current.style.transform = swiped
+        ? `translateX(-${SWIPE_THRESHOLD}px)`
+        : 'translateX(0)';
+    }
+    startX.current = null;
+  };
+
   return (
     <div className={`tpl-list__swipe-container${swiped ? ' tpl-list__swipe-container--open' : ''}`}>
       <div className="tpl-list__swipe-actions">
@@ -55,6 +65,7 @@ function SwipeableRow({ children, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         {children}
       </div>
