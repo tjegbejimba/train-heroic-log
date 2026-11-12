@@ -1,10 +1,11 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useId } from 'react';
 import { ChevronUp, ChevronDown, Layers3, Plus, Trash2, X } from 'lucide-react';
 import RestDurationPicker from '../components/RestDurationPicker';
 import BarWeightPicker from '../components/BarWeightPicker';
 import { useToast } from '../components/Toast';
 import { validateTemplate } from '../utils/templateValidation';
 import { UNIT_OPTIONS } from '../../server/prescription.js';
+import Modal from '../components/Modal';
 
 function makeEmptySet(unit = 'lb', repsUnit = 'reps') {
   return { reps: null, weight: null, unit, repsUnit, rawReps: '', rawWeight: '' };
@@ -42,18 +43,26 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   }, [name, blocks]);
 
   // Exercise search state for picker
-  // Refs mirror state so onBlur timeouts always read the current value (avoids stale closures)
+  const autocompleteId = useId();
+  const [activeOption, setActiveOption] = useState(-1);
+  const activeOptionRef = useRef(null);
   const [activeSearch, setActiveSearchState] = useState(null); // { blockIdx, exIdx }
   const activeSearchRef = useRef(null);
   const [searchQuery, setSearchQueryState] = useState('');
   const searchQueryRef = useRef('');
 
+  useEffect(() => {
+    activeOptionRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
+  }, [activeOption]);
+
   function setActiveSearch(val) {
+    setActiveOption(-1);
     activeSearchRef.current = val;
     setActiveSearchState(val);
   }
 
   function setSearchQuery(val) {
+    setActiveOption(-1);
     searchQueryRef.current = val;
     setSearchQueryState(val);
   }
@@ -117,10 +126,6 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
   }
 
   function setExerciseTitle(bIdx, eIdx, title) {
-    // This commit can fire from a deferred onBlur timeout (see the exercise
-    // title input below), so it must merge into whatever state is current
-    // when it runs rather than overwrite a snapshot captured earlier —
-    // otherwise it silently discards any edit made during the delay window.
     setBlocks((prevBlocks) => {
       const next = [...prevBlocks];
       next[bIdx] = {
@@ -135,11 +140,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
     setSearchQuery('');
   }
 
-  // Merges any not-yet-committed free-text exercise title into `sourceBlocks`
-  // and returns the result. Used to flush the pending onBlur commit
-  // synchronously (e.g. before Save reads `blocks`) instead of waiting for
-  // the 200ms timeout, so a fast Save right after typing can't read stale
-  // state and discard the title.
+  // Save also commits a search that has not blurred yet.
   function flushPendingExerciseTitle(sourceBlocks) {
     const curActive = activeSearchRef.current;
     if (!curActive) return sourceBlocks;
@@ -423,6 +424,12 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                   <div className="tpl-editor__exercise-picker">
                     <input
                       type="text"
+                      role="combobox"
+                      aria-label={`Part ${String.fromCharCode(65 + bIdx)}, exercise ${eIdx + 1}`}
+                      aria-autocomplete="list"
+                      aria-expanded={isPickerOpen(bIdx, eIdx) && filteredExercises.length > 0}
+                      aria-controls={isPickerOpen(bIdx, eIdx) && filteredExercises.length > 0 ? `${autocompleteId}-${bIdx}-${eIdx}` : undefined}
+                      aria-activedescendant={isPickerOpen(bIdx, eIdx) && activeOption >= 0 ? `${autocompleteId}-${bIdx}-${eIdx}-${activeOption}` : undefined}
                       className="input"
                       placeholder="Search exercises..."
                       value={isPickerOpen(bIdx, eIdx) ? searchQuery : ex.title}
@@ -437,35 +444,48 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         setActiveSearch({ blockIdx: bIdx, exIdx: eIdx });
                         setSearchQuery(ex.title);
                       }}
-                      onBlur={() => {
-                        // Delay to allow click on dropdown item.
-                        // Read from refs (not closure) to get current values when the timeout fires.
-                        setTimeout(() => {
-                          const curActive = activeSearchRef.current;
-                          if (curActive?.blockIdx === bIdx && curActive?.exIdx === eIdx) {
-                            const curQuery = searchQueryRef.current;
-                            if (curQuery.trim() && curQuery !== ex.title) {
-                              setExerciseTitle(bIdx, eIdx, curQuery.trim());
-                            }
-                            setActiveSearch(null);
-                            setSearchQuery('');
+                      onKeyDown={(event) => {
+                        if (event.nativeEvent.isComposing) return;
+                        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                          event.preventDefault();
+                          if (!isPickerOpen(bIdx, eIdx)) {
+                            setActiveSearch({ blockIdx: bIdx, exIdx: eIdx });
+                            setSearchQuery(ex.title);
                           }
-                        }, 200);
+                          const matches = isPickerOpen(bIdx, eIdx) ? filteredExercises
+                            : exerciseNames.filter(name => !ex.title.trim() || name.toLowerCase().includes(ex.title.toLowerCase()));
+                          const count = Math.min(matches.length, 15);
+                          if (count) setActiveOption(index => event.key === 'ArrowDown'
+                            ? (index + 1) % count : (index <= 0 ? count - 1 : index - 1));
+                        } else if (isPickerOpen(bIdx, eIdx) && (event.key === 'Enter' || event.key === 'Escape')) {
+                          event.preventDefault();
+                          const selected = event.key === 'Enter' && activeOption >= 0
+                            ? filteredExercises[activeOption] : searchQuery.trim() || ex.title;
+                          setExerciseTitle(bIdx, eIdx, selected);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (isPickerOpen(bIdx, eIdx)) {
+                          setExerciseTitle(bIdx, eIdx, searchQueryRef.current.trim() || ex.title);
+                        }
                       }}
                     />
                     {isPickerOpen(bIdx, eIdx) && filteredExercises.length > 0 && (
-                      <div className="tpl-editor__dropdown">
-                        {filteredExercises.slice(0, 15).map((exerciseName) => (
-                          <button
+                      <div className="tpl-editor__dropdown" role="listbox" id={`${autocompleteId}-${bIdx}-${eIdx}`} aria-label="Exercise suggestions">
+                        {filteredExercises.slice(0, 15).map((exerciseName, index) => (
+                          <div
                             key={exerciseName}
+                            id={`${autocompleteId}-${bIdx}-${eIdx}-${index}`}
+                            role="option"
+                            aria-selected={activeOption === index}
+                            ref={activeOption === index ? activeOptionRef : null}
                             className="tpl-editor__dropdown-item"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setExerciseTitle(bIdx, eIdx, exerciseName);
-                            }}
+                            onPointerDown={(event) => event.preventDefault()}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => setExerciseTitle(bIdx, eIdx, exerciseName)}
                           >
                             {exerciseName}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -512,6 +532,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                     <span className="text-secondary text-sm">Set</span>
                     <select
                       className="input tpl-editor__set-unit"
+                      aria-label={`${ex.title || `Part ${String.fromCharCode(65 + bIdx)}, exercise ${eIdx + 1}`}, reps unit`}
                       value={ex.repsUnit || 'reps'}
                       onChange={(e) => updateRepsUnit(bIdx, eIdx, e.target.value)}
                     >
@@ -524,6 +545,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         <>
                           <select
                             className="input tpl-editor__set-unit"
+                            aria-label={`${ex.title || `Part ${String.fromCharCode(65 + bIdx)}, exercise ${eIdx + 1}`}, value unit`}
                             value={ex.unit || ex.sets[0]?.unit || 'lb'}
                             onChange={(e) => updateExerciseUnit(bIdx, eIdx, e.target.value)}
                           >
@@ -559,6 +581,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                       <input
                         type="number"
                         inputMode="numeric"
+                        aria-label={`${ex.title || `Part ${String.fromCharCode(65 + bIdx)}, exercise ${eIdx + 1}`}, set ${sIdx + 1}, target ${ex.repsUnit || 'reps'}`}
                         className="input tpl-editor__set-input"
                         placeholder="-"
                         value={set.reps ?? ''}
@@ -568,6 +591,7 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
                         <input
                           type="number"
                           inputMode="decimal"
+                          aria-label={`${ex.title || `Part ${String.fromCharCode(65 + bIdx)}, exercise ${eIdx + 1}`}, set ${sIdx + 1}, target value (${ex.unit || set.unit || 'lb'})`}
                           className="input tpl-editor__set-input"
                           placeholder="-"
                           value={set.weight ?? ''}
@@ -613,20 +637,15 @@ export default function TemplateEditorView({ template, exerciseNames, onSave, on
       </div>
 
       {showDiscardModal && (
-        <div className="modal-overlay" onClick={handleStay}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal__title">Unsaved changes will be lost</h2>
-            <p className="modal__message">Do you want to stay and keep editing, or discard your changes?</p>
-            <div className="modal__actions">
-              <button className="btn btn-secondary" onClick={handleStay}>
-                Stay
-              </button>
-              <button className="btn btn-danger" onClick={handleDiscard}>
-                Discard
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          title="Unsaved changes will be lost"
+          message="Do you want to stay and keep editing, or discard your changes?"
+          onCancel={handleStay}
+          onConfirm={handleDiscard}
+          cancelText="Stay"
+          confirmText="Discard"
+          isDestructive
+        />
       )}
     </div>
   );

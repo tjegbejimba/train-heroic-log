@@ -108,6 +108,11 @@ test('@visual creating a template with a duplicate name is rejected with visible
   // would show an empty frame. Capture with animations live, after the 220ms
   // fade-in has settled, so the error is legible in the screenshot.
   await page.waitForTimeout(300);
+  const toastBox = await errorToast.boundingBox();
+  for (const control of [page.locator('#template-name'), page.getByRole('button', { name: 'Save Template' })]) {
+    const box = await control.boundingBox();
+    expect(toastBox.y >= box.y + box.height || toastBox.y + toastBox.height <= box.y).toBe(true);
+  }
   await captureVisualEvidence(page, testInfo, 'template-create-duplicate-name-error', {
     animations: 'allow',
   });

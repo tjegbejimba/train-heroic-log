@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import { X, Play, CalendarPlus } from 'lucide-react';
+import { ModalSurface } from './Modal';
 
 export default function TemplatePreviewSheet({
   template,
@@ -8,14 +8,6 @@ export default function TemplatePreviewSheet({
   onClose,
   startDisabledReason = '',
 }) {
-  useEffect(() => {
-    const handler = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
   if (!template) return null;
 
   const exerciseCount = template.blocks.reduce(
@@ -31,14 +23,7 @@ export default function TemplatePreviewSheet({
   );
 
   return (
-    <div className="tpl-preview-overlay" onClick={onClose}>
-      <div
-        className="tpl-preview-sheet"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tpl-preview-title"
-      >
+    <ModalSurface onClose={onClose} className="tpl-preview-sheet" overlayClassName="tpl-preview-overlay" labelledBy="tpl-preview-title">
         <div className="tpl-preview__grabber" aria-hidden="true" />
         <div className="tpl-preview__header">
           <div>
@@ -104,7 +89,6 @@ export default function TemplatePreviewSheet({
             Schedule
           </button>
         </div>
-      </div>
-    </div>
+    </ModalSurface>
   );
 }

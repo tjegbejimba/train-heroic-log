@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { Check } from 'lucide-react';
 import { formatSet, secondsToMmss, mmssToSeconds } from '../../utils/formatters';
 import { getSetMeta } from '../../utils/setMeta';
@@ -18,6 +18,7 @@ function clampNonNegative(value, parseFn) {
  */
 export default function LogSetRow({
   setIndex,
+  exerciseTitle = 'Exercise',
   set,
   loggedSet,
   onUpdate,
@@ -27,6 +28,10 @@ export default function LogSetRow({
   barWeight = null,
 }) {
   const { isBodyweight, isTimeWeight, isTimeReps, weightLabel, repsLabel } = getSetMeta(set);
+  const inputId = useId();
+  const context = `${exerciseTitle}, set ${setIndex + 1}`;
+  const repsName = `${context}, actual ${isTimeReps ? 'reps time (mm:ss)' : repsLabel.toLowerCase()}`;
+  const valueName = `${context}, actual ${isTimeWeight ? 'time (mm:ss)' : `${['lb', 'kg'].includes(set.unit) ? 'weight' : 'value'} (${weightLabel})`}`;
 
   const [localReps, setLocalReps] = useState(loggedSet?.actualReps ?? '');
   const [localWeight, setLocalWeight] = useState(loggedSet?.actualWeight ?? '');
@@ -149,10 +154,12 @@ export default function LogSetRow({
 
       <div className="log-set-row__inputs">
         <div className="log-set-row__input-group">
-          <label className="log-set-row__input-label">{repsLabel}</label>
+          <label htmlFor={`${inputId}-reps`} className="log-set-row__input-label">{repsLabel}</label>
           {isTimeReps ? (
             <input
               ref={repsInputRef}
+              id={`${inputId}-reps`}
+              aria-label={repsName}
               type="text"
               inputMode="numeric"
               autoComplete="off"
@@ -175,6 +182,8 @@ export default function LogSetRow({
           ) : (
             <input
               ref={repsInputRef}
+              id={`${inputId}-reps`}
+              aria-label={repsName}
               type="number"
               inputMode="numeric"
               enterKeyHint="next"
@@ -194,11 +203,13 @@ export default function LogSetRow({
 
         {!isBodyweight && (
           <div className="log-set-row__input-group">
-            <label className="log-set-row__input-label">{weightLabel}</label>
+            <label htmlFor={`${inputId}-value`} className="log-set-row__input-label">{weightLabel}</label>
             <div className="log-set-row__weight-row">
               {isTimeWeight ? (
                 <input
                   ref={weightInputRef}
+                  id={`${inputId}-value`}
+                  aria-label={valueName}
                   type="text"
                   inputMode="numeric"
                   autoComplete="off"
@@ -236,6 +247,8 @@ export default function LogSetRow({
                   )}
                   <input
                     ref={weightInputRef}
+                    id={`${inputId}-value`}
+                    aria-label={valueName}
                     type="number"
                     inputMode="decimal"
                     enterKeyHint="done"
@@ -277,7 +290,7 @@ export default function LogSetRow({
       <button
         className={`log-set-row__complete${isCompleted ? ' log-set-row__complete--active' : ''}`}
         onClick={(e) => { e.currentTarget.blur(); handleToggleComplete(); }}
-        aria-label={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+        aria-label={`${isCompleted ? 'Mark incomplete' : 'Mark complete'}: ${context}`}
         type="button"
       >
         <Check size={20} strokeWidth={3} />

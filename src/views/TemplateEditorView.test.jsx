@@ -4,11 +4,8 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import TemplateEditorView from './TemplateEditorView.jsx';
 import { ToastProvider } from '../components/Toast';
 
-// Regression coverage for issue #88: the exercise-title field commits free-typed
-// text through a delayed onBlur handler (200ms, to let a dropdown click land
-// first). That deferred commit must merge into whatever state is current when
-// the timer fires, not overwrite a stale snapshot captured when the blur was
-// scheduled.
+// Issue #88 regressions: committing a free-text exercise title must not
+// overwrite edits made immediately afterward.
 
 function emptyTemplate() {
   return { id: 'tpl-1', name: 'Test Template', blocks: [] };
@@ -31,13 +28,35 @@ function renderEditor(props = {}) {
   return { onSave, onCancel };
 }
 
-describe('TemplateEditorView deferred exercise-title commit', () => {
+describe('TemplateEditorView exercise entry', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('selects an existing exercise with ArrowDown and Enter without losing input focus', () => {
+    const { onSave } = renderEditor();
+    const input = screen.getByPlaceholderText('Search exercises...');
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Back' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('Back Squat');
+    expect(document.activeElement).toBe(input);
+    fireEvent.click(screen.getByText('Save Template'));
+    expect(onSave.mock.calls[0][0].blocks[0].exercises[0].title).toBe('Back Squat');
+  });
+
+  it('names target sets and unit selectors in their exercise context', () => {
+    renderEditor();
+    expect(screen.getByLabelText('Part A, exercise 1, set 1, target reps')).toBeTruthy();
+    expect(screen.getByLabelText('Part A, exercise 1, set 1, target value (lb)')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Part A, exercise 1, value unit'), { target: { value: 'sec' } });
+    expect(screen.getByLabelText('Part A, exercise 1, set 1, target value (sec)')).toBeTruthy();
+    expect(screen.getByLabelText('Part A, exercise 1, reps unit')).toBeTruthy();
   });
 
   it('preserves a reps value entered immediately after typing a free-text title', () => {
@@ -48,12 +67,10 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.change(titleInput, { target: { value: 'Barbell Bench Press' } });
     fireEvent.blur(titleInput);
 
-    // Before the deferred blur commit fires, enter a reps value for the
-    // (still untitled) exercise's first set.
+    // Enter reps immediately after committing the title.
     const repsInput = screen.getAllByPlaceholderText('-')[0];
     fireEvent.change(repsInput, { target: { value: '8' } });
 
-    // Let the deferred title commit run.
     act(() => {
       vi.advanceTimersByTime(200);
     });
@@ -70,7 +87,6 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.change(titleInput, { target: { value: 'Overhead Press' } });
     fireEvent.blur(titleInput);
 
-    // Before the deferred blur commit fires, add a second exercise to the part.
     fireEvent.click(screen.getByText('Add Exercise to Part'));
 
     act(() => {
@@ -89,7 +105,6 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.change(titleInput, { target: { value: 'Lateral Raise' } });
     fireEvent.blur(titleInput);
 
-    // Before the deferred blur commit fires, add a second set to this exercise.
     const setsBefore = screen.getAllByPlaceholderText('-').length;
     fireEvent.click(screen.getByText('+ Set'));
 
@@ -109,7 +124,6 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.change(titleInput, { target: { value: 'Front Squat' } });
     fireEvent.blur(titleInput);
 
-    // Before the deferred blur commit fires, add a second part/block.
     const titlesBefore = screen.getAllByPlaceholderText('Search exercises...').length;
     fireEvent.click(screen.getByText('Add Part'));
 
@@ -121,7 +135,7 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     expect(screen.getByDisplayValue('Front Squat')).toBeTruthy();
   });
 
-  it('commits a pending free-text title before saving, even if Save is clicked before the deferred commit fires', () => {
+  it('saves a free-text title when Save is clicked immediately after blur', () => {
     const { onSave } = renderEditor();
 
     const titleInput = screen.getByPlaceholderText('Search exercises...');
@@ -129,7 +143,7 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.change(titleInput, { target: { value: 'Zercher Squat' } });
     fireEvent.blur(titleInput);
 
-    // Click Save immediately — before the 200ms deferred title commit fires.
+    // Click Save immediately after blur.
     fireEvent.click(screen.getByText('Save Template'));
 
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -144,7 +158,7 @@ describe('TemplateEditorView deferred exercise-title commit', () => {
     fireEvent.focus(titleInput);
     fireEvent.change(titleInput, { target: { value: 'Back' } });
 
-    fireEvent.mouseDown(screen.getByText('Back Squat'));
+    fireEvent.click(screen.getByRole('option', { name: 'Back Squat' }));
 
     // No timer advance needed — dropdown selection commits synchronously.
     expect(screen.getByDisplayValue('Back Squat')).toBeTruthy();

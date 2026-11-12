@@ -38,7 +38,7 @@
   --warning:        oklch(0.82 0.14 85);
   --info:           var(--accent-text);
   --on-success:     oklch(0.20 0.03 158);
-  --on-danger:      oklch(0.99 0 0);
+  --on-danger:      oklch(0.20 0.03 20);
   --success-subtle: color-mix(in oklch, var(--success) 15%, transparent);
   --danger-subtle:  color-mix(in oklch, var(--danger) 15%, transparent);
   --warning-subtle: color-mix(in oklch, var(--warning) 15%, transparent);
@@ -731,7 +731,7 @@ a {
 /* Toast notifications */
 .toast-container {
   position: fixed;
-  top: max(var(--space-lg), env(safe-area-inset-top, var(--space-lg)));
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toast);
@@ -757,6 +757,16 @@ a {
   animation: toast-in 220ms var(--ease-out-expo), toast-out 260ms var(--ease-in-out) forwards;
   animation-delay: 0ms, 2200ms;
   max-width: 100%;
+}
+
+.toast-region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+body:has(.rest-timer) .toast-container {
+  bottom: calc(164px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Status is carried by the leading icon color, not a side-stripe. */

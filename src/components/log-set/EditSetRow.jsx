@@ -1,8 +1,11 @@
+import { useId } from 'react';
 import { Minus } from 'lucide-react';
 import { getSetMeta } from '../../utils/setMeta';
 
-export default function EditSetRow({ setIndex, set, onTargetChange, onRemoveSet }) {
+export default function EditSetRow({ exerciseTitle = 'Exercise', setIndex, set, onTargetChange, onRemoveSet }) {
   const { isBodyweight, weightLabel, repsLabel } = getSetMeta(set);
+  const inputId = useId();
+  const context = `${exerciseTitle}, set ${setIndex + 1}`;
 
   return (
     <div className="log-set-row log-set-row--edit">
@@ -11,8 +14,10 @@ export default function EditSetRow({ setIndex, set, onTargetChange, onRemoveSet 
       </div>
       <div className="log-set-row__inputs">
         <div className="log-set-row__input-group">
-          <label className="log-set-row__input-label">{repsLabel}</label>
+          <label htmlFor={`${inputId}-reps`} className="log-set-row__input-label">{repsLabel}</label>
           <input
+            id={`${inputId}-reps`}
+            aria-label={`${context}, target ${set.repsUnit || 'reps'}`}
             type="number"
             inputMode="numeric"
             autoComplete="off"
@@ -28,8 +33,10 @@ export default function EditSetRow({ setIndex, set, onTargetChange, onRemoveSet 
         </div>
         {!isBodyweight && (
           <div className="log-set-row__input-group">
-            <label className="log-set-row__input-label">{weightLabel}</label>
+            <label htmlFor={`${inputId}-value`} className="log-set-row__input-label">{weightLabel}</label>
             <input
+              id={`${inputId}-value`}
+              aria-label={`${context}, target value (${set.unit})`}
               type="number"
               inputMode="decimal"
               autoComplete="off"

@@ -46,6 +46,45 @@ async function seedEarlierSessions(page) {
   await page.reload();
 }
 
+test('@visual sparse, dense and equal-volume histories keep every volume bar inside the plot', async ({ page }, testInfo) => {
+  await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  for (const [count, equalVolume] of [[2, false], [3, false], [20, false], [3, true]]) {
+    const logs = Object.fromEntries(Array.from({ length: count }, (_, index) => {
+      const date = `2026-09-${String(index + 1).padStart(2, '0')}`;
+      const session = earlierSession(date, [squatSet(0, 5, equalVolume ? 175 : 175 + index * 5)]);
+      return [session.logKey, session];
+    }));
+    await page.evaluate(logs => {
+      localStorage.setItem('th_logs', JSON.stringify(logs));
+      sessionStorage.setItem('skipSync', '1');
+    }, logs);
+    await page.reload();
+    await page.getByRole('button', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /Barbell Back Squat/ }).first().click();
+    await page.getByRole('button', { name: 'View exercise history' }).click();
+    const chart = page.getByRole('img', { name: 'Weight progress chart' });
+    await expect(chart).toBeVisible();
+    const plot = await chart.locator('.progress-chart__grid-line').first().boundingBox();
+    const bars = await chart.locator('.progress-chart__volume-bar').evaluateAll(elements => elements.map(el => {
+      const { x, y, width, height } = el.getBoundingClientRect();
+      return { x, y, width, height };
+    }));
+    expect(bars).toHaveLength(count);
+    for (let index = 0; index < bars.length; index++) {
+      expect(bars[index].x).toBeGreaterThanOrEqual(plot.x - 0.5);
+      expect(bars[index].x + bars[index].width).toBeLessThanOrEqual(plot.x + plot.width + 0.5);
+      expect(bars[index].width).toBeGreaterThan(0);
+      if (index) expect(bars[index].x).toBeGreaterThanOrEqual(bars[index - 1].x + bars[index - 1].width);
+      if (equalVolume) expect(bars[index].height).toBeCloseTo(bars[0].height, 2);
+    }
+    await expectNoDocumentHorizontalOverflow(page);
+    await expect(page.getByRole('button', { name: 'Library', exact: true })).toBeVisible();
+    await captureVisualEvidence(page, testInfo, `bounded-volume-${count}-${equalVolume ? 'equal' : 'varying'}`);
+  }
+});
+
 test('@visual Training history reports PRs consistently across the app', async ({ page }, testInfo) => {
   await gotoCleanApp(page);
   await importSampleCsv(page);

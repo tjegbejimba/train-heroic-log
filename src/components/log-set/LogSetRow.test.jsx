@@ -17,6 +17,22 @@ describe('LogSetRow', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ['kg', 'reps', 'actual reps', 'actual weight (kg)'],
+    ['sec', 'reps', 'actual reps', 'actual time (mm:ss)'],
+    ['bw', 'sec', 'actual reps time (mm:ss)', null],
+    ['RPE', 'reps', 'actual reps', 'actual value (RPE)'],
+  ])('names %s/%s fields and completion in exercise/set context', (unit, repsUnit, repsName, valueName) => {
+    const onUpdate = vi.fn();
+    render(<LogSetRow exerciseTitle="Squat" setIndex={1} set={{ ...defaultSet, unit, repsUnit }} onUpdate={onUpdate} />);
+    const prefix = 'Squat, set 2, ';
+    expect(screen.getByLabelText(prefix + repsName)).toBeTruthy();
+    if (valueName) expect(screen.getByLabelText(prefix + valueName)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark complete: Squat, set 2' }));
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ completed: true }));
+    expect(screen.getByRole('button', { name: 'Mark incomplete: Squat, set 2' })).toBeTruthy();
+  });
+
   it('renders set number and target', () => {
     render(
       <LogSetRow setIndex={0} set={defaultSet} loggedSet={null} onUpdate={() => {}} />
@@ -78,7 +94,7 @@ describe('LogSetRow', () => {
     render(
       <LogSetRow setIndex={0} set={defaultSet} loggedSet={null} onUpdate={onUpdate} />
     );
-    fireEvent.click(screen.getByLabelText('Mark complete'));
+    fireEvent.click(screen.getByLabelText(/^Mark complete:/));
     expect(onUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ actualReps: 10, actualWeight: 135, completed: true })
     );
@@ -95,7 +111,7 @@ describe('LogSetRow', () => {
         onUpdate={onUpdate}
       />
     );
-    fireEvent.click(screen.getByLabelText('Mark incomplete'));
+    fireEvent.click(screen.getByLabelText(/^Mark incomplete:/));
     expect(onUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ completed: false })
     );

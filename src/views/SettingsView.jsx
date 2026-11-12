@@ -48,6 +48,7 @@ export default function SettingsView({
   lastSynced,
   onPullSync,
   onPushSync,
+  syncFeedback,
 }) {
   const showToast = useToast();
   const { settings, updateSettings } = useSettings();
@@ -403,13 +404,16 @@ export default function SettingsView({
             )}
           </div>
           <div className="settings-view__data-actions">
-            <button className="btn btn-secondary w-full" onClick={onPullSync}>
+            <button className="btn btn-secondary w-full" onClick={onPullSync} disabled={syncFeedback?.pending}>
               Pull from Server
             </button>
-            <button className="btn btn-secondary w-full" onClick={onPushSync}>
+            <button className="btn btn-secondary w-full" onClick={onPushSync} disabled={syncFeedback?.pending}>
               Push to Server
             </button>
           </div>
+          <p role="status" aria-live="polite" aria-atomic="true" className={`settings-section__hint${syncFeedback?.error ? ' settings-sync-result--error' : ''}`}>
+            {syncFeedback?.message}
+          </p>
           <p className="settings-section__hint">
             Data syncs automatically in background. Use these buttons for manual sync.
           </p>
@@ -588,12 +592,15 @@ export default function SettingsView({
       )}
 
       {showClearConfirm && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2 className="modal__title">Clear Data</h2>
-            <p className="modal__message settings-clear-modal__message">
-              Select which data to delete. This cannot be undone.
-            </p>
+        <Modal
+          title="Clear Data"
+          message="Select which data to delete. This cannot be undone."
+          onCancel={() => setShowClearConfirm(false)}
+          onConfirm={handleClearAll}
+          confirmText={`Delete${selectedClearCount > 0 ? ` (${selectedClearCount})` : ''}`}
+          confirmDisabled={selectedClearCount === 0}
+          isDestructive
+        >
             <div className="settings-clear-modal__checks">
               <label className="settings-clear-modal__check settings-clear-modal__check--all">
                 <input
@@ -622,20 +629,7 @@ export default function SettingsView({
                 </label>
               ))}
             </div>
-            <div className="modal__actions flex gap-md">
-              <button className="btn btn-secondary flex-1" onClick={() => setShowClearConfirm(false)}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger flex-1"
-                onClick={handleClearAll}
-                disabled={selectedClearCount === 0}
-              >
-                Delete{selectedClearCount > 0 ? ` (${selectedClearCount})` : ''}
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {showFeedback && (

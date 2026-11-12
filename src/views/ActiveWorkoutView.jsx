@@ -421,6 +421,7 @@ export default function ActiveWorkoutView({
                       if (editMode) {
                         return (
                           <EditSetRow
+                            exerciseTitle={exercise.title}
                             key={setIdx}
                             setIndex={setIdx}
                             set={set}
@@ -451,6 +452,7 @@ export default function ActiveWorkoutView({
                         <div key={setIdx} data-set-id={`${exercise.title}::${setIdx}`}>
                           <LogSetRow
                             setIndex={setIdx}
+                            exerciseTitle={exercise.title}
                             set={set}
                             loggedSet={exerciseLogs[setIdx]}
                             isNext={
