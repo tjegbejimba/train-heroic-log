@@ -2,6 +2,34 @@ import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalA11y } from '../hooks/useModalA11y';
 
+export function ModalSurface({
+  children, onClose, labelledBy, describedBy, label,
+  className = 'modal', overlayClassName = 'modal-overlay',
+}) {
+  const overlayRef = useRef(null);
+  const dialogRef = useRef(null);
+  useModalA11y({ containerRef: dialogRef, protectedRef: overlayRef, onEscape: onClose });
+
+  return createPortal(
+    <div className={overlayClassName} ref={overlayRef} onClick={onClose}>
+      <div
+        ref={dialogRef}
+        className={className}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : label || 'Dialog'}
+        aria-describedby={describedBy}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function Modal({
   title,
   message,
@@ -10,35 +38,14 @@ export default function Modal({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isDestructive = false,
+  confirmDisabled = false,
   children,
 }) {
-  const overlayRef = useRef(null);
-  const dialogRef = useRef(null);
   const titleId = useId();
   const messageId = useId();
 
-  // Shared contract with FeedbackModal and RestTimer: initial focus, Tab
-  // containment, Escape-only-when-topmost, focus restoration on close, and
-  // background inert-ing while open. The trap/focus boundary is the dialog
-  // element itself; the overlay (the actual node portaled onto <body>) is
-  // what gets exempted from the background lock. Cancel is always rendered
-  // before Confirm below, so the hook's "first focusable element" fallback
-  // already lands on the least-destructive action whenever one is present.
-  useModalA11y({ containerRef: dialogRef, protectedRef: overlayRef, onEscape: onCancel || undefined });
-
-  return createPortal(
-    <div className="modal-overlay" ref={overlayRef} onClick={onCancel}>
-      <div
-        ref={dialogRef}
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
-        aria-labelledby={title ? titleId : undefined}
-        aria-label={title ? undefined : 'Dialog'}
-        aria-describedby={message ? messageId : undefined}
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <ModalSurface onClose={onCancel} labelledBy={title ? titleId : undefined} describedBy={message ? messageId : undefined}>
         {title && <h2 id={titleId} className="modal__title">{title}</h2>}
         {message && <p id={messageId} className="modal__message">{message}</p>}
         {children}
@@ -49,13 +56,11 @@ export default function Modal({
             </button>
           )}
           {onConfirm && (
-            <button className={`btn ${isDestructive ? 'btn-danger' : 'btn-primary'} flex-1`} onClick={onConfirm}>
+            <button className={`btn ${isDestructive ? 'btn-danger' : 'btn-primary'} flex-1`} onClick={onConfirm} disabled={confirmDisabled}>
               {confirmText}
             </button>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+    </ModalSurface>
   );
 }

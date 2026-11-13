@@ -1,6 +1,47 @@
 import { test, expect } from '@playwright/test';
 import { gotoCleanApp, importSampleCsv, captureVisualEvidence, expectBottomNavVisible } from './helpers';
 
+test('@visual exercise autocomplete keeps keyboard focus and permits free text and pointer selection', async ({ page }, testInfo) => {
+  await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+  await gotoCleanApp(page);
+  await importSampleCsv(page);
+  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.getByRole('tab', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: /Lower Body B/ }).click();
+  const input = page.getByRole('combobox', { name: 'Part A, exercise 1', exact: true });
+  await input.fill('');
+  await input.press('ArrowUp');
+  await expect(page.getByRole('listbox').getByRole('option', { selected: true })).toBeInViewport({ ratio: 1 });
+  await input.fill('Barbell');
+  await input.press('ArrowDown');
+  await expect(page.getByRole('option', { name: 'Barbell Back Squat' })).toHaveAttribute('aria-selected', 'true');
+  await captureVisualEvidence(page, testInfo, 'exercise-autocomplete-keyboard');
+  await input.press('Enter');
+  await expect(input).toHaveValue('Barbell Back Squat');
+  await expect(input).toBeFocused();
+  await input.press('ArrowUp');
+  await expect(page.getByRole('listbox').getByRole('option', { selected: true })).toHaveText('Barbell Back Squat');
+  await input.press('Enter');
+  await expect(input).toHaveValue('Barbell Back Squat');
+  await input.fill('Barbell');
+  await input.press('Tab');
+  await expect(page.locator('body')).not.toBeFocused();
+  await expect(input).toHaveValue('Barbell');
+  await input.fill('Custom synthetic exercise');
+  await input.press('Escape');
+  await expect(input).toHaveValue('Custom synthetic exercise');
+  await expect(input).toBeFocused();
+  await input.fill('Barbell');
+  const option = page.getByRole('option', { name: 'Barbell Row', exact: true });
+  if (testInfo.project.name === 'mobile-chrome') await option.tap();
+  else await option.click();
+  await expect(input).toHaveValue('Barbell Row');
+  await expect(input).toBeFocused();
+  await page.getByRole('button', { name: 'Save Template' }).click();
+  await page.getByRole('button', { name: /Lower Body B/ }).click();
+  await expect(page.getByRole('combobox', { name: 'Part A, exercise 1', exact: true })).toHaveValue('Barbell Row');
+});
+
 test('@visual long template name wraps and keeps actions visible at mobile width', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chrome', 'Mobile-specific wrapping behavior test.');
 

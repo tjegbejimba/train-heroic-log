@@ -42,7 +42,8 @@ test.describe('Settings persistence regression @visual', () => {
     expect(backup).not.toHaveProperty('th_active');
 
     await expect(page.getByText('Backup exported!')).toBeVisible();
-    await captureVisualEvidence(page, testInfo, 'settings-export-backup');
+    await page.waitForTimeout(300);
+    await captureVisualEvidence(page, testInfo, 'settings-export-backup', { animations: 'allow' });
   });
 
   test('Restore from Backup persists through the authority and survives reload', async ({ page }, testInfo) => {
@@ -132,6 +133,36 @@ test.describe('Settings manual sync controls', () => {
   // the dev server's SPA fallback (HTML) and the pull would report "offline".
   // Blocking the SW keeps all fetches on the page where the route can intercept.
   test.use({ serviceWorkers: 'block' });
+
+  for (const action of ['Pull', 'Push']) {
+  test(`@visual failed manual ${action} retains local data guidance until a successful retry`, async ({ page }, testInfo) => {
+    let reachable = false;
+    await page.route('**/api/**', route => route.fulfill({
+      status: reachable ? 200 : 503,
+      contentType: 'application/json',
+      body: '{}',
+    }));
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+    await openSettings(page);
+    const buttonName = action === 'Pull' ? 'Pull from Server' : 'Push to Server';
+    await page.getByRole('button', { name: buttonName }).click();
+    const result = page.getByRole('status').filter({ hasText: `${action} failed:` });
+    await expect(result).toContainText('Local data remains on this device');
+    await expect(result).toContainText(`Retry ${buttonName} when online`);
+    await page.waitForTimeout(3000);
+    await expect(result).toBeVisible();
+    await captureVisualEvidence(page, testInfo, `settings-persistent-${action}-error`);
+    await page.getByRole('button', { name: 'Training', exact: true }).click();
+    await openSettings(page);
+    await expect(result).toBeVisible();
+    reachable = true;
+    await page.getByRole('button', { name: buttonName }).click();
+    await expect(page.getByRole('status').filter({ hasText: action === 'Pull' ? 'Already up to date' : 'Pushed to server!' })).toBeVisible();
+    await expect(result).toHaveCount(0);
+    await captureVisualEvidence(page, testInfo, `settings-${action}-retry-success`);
+  });
+  }
 
   test('Pull and Push route through the authority replication facade', async ({ page }) => {
     const pushedPayloads = [];

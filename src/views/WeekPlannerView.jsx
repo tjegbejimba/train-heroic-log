@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { CalendarCheck, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
-import Modal from '../components/Modal';
+import Modal, { ModalSurface } from '../components/Modal';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -311,11 +311,10 @@ export default function WeekPlannerView({
 
       {/* Template Picker Modal */}
       {showPicker && (
-        <div className="modal-overlay" onClick={() => { setShowPicker(null); setTemplateSearch(''); }}>
-          <div className="modal template-picker" onClick={(e) => e.stopPropagation()}>
+        <ModalSurface className="modal template-picker" labelledBy="template-picker-title" onClose={() => { setShowPicker(null); setTemplateSearch(''); }}>
             <div className="template-picker__header">
               <div>
-                <h2 className="modal__title">Pick a Template</h2>
+                <h2 id="template-picker-title" className="modal__title">Pick a Template</h2>
                 <p className="modal__message">
                   {DAY_NAMES[weekDates.indexOf(showPicker)]},{' '}
                   {parseLocalDate(showPicker).toLocaleDateString('en-US', {
@@ -398,8 +397,7 @@ export default function WeekPlannerView({
             >
               Cancel
             </button>
-          </div>
-        </div>
+        </ModalSurface>
       )}
 
       {showClearConfirm && (

@@ -29,11 +29,11 @@ test('resolves app and coach schedule proposals side by side without losing eith
   await captureVisualEvidence(page, testInfo, 'coach-schedule-conflict-side-by-side');
   state.failResolve = true;
   await page.getByRole('button', { name: 'Keep my edit' }).click();
-  await expect(page.getByRole('alert')).toContainText('Data changed. Refresh conflicts before choosing.');
+  await expect(page.getByRole('alert').filter({ hasText: 'Data changed. Refresh conflicts before choosing.' })).toBeVisible();
   await captureVisualEvidence(page, testInfo, 'coach-conflict-resolution-error');
   state.failResolve = false;
   await page.getByRole('button', { name: 'Refresh conflicts' }).click();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('alert').filter({ hasText: 'Data changed. Refresh conflicts before choosing.' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Keep my edit' }).click();
   await expect(page.getByRole('button', { name: 'Review sync conflicts (1)' })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('th_schedule'))['2099-11-03'])).toBe('My Upper A - Week 2');

@@ -120,6 +120,10 @@
   font-size: var(--text-xs);
 }
 
+.settings-section__hint.settings-sync-result--error {
+  color: var(--text);
+}
+
 .settings-section__alert {
   display: flex;
   align-items: flex-start;

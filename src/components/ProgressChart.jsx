@@ -38,7 +38,8 @@ export default function ProgressChart({ sessions }) {
   const maxVolume = Math.max(...volumes) || 1;
   const sparkTop = CHART_HEIGHT + 8;
   const sparkPlotH = SPARKLINE_HEIGHT - 4;
-  const barWidth = Math.max(2, plotW / n - 2);
+  const barSlotWidth = plotW / n;
+  const barWidth = barSlotWidth * 0.8;
 
   const buildLabel = (s) => {
     const d = new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', {
@@ -177,7 +178,7 @@ export default function ProgressChart({ sessions }) {
 
         {sessions.map((s, i) => {
           const bh = Math.max(2, (s.volume / maxVolume) * sparkPlotH);
-          const bx = xOf(i) - barWidth / 2;
+          const bx = PADDING.left + i * barSlotWidth + (barSlotWidth - barWidth) / 2;
           const by = sparkTop + sparkPlotH - bh;
           return (
             <rect

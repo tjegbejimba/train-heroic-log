@@ -196,7 +196,7 @@ describe('ActiveWorkoutView', () => {
       logs: { [logKey]: twoSetLog() },
     });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Mark complete:/ })[0]);
 
     const lastCall = saveLog.mock.calls.at(-1);
     expect(lastCall[0]).toBe(logKey);
@@ -212,9 +212,9 @@ describe('ActiveWorkoutView', () => {
       workouts: { [twoSetWorkout.title]: twoSetWorkout },
       logs: { [logKey]: twoSetLog() },
     });
-    const nextSet = screen.getAllByRole('button', { name: 'Mark complete' })[1];
+    const nextSet = screen.getAllByRole('button', { name: /^Mark complete:/ })[1];
     nextSet.focus();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Mark complete:/ })[0]);
 
     expect(screen.getByRole('region', { name: 'Rest timer' })).toBeTruthy();
     expect(screen.queryByRole('dialog', { name: /rest timer/i })).toBeNull();
@@ -227,7 +227,7 @@ describe('ActiveWorkoutView', () => {
       workouts: { [twoSetWorkout.title]: twoSetWorkout },
       logs: { [logKey]: twoSetLog() },
     });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Mark complete:/ })[0]);
     expect(screen.getByRole('region', { name: 'Rest timer' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Finish (1/2 sets)' }));
@@ -242,10 +242,10 @@ describe('ActiveWorkoutView', () => {
       logs: { [logKey]: twoSetLog() },
     });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Mark complete:/ })[0]);
     // Skipping rest keeps this test focused on sequential set persistence.
     fireEvent.click(screen.getByLabelText('Skip rest'));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mark complete' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Mark complete:/ })[0]);
 
     const finalLog = saveLog.mock.calls.at(-1)[1];
     expect(finalLog.exercises['Back Squat'][0].completed).toBe(true);
@@ -275,7 +275,7 @@ describe('ActiveWorkoutView', () => {
     });
 
     // The second (added) row has no logged entry yet; completing it must append.
-    fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Mark complete:/ }));
 
     const finalLog = saveLog.mock.calls.at(-1)[1];
     expect(finalLog.exercises['Back Squat']).toHaveLength(2);

@@ -67,7 +67,7 @@ text on the accent fill (fails AA at UI sizes).
 --warning:      oklch(0.82 0.14 85);   /* ~#f5c451 amber  — offline, caution                */
 --info:         var(--accent-text);
 --on-success:   oklch(0.20 0.03 158);  /* dark ink on success fill */
---on-danger:    oklch(0.99 0 0);       /* white ink on danger fill (bold, ≥16px)            */
+--on-danger:    oklch(0.20 0.03 20);   /* dark ink on danger fill (normal text ≥4.5:1)      */
 --*-subtle:     color-mix(in oklch, <token> 14%, transparent);  /* tinted backgrounds       */
 ```
 

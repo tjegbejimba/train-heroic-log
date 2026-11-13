@@ -70,6 +70,7 @@ export default function App() {
   } = useTemplates();
   const { syncStatus, lastSynced, pullSync, pushSync } = useSync();
   const showToast = useToast();
+  const [syncFeedback, setSyncFeedback] = useState(null);
 
   // Orchestration: the shell owns the latest committed Training Plan snapshot so
   // back-to-back planning actions build on prior committed writes rather than a
@@ -264,21 +265,26 @@ export default function App() {
   }, []);
 
   const handlePullSync = useCallback(async () => {
+    setSyncFeedback({ pending: true, message: 'Pulling from server…' });
     const { ok, changed } = await pullSync();
     if (ok) {
-      showToast(changed ? 'Synced from server!' : 'Already up to date');
+      setSyncFeedback({ message: changed ? 'Synced from server!' : 'Already up to date' });
       if (changed) {
         await safeFlushAndReload({ syncReload: '1' });
       }
     } else {
-      showToast('Server unreachable', 'error');
+      setSyncFeedback({ error: true, message: 'Pull failed: server unreachable. Local data remains on this device. Retry Pull from Server when online.' });
     }
-  }, [pullSync, showToast]);
+  }, [pullSync]);
 
   const handlePushSync = useCallback(async () => {
+    setSyncFeedback({ pending: true, message: 'Pushing to server…' });
     const ok = await pushSync();
-    showToast(ok ? 'Pushed to server!' : 'Server unreachable', ok ? 'success' : 'error');
-  }, [pushSync, showToast]);
+    setSyncFeedback(ok ? { message: 'Pushed to server!' } : {
+      error: true,
+      message: 'Push failed: server unreachable. Local data remains on this device. Retry Push to Server when online.',
+    });
+  }, [pushSync]);
 
   const settingsProps = {
     onReimport: () => navigate(ROUTE_IMPORT),
@@ -290,6 +296,7 @@ export default function App() {
     onClearAllData: handleClearAllData,
     syncStatus,
     lastSynced,
+    syncFeedback,
     onPullSync: handlePullSync,
     onPushSync: handlePushSync,
   };

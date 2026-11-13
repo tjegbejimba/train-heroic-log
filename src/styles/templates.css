@@ -552,6 +552,10 @@
   border-bottom: 0;
 }
 
+.tpl-editor__dropdown-item[aria-selected='true'] {
+  background: var(--accent-subtle);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .tpl-editor__dropdown-item:hover {
     background: var(--accent-subtle);

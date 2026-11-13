@@ -6,6 +6,14 @@ import EditSetRow from './EditSetRow';
 describe('EditSetRow', () => {
   const defaultSet = { reps: 10, weight: 135, unit: 'lb', repsUnit: 'reps' };
 
+  it('names prescription fields in the current exercise/set context', () => {
+    const onTargetChange = vi.fn();
+    render(<EditSetRow exerciseTitle="Squat" setIndex={1} set={defaultSet} onTargetChange={onTargetChange} onRemoveSet={() => {}} />);
+    fireEvent.change(screen.getByLabelText('Squat, set 2, target reps'), { target: { value: '8' } });
+    expect(onTargetChange).toHaveBeenCalledWith(1, 'reps', 8);
+    expect(screen.getByLabelText('Squat, set 2, target value (lb)')).toBeTruthy();
+  });
+
   it('renders set number', () => {
     render(<EditSetRow setIndex={0} set={defaultSet} onTargetChange={() => {}} onRemoveSet={() => {}} />);
     expect(screen.getByText('1')).toBeTruthy();

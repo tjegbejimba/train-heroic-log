@@ -8,6 +8,53 @@ import {
   quickStartLowerBodyWorkout 
 } from './helpers';
 
+test('@visual logging, plate and rest controls retain separated 48px targets at narrow widths', async ({ page }, testInfo) => {
+  await page.route('**/api/**', route => route.fulfill({ status: 503, json: {} }));
+  const originalViewport = page.viewportSize();
+  for (const width of [originalViewport.width, 320]) {
+    await page.setViewportSize({ width, height: originalViewport.height });
+    await gotoCleanApp(page);
+    await importSampleCsv(page);
+    await quickStartLowerBodyWorkout(page);
+    const row = page.locator('.log-set-row').filter({
+      has: page.getByLabel('Barbell Back Squat, set 1, actual weight (lb)', { exact: true }),
+    });
+    await row.getByLabel('Barbell Back Squat, set 1, actual weight (lb)', { exact: true }).fill('225');
+    await row.getByLabel('Barbell Back Squat, set 1, actual reps', { exact: true }).fill('3');
+    const controls = row.locator('input, button');
+    await expectSeparatedTargets(controls);
+    await row.getByRole('button', { name: 'Plate breakdown' }).click();
+    await expect(page.locator('.plate-display__popover')).toBeVisible();
+    await expectNoDocumentHorizontalOverflow(page);
+    await captureVisualEvidence(page, testInfo, `logging-targets-plate-${width}`);
+    await row.getByRole('button', { name: 'Plate breakdown' }).click();
+    await row.getByRole('button', { name: /^Mark complete:/ }).click();
+    const timer = page.getByRole('region', { name: 'Rest timer' });
+    await expect(timer).toBeVisible();
+    await expectSeparatedTargets(timer.getByRole('button'));
+    await expectNoDocumentHorizontalOverflow(page);
+    await captureVisualEvidence(page, testInfo, `rest-targets-${width}`);
+  }
+});
+
+async function expectSeparatedTargets(controls) {
+  const boxes = await controls.evaluateAll(elements => elements.map(el => {
+    const { x, y, width, height } = el.getBoundingClientRect();
+    return { x, y, width, height };
+  }));
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThanOrEqual(48);
+    expect(box.height).toBeGreaterThanOrEqual(48);
+  }
+  for (let a = 0; a < boxes.length; a++) {
+    for (let b = a + 1; b < boxes.length; b++) {
+      const first = boxes[a], second = boxes[b];
+      expect(first.x + first.width <= second.x + 0.5 || second.x + second.width <= first.x + 0.5 ||
+        first.y + first.height <= second.y + 0.5 || second.y + second.height <= first.y + 0.5).toBe(true);
+    }
+  }
+}
+
 test('quick-starts and completes a workout session', async ({ page }) => {
   await gotoCleanApp(page);
   await importSampleCsv(page);
